@@ -26,6 +26,7 @@ const state = {
   cursor: { a: null, b: null, arm: "a" },
   trace: { offset: 0, limit: 200, total: 0, rows: [], selectedTs: null },
   seriesToken: 0,
+  grid: store.get("grid", true),
 };
 
 /* ---- column model for the trace view ----------------------------------- */
@@ -341,12 +342,30 @@ function renderPlot() {
   const n = state.selected.length;
   const bandH = (g.H - PAD_T - PAD_B) / n;
   ctx.font = "11px system-ui, sans-serif";
+  if (state.grid) drawXGrid(g, PAD_T, PAD_T + n * bandH);
   state.selected.forEach((s, i) => {
     const top = PAD_T + i * bandH;
     drawBand(s, top, top + bandH - 6, g);
   });
   drawTimeAxis(g);
   drawCursors(g, bandH, n);
+}
+
+const X_TICKS = () => (state.grid ? 10 : 6);
+const Y_SUBLINES = 4;
+
+function drawXGrid(g, yTop, yBot) {
+  const ticks = X_TICKS();
+  ctx.save();
+  ctx.strokeStyle = css("--line");
+  ctx.globalAlpha = 0.5;
+  ctx.beginPath();
+  for (let i = 0; i <= ticks; i++) {
+    const x = PAD_L + (i / ticks) * g.plotW;
+    ctx.moveTo(x, yTop); ctx.lineTo(x, yBot);
+  }
+  ctx.stroke();
+  ctx.restore();
 }
 
 function drawBand(s, top, bot, g) {
@@ -362,6 +381,26 @@ function drawBand(s, top, bot, g) {
   ctx.textAlign = "right";
   ctx.fillText(fmtNum(hi), PAD_L - 5, top + 9);
   ctx.fillText(fmtNum(lo), PAD_L - 5, bot - 1);
+
+  // Horizontal grid + intermediate value graduations.
+  if (state.grid) {
+    ctx.save();
+    ctx.strokeStyle = css("--line");
+    ctx.globalAlpha = 0.4;
+    ctx.beginPath();
+    for (let j = 1; j < Y_SUBLINES; j++) {
+      const y = bot - (bot - top) * (j / Y_SUBLINES);
+      ctx.moveTo(PAD_L, y); ctx.lineTo(PAD_L + g.plotW, y);
+    }
+    ctx.stroke();
+    ctx.restore();
+    ctx.fillStyle = css("--muted");
+    ctx.textAlign = "right";
+    for (let j = 1; j < Y_SUBLINES; j++) {
+      const y = bot - (bot - top) * (j / Y_SUBLINES);
+      ctx.fillText(fmtNum(lo + (hi - lo) * (j / Y_SUBLINES)), PAD_L - 5, y + 3);
+    }
+  }
 
   ctx.textAlign = "left";
   ctx.fillStyle = s.color;
@@ -391,6 +430,7 @@ function drawBand(s, top, bot, g) {
 function drawTimeAxis(g) {
   ctx.fillStyle = css("--muted");
   ctx.textAlign = "center";
+  // Fewer text labels than grid lines so they never overlap on a dense grid.
   const ticks = 6;
   for (let i = 0; i <= ticks; i++) {
     const x = PAD_L + (i / ticks) * g.plotW;
@@ -429,12 +469,27 @@ function scheduleSeriesRefresh() {
   viewTimer = setTimeout(async () => { if (await fetchAllSeries()) renderPlot(); }, 120);
 }
 
-function setView(t0, t1) {
+function setView(t0, t1, opts) {
   if (!state.bounds) return;
+  const preserveSpan = opts && opts.preserveSpan;
   const [lo, hi] = state.bounds;
-  const minSpan = Math.max((hi - lo) / 1e6, 1e-6);
-  if (t1 - t0 < minSpan) { const mid = (t0 + t1) / 2; t0 = mid - minSpan / 2; t1 = mid + minSpan / 2; }
-  t0 = Math.max(lo, t0); t1 = Math.min(hi, t1);
+  const fullSpan = hi - lo;
+  const minSpan = Math.max(fullSpan / 1e6, 1e-6);
+  let span = t1 - t0;
+  if (span < minSpan) { const mid = (t0 + t1) / 2; t0 = mid - minSpan / 2; t1 = mid + minSpan / 2; span = minSpan; }
+
+  if (span >= fullSpan) {
+    // Fully zoomed out: snap to the whole extent.
+    t0 = lo; t1 = hi;
+  } else if (preserveSpan) {
+    // Panning: hitting an edge must slide the window, never shrink it (no
+    // edge "zoom"). Keep the span fixed and clamp the leading edge.
+    if (t0 < lo) { t0 = lo; t1 = lo + span; }
+    else if (t1 > hi) { t1 = hi; t0 = hi - span; }
+  } else {
+    // Zooming: clamping a single edge is fine (span changes intentionally).
+    t0 = Math.max(lo, t0); t1 = Math.min(hi, t1);
+  }
   if (t1 <= t0) { t0 = lo; t1 = hi; }
   state.view = [t0, t1];
   renderPlot();
@@ -455,21 +510,72 @@ canvas.addEventListener("wheel", (e) => {
   zoomAt(g.tOf(e.offsetX), e.deltaY < 0 ? 0.8 : 1.25);
 }, { passive: false });
 
-let pan = null;
+const CURSOR_HIT_PX = 6;      // pointer proximity to grab a cursor line
+
+// Which placed cursor (if any) the pointer is within CURSOR_HIT_PX of.
+function cursorNear(g, x) {
+  let best = null, bestD = CURSOR_HIT_PX;
+  for (const which of ["a", "b"]) {
+    const t = state.cursor[which];
+    if (t == null) continue;
+    const d = Math.abs(g.xOf(t) - x);
+    if (d <= bestD) { best = which; bestD = d; }
+  }
+  return best;
+}
+
+let pan = null;              // active pan gesture
+let cursorDrag = null;       // "a" | "b" while dragging a cursor
+
 canvas.addEventListener("mousedown", (e) => {
   if (!state.view) return;
+  const g = plotGeom();
+  const near = cursorNear(g, e.offsetX);
+  if (near) {
+    // Pressing on a placed cursor grabs it immediately: dragging the cursor
+    // takes priority over panning the graph. Panning starts only when the
+    // press begins away from any cursor line.
+    cursorDrag = near;
+    pan = null;
+    canvas.style.cursor = "grabbing";
+    return;
+  }
   pan = { x: e.offsetX, t0: state.view[0], t1: state.view[1], moved: false };
 });
+
 window.addEventListener("mousemove", (e) => {
-  if (!pan) return;
   const g = plotGeom();
   const rect = canvas.getBoundingClientRect();
-  const dx = (e.clientX - rect.left) - pan.x;
-  if (Math.abs(dx) > 2) pan.moved = true;
-  const dt = (dx / g.plotW) * (pan.t1 - pan.t0);
-  setView(pan.t0 - dt, pan.t1 - dt);
+  const x = e.clientX - rect.left;
+
+  if (cursorDrag) {
+    const t = Math.max(g.t0, Math.min(g.t1, g.tOf(x)));
+    state.cursor[cursorDrag] = t;
+    renderPlot();
+    refreshCursorReadoutDebounced();
+    return;
+  }
+  if (pan) {
+    const dx = x - pan.x;
+    if (Math.abs(dx) > 3) pan.moved = true;   // moved: it's a pan, not a click
+    const dt = (dx / g.plotW) * (pan.t1 - pan.t0);
+    setView(pan.t0 - dt, pan.t1 - dt, { preserveSpan: true });
+    return;
+  }
+  // Idle hover: hint that a cursor line is grabbable.
+  if (state.view && x >= PAD_L && x <= PAD_L + g.plotW) {
+    canvas.style.cursor = cursorNear(g, x) ? "grab" : "crosshair";
+  }
 });
+
 window.addEventListener("mouseup", (e) => {
+  if (cursorDrag) {
+    const which = cursorDrag; cursorDrag = null;
+    canvas.style.cursor = "crosshair";
+    locateInTrace(state.cursor[which]);   // sync trace to the dropped cursor
+    refreshCursorReadout();
+    return;
+  }
   if (!pan) return;
   const wasClick = !pan.moved;
   const startedInCanvas = e.target === canvas || canvas.contains(e.target);
@@ -490,6 +596,10 @@ function placeCursor(t, which, locate) {
   refreshCursorReadout();
   if (locate) locateInTrace(t);
 }
+
+// Cheap live update while dragging a cursor; the exact server read settles
+// shortly after the pointer stops.
+const refreshCursorReadoutDebounced = debounce(() => refreshCursorReadout(), 90);
 
 async function refreshCursorReadout() {
   const box = $("cursorReadout");
@@ -749,9 +859,23 @@ function applyLayout() {
 }
 function patchLayout(patch) { store.set("layout", { ...store.get("layout", {}), ...patch }); }
 
+const COLLAPSED_W = 30;   // px, must match .panel.collapsed in the stylesheet
+
 function setCollapsed(panelId, btnId, collapsed, openGlyph, closedGlyph) {
-  $(panelId).classList.toggle("collapsed", collapsed);
+  const panel = $(panelId);
+  panel.classList.toggle("collapsed", collapsed);
   $(btnId).textContent = collapsed ? closedGlyph : openGlyph;
+  // Set the width inline explicitly: the `#explorer`/`#inspector` ID rules
+  // (width 270/300px) out-specify the `.panel.collapsed` class rule, so merely
+  // clearing the inline width would leave the panel full-size — the collapse
+  // would be visually inert. An inline value always wins.
+  if (collapsed) {
+    panel.style.width = COLLAPSED_W + "px";
+  } else {
+    const L = store.get("layout", {});
+    const w = panelId === "explorer" ? L.explorerW : L.inspectorW;
+    panel.style.width = w ? w + "px" : "";   // "" -> fall back to the CSS default width
+  }
 }
 
 function wireCollapse(panelId, btnId, key, openGlyph, closedGlyph) {
@@ -763,20 +887,29 @@ function wireCollapse(panelId, btnId, key, openGlyph, closedGlyph) {
   });
 }
 
-function wireSideResize(resizerId, panelId, side, key) {
+const COLLAPSE_AT = 90;   // dragging a panel narrower than this collapses it
+
+function wireSideResize(resizerId, panelId, btnId, side, key, collapsedKey, openGlyph, closedGlyph) {
   const resizer = $(resizerId), panel = $(panelId);
   let dragging = false;
-  resizer.addEventListener("mousedown", () => { dragging = true; document.body.style.userSelect = "none"; });
+  resizer.addEventListener("mousedown", (e) => { dragging = true; e.preventDefault(); document.body.style.userSelect = "none"; });
   window.addEventListener("mouseup", () => {
     if (!dragging) return;
     dragging = false; document.body.style.userSelect = "";
-    patchLayout({ [key]: panel.getBoundingClientRect().width });
+    const collapsed = panel.classList.contains("collapsed");
+    patchLayout(collapsed ? { [collapsedKey]: true } : { [collapsedKey]: false, [key]: panel.getBoundingClientRect().width });
   });
   window.addEventListener("mousemove", (e) => {
     if (!dragging) return;
     const rect = panel.getBoundingClientRect();
-    const w = side === "left" ? e.clientX - rect.left : rect.right - e.clientX;
-    panel.style.width = Math.min(Math.max(w, 150), 560) + "px";
+    // Anchor point stays fixed; the resizer sits on the panel's inner edge.
+    const raw = side === "left" ? e.clientX - rect.left : rect.right - e.clientX;
+    if (raw < COLLAPSE_AT) {
+      setCollapsed(panelId, btnId, true, openGlyph, closedGlyph);   // slide to ~zero width
+    } else {
+      setCollapsed(panelId, btnId, false, openGlyph, closedGlyph);
+      panel.style.width = Math.min(Math.max(raw, 150), 620) + "px";
+    }
     renderPlot();
   });
 }
@@ -801,6 +934,11 @@ $("favOnly").addEventListener("change", () => { store.set("favOnly", $("favOnly"
 $("fitBtn").addEventListener("click", fitView);
 $("zoomInBtn").addEventListener("click", () => { const g = plotGeom(); zoomAt((g.t0 + g.t1) / 2, 0.7); });
 $("zoomOutBtn").addEventListener("click", () => { const g = plotGeom(); zoomAt((g.t0 + g.t1) / 2, 1.4); });
+$("gridBtn").addEventListener("click", () => {
+  state.grid = !state.grid; store.set("grid", state.grid);
+  $("gridBtn").classList.toggle("active", state.grid);
+  renderPlot();
+});
 $("curABtn").addEventListener("click", () => { state.cursor.arm = "a"; armButtons(); });
 $("curBBtn").addEventListener("click", () => { state.cursor.arm = "b"; armButtons(); });
 $("curClearBtn").addEventListener("click", () => { state.cursor.a = state.cursor.b = null; renderPlot(); refreshCursorReadout(); });
@@ -858,9 +996,16 @@ function restoreFilters() {
   if (typeof f.events === "boolean") $("showEvents").checked = f.events;
 }
 
+// Collapsible side panels (arrow buttons) and their edge resizers.
+wireCollapse("explorer", "explorerToggle", "explorerCollapsed", "‹", "›");
+wireCollapse("inspector", "inspectorToggle", "inspectorCollapsed", "›", "‹");
+wireSideResize("explorerResizer", "explorer", "explorerToggle", "left", "explorerW", "explorerCollapsed", "‹", "›");
+wireSideResize("inspectorResizer", "inspector", "inspectorToggle", "right", "inspectorW", "inspectorCollapsed", "›", "‹");
+
 (async function init() {
   refreshPicked();
   $("favOnly").checked = store.get("favOnly", false);
+  $("gridBtn").classList.toggle("active", state.grid);
   applyLayout();
   restoreFilters();
   armButtons();

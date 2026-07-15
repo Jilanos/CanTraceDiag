@@ -8,6 +8,7 @@ The database file lives outside Git (see ``.gitignore``).
 
 from __future__ import annotations
 
+import threading
 from collections.abc import Iterable
 from dataclasses import dataclass
 
@@ -61,10 +62,33 @@ class TimeBounds:
 class TraceStore:
     def __init__(self, db_path: str = ":memory:"):
         self.con = duckdb.connect(db_path)
+        # A single DuckDB connection is not safe for concurrent use: FastAPI
+        # runs these sync endpoints in a threadpool and the UI fires several
+        # /api/series and /api/cursor calls in parallel, so without this lock
+        # their result sets interleave and corrupt each other (observed as
+        # KeyError/NoneType/tuple-index/int('Nm') crashes in signal_series).
+        # RLock because some query methods call others (e.g. summary→time_bounds).
+        self._lock = threading.RLock()
         self.con.execute(_SCHEMA)
 
     def close(self) -> None:
-        self.con.close()
+        with self._lock:
+            self.con.close()
+
+    # -- thread-safe query helpers ----------------------------------------
+    # The lazy window between execute() and fetch is where concurrent threads
+    # corrupt one another, so each helper holds the lock across both.
+    def _one(self, sql: str, params: Iterable[object] = ()):
+        with self._lock:
+            return self.con.execute(sql, list(params)).fetchone()
+
+    def _all(self, sql: str, params: Iterable[object] = ()):
+        with self._lock:
+            return self.con.execute(sql, list(params)).fetchall()
+
+    def _df(self, sql: str, params: Iterable[object] = ()) -> pd.DataFrame:
+        with self._lock:
+            return self.con.execute(sql, list(params)).df()
 
     # -- ingestion ---------------------------------------------------------
 
@@ -122,39 +146,38 @@ class TraceStore:
         if not rows:
             return 0
         frame = pd.DataFrame(rows)
-        self.con.register("_incoming", frame)
-        self.con.execute(f"INSERT INTO {table} SELECT * FROM _incoming")
-        self.con.unregister("_incoming")
+        with self._lock:
+            self.con.register("_incoming", frame)
+            self.con.execute(f"INSERT INTO {table} SELECT * FROM _incoming")
+            self.con.unregister("_incoming")
         return len(rows)
 
     # -- queries -----------------------------------------------------------
 
     def time_bounds(self) -> TimeBounds:
-        row = self.con.execute(
+        row = self._one(
             """
             SELECT min(t), max(t) FROM (
                 SELECT timestamp_s AS t FROM frames
                 UNION ALL SELECT timestamp_s FROM events
             )
             """
-        ).fetchone()
+        )
         return TimeBounds(start_s=row[0], end_s=row[1])
 
     def summary(self) -> dict:
-        frames = self.con.execute("SELECT count(*) FROM frames").fetchone()[0]
-        events = self.con.execute("SELECT count(*) FROM events").fetchone()[0]
-        decoded = self.con.execute(
+        frames = self._one("SELECT count(*) FROM frames")[0]
+        events = self._one("SELECT count(*) FROM events")[0]
+        decoded = self._one(
             "SELECT count(*) FROM frames WHERE decode_status = 'ok'"
-        ).fetchone()[0]
-        ids = self.con.execute(
-            "SELECT count(DISTINCT arbitration_id) FROM frames"
-        ).fetchone()[0]
-        status_rows = self.con.execute(
+        )[0]
+        ids = self._one("SELECT count(DISTINCT arbitration_id) FROM frames")[0]
+        status_rows = self._all(
             "SELECT decode_status, count(*) FROM frames GROUP BY decode_status"
-        ).fetchall()
-        event_rows = self.con.execute(
+        )
+        event_rows = self._all(
             "SELECT event_type, count(*) FROM events GROUP BY event_type"
-        ).fetchall()
+        )
         bounds = self.time_bounds()
         return {
             "frames": frames,
@@ -193,11 +216,11 @@ class TraceStore:
             params.append(end_s)
         where = " AND ".join(clauses)
 
-        stats = self.con.execute(
+        stats = self._one(
             f"SELECT count(*), min(timestamp_s), max(timestamp_s) "
             f"FROM samples WHERE {where}",
             params,
-        ).fetchone()
+        )
         raw_count = int(stats[0] or 0)
         t_lo, t_hi = stats[1], stats[2]
 
@@ -206,17 +229,17 @@ class TraceStore:
         if downsampled:
             df = self._decimate(where, params, max_points, t_lo, t_hi)
         else:
-            df = self.con.execute(
+            df = self._df(
                 f"SELECT timestamp_s, value_num FROM samples WHERE {where} "
                 f"ORDER BY timestamp_s",
                 params,
-            ).df()
+            )
 
-        unit = self.con.execute(
+        unit = self._one(
             "SELECT unit FROM samples WHERE message_name = ? AND signal_name = ? "
             "AND unit IS NOT NULL LIMIT 1",
             [message_name, signal_name],
-        ).fetchone()
+        )
         return {
             "message_name": message_name,
             "signal_name": signal_name,
@@ -240,7 +263,7 @@ class TraceStore:
         nbuckets = max(1, max_points // 2)
         span = t_hi - t_lo
         # arg_min/arg_max pick the actual timestamp at which each extreme occurs.
-        df = self.con.execute(
+        df = self._df(
             f"""
             WITH win AS (
                 SELECT timestamp_s, value_num,
@@ -263,14 +286,14 @@ class TraceStore:
             SELECT DISTINCT timestamp_s, value_num FROM pts ORDER BY timestamp_s
             """,
             params,
-        ).df()
+        )
         return df
 
     def nearest_sample(
         self, message_name: str, signal_name: str, at_s: float
     ) -> dict | None:
         """Nearest sample by absolute time distance — no interpolation (AC5)."""
-        row = self.con.execute(
+        row = self._one(
             """
             SELECT timestamp_s, value_num, value_text, unit
             FROM samples
@@ -279,7 +302,7 @@ class TraceStore:
             LIMIT 1
             """,
             [message_name, signal_name, at_s],
-        ).fetchone()
+        )
         if row is None:
             return None
         return {
@@ -315,17 +338,17 @@ class TraceStore:
         if union is None:
             return {"total": 0, "offset": offset, "limit": limit, "rows": []}
 
-        total = self.con.execute(
+        total = self._one(
             f"SELECT count(*) FROM ({union})", list(params)
-        ).fetchone()[0]
-        rows = self.con.execute(
+        )[0]
+        rows = self._df(
             f"""
             SELECT * FROM ({union})
             ORDER BY timestamp_s
             LIMIT {int(limit)} OFFSET {int(offset)}
             """,
             list(params),
-        ).df()
+        )
         return {
             "total": total,
             "offset": offset,
@@ -357,11 +380,11 @@ class TraceStore:
         )
         if union is None:
             return {"total": 0, "index": None, "timestamp_s": None}
-        total = self.con.execute(
+        total = self._one(
             f"SELECT count(*) FROM ({union})", list(params)
-        ).fetchone()[0]
+        )[0]
         # Rows strictly before the nearest sit ahead of it in time order.
-        row = self.con.execute(
+        row = self._one(
             f"""
             WITH ordered AS (
                 SELECT timestamp_s,
@@ -372,7 +395,7 @@ class TraceStore:
             ORDER BY abs(timestamp_s - ?) , idx LIMIT 1
             """,
             [*params, at_s],
-        ).fetchone()
+        )
         if row is None:
             return {"total": total, "index": None, "timestamp_s": None}
         return {"total": total, "index": int(row[0]), "timestamp_s": row[1]}
@@ -495,14 +518,14 @@ class TraceStore:
             params.append(end_s)
 
     def event_types(self) -> list[str]:
-        rows = self.con.execute(
+        rows = self._all(
             "SELECT DISTINCT event_type FROM events ORDER BY event_type"
-        ).fetchall()
+        )
         return [r[0] for r in rows]
 
     def frame_signals(self, timestamp_s: float, arbitration_id: int) -> list[dict]:
         """Decoded signals for one frame, keyed by exact time and id."""
-        df = self.con.execute(
+        df = self._df(
             """
             SELECT signal_name, value_num, value_text, unit
             FROM samples
@@ -510,7 +533,7 @@ class TraceStore:
             ORDER BY signal_name
             """,
             [timestamp_s, arbitration_id],
-        ).df()
+        )
         return _records(df)
 
     def _window_clause(

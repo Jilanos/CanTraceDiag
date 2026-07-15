@@ -34,3 +34,6 @@ LOGICS.md
 # Synthetic, anonymized test fixtures are safe to commit (override *.asc/*.dbc above).
 !tests/fixtures/*.asc
 !tests/fixtures/*.dbc
+
+# Playwright browser-lib workaround (local, no sudo) and any browser artifacts
+.pw-libs/
