@@ -15,6 +15,9 @@ traces/
 *.blf
 *.mf4
 *.dbc
+*.cfg
+*.cfg.ini
+*.stcfg
 *.parquet
 *.duckdb
 
@@ -22,3 +25,5 @@ traces/
 .idea/
 .vscode/
 *.swp
+AGENTS.md
+LOGICS.md

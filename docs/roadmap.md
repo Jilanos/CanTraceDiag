@@ -2,10 +2,10 @@
 
 ## Phase 0 - Cadrage et échantillons
 
-- Collecter une trace ASCII représentative.
-- Collecter les DBC associées.
-- Identifier les volumes habituels et maximums.
+- Confirmer les décisions produit et architecture.
+- Identifier les volumes habituels et maximums à partir des traces locales.
 - Vérifier la compatibilité du format avec `python-can`.
+- Définir les fixtures synthétiques qui pourront être versionnées.
 
 ## Phase 1 - Ingestion
 
@@ -15,14 +15,15 @@
 - Décoder les signaux dans une table séparée.
 - Exporter un cache local Parquet.
 - Ajouter des tests sur un petit jeu de données fourni.
+- Conserver `ErrorFrame` et `CAN Status` comme événements de trace.
 
 ## Phase 2 - Prototype d'analyse
 
 - Lister les signaux disponibles.
 - Requêter une plage temporelle pour un ou plusieurs signaux.
-- Afficher les graphes.
-- Afficher une table de trace filtrable.
-- Mettre en place un curseur temporel simple.
+- Afficher les graphes en subplots empilés avec axe temps commun.
+- Afficher une table de trace filtrable et virtualisée.
+- Mettre en place un curseur temporel simple avec valeur la plus proche.
 
 ## Phase 3 - Curseurs et synchronisation
 
@@ -30,6 +31,7 @@
 - Calculer valeurs et deltas.
 - Synchroniser sélection graphe -> trace.
 - Synchroniser sélection trace -> graphe.
+- Ajouter les options de colonnes trace : masquage, déplacement, largeur, format.
 
 ## Phase 4 - Performance et ergonomie
 
@@ -37,6 +39,7 @@
 - Ajouter recherche avancée dans les signaux.
 - Ajouter filtres persistants.
 - Ajouter exports CSV/Parquet des signaux sélectionnés.
+- Sauvegarder les layouts utilisateur.
 
 ## Phase 5 - Formats et distribution
 
