@@ -3,6 +3,7 @@ from pathlib import Path
 from cantracediag.formats.asc import parse_asc
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample.asc"
+FIXTURE_DEC = Path(__file__).parent / "fixtures" / "sample_dec.asc"
 
 
 def test_parses_frames_and_events() -> None:
@@ -29,3 +30,18 @@ def test_data_bytes_and_dlc() -> None:
     assert first.dlc == 8
     assert first.data == bytes.fromhex("0010640000000000")
     assert first.direction == "Rx"
+
+
+def test_decimal_base_parses_ids_and_data() -> None:
+    # CANalyzer "base dec": arbitration ids and data bytes are decimal, and
+    # data frames carry trailing "Length =/BitCount =" tokens to be ignored.
+    result = parse_asc(FIXTURE_DEC)
+    assert result.base == "dec"
+    assert result.parsed_frames == 2
+    frame = result.frames[0]
+    assert frame.arbitration_id == 1552  # 0x610
+    assert frame.dlc == 7
+    # decimal tokens "9 19 0 0 0 0 43" -> bytes 09 13 00 00 00 00 2b
+    assert frame.data == bytes([9, 19, 0, 0, 0, 0, 43])
+    # A byte value > 0xFF (231) must not be misread as hex and dropped.
+    assert result.frames[1].data[0] == 231

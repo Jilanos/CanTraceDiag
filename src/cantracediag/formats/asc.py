@@ -188,7 +188,9 @@ def _parse_data_frame(
     if not is_remote:
         data_tokens = tokens[5:5 + dlc]
         try:
-            data = bytes(int(byte, 16) for byte in data_tokens)
+            # Data bytes use the same numeric base as the file header
+            # (CANalyzer "base dec" emits decimal byte values).
+            data = bytes(int(byte, base) for byte in data_tokens)
         except ValueError:
             return None
 

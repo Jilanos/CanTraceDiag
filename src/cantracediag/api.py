@@ -8,6 +8,7 @@ files from local disk paths supplied by the operator.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
@@ -50,28 +51,26 @@ def create_app() -> FastAPI:
 
     @app.post("/api/import")
     def api_import(req: ImportRequest) -> dict:
-        trace = Path(req.trace_path).expanduser()
+        trace = Path(normalize_local_path(req.trace_path)).expanduser()
         if not trace.is_file():
             raise HTTPException(404, f"Trace not found: {trace}")
-        for dbc in req.dbc_paths:
-            if not Path(dbc).expanduser().is_file():
+        dbc_paths = [Path(normalize_local_path(d)).expanduser() for d in req.dbc_paths]
+        for dbc in dbc_paths:
+            if not dbc.is_file():
                 raise HTTPException(404, f"DBC not found: {dbc}")
 
         if session.store is not None:
             session.store.close()
 
         catalog = DbcCatalog()
-        for dbc in req.dbc_paths:
-            catalog.load(Path(dbc).expanduser())
+        for dbc in dbc_paths:
+            catalog.load(dbc)
 
-        store, result = import_trace(
-            trace,
-            [Path(d).expanduser() for d in req.dbc_paths],
-        )
+        store, result = import_trace(trace, dbc_paths)
         session.store = store
         session.catalog = catalog
         session.trace_path = str(trace)
-        session.dbc_paths = req.dbc_paths
+        session.dbc_paths = [str(p) for p in dbc_paths]
         session.ambiguous_ids = result.ambiguous_ids
         session.asc_base = result.asc_base
 
@@ -159,6 +158,32 @@ def create_app() -> FastAPI:
         app.mount("/static", StaticFiles(directory=_WEB_DIR), name="static")
 
     return app
+
+
+def normalize_local_path(raw: str) -> str:
+    """Map a pasted Windows/UNC path to the POSIX path seen inside WSL.
+
+    The UI is typically opened from a Windows browser, so operators paste paths
+    like ``\\\\wsl.localhost\\Ubuntu\\home\\paul\\trace.asc`` or ``C:\\data\\x.asc``.
+    The backend runs under Linux and needs the corresponding POSIX path.
+    """
+    s = raw.strip().strip('"').strip("'")
+    if not s:
+        return s
+
+    # UNC paths: \\wsl.localhost\<distro>\... or \\wsl$\<distro>\...
+    if s.startswith(("\\\\", "//")):
+        parts = [p for p in s.replace("\\", "/").split("/") if p]
+        if parts and parts[0].lower() in {"wsl.localhost", "wsl$"}:
+            return "/" + "/".join(parts[2:])  # drop host + distro name
+        return "/" + "/".join(parts)
+
+    # Windows drive path C:\... -> WSL mount /mnt/c/...
+    drive = re.match(r"^([A-Za-z]):[\\/](.*)$", s)
+    if drive:
+        return f"/mnt/{drive.group(1).lower()}/{drive.group(2).replace(chr(92), '/')}"
+
+    return s
 
 
 def _id_hex(arbitration_id: int, is_extended: bool) -> str:
