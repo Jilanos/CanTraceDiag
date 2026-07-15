@@ -7,6 +7,7 @@
 > Progress: 100%
 > Complexity: Medium
 > Theme: Implementation delivery
+> Non-semantic edit: Added AC Traceability section (proof mapping) for audit; no scope change.
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 
 # Definition of Done (DoD)
@@ -64,6 +65,16 @@
 - Environment note: system Python packaging was broken (no ensurepip/pip/venv). Deps were
   bootstrapped into a git-ignored `.pydeps/` via a standalone pip; run tests/tools with
   `PYTHONPATH=.pydeps:src`. A normal `pip install -e ".[dev,api]"` works once venv is available.
+
+# AC Traceability
+- AC1 -> Local ASC import. Proof: `POST /api/import` / `cantracediag info` read local `.asc` paths only; traces/DBC stay git-ignored.
+- AC2 -> Multi-DBC inspection. Proof: `DbcCatalog.load` accepts multiple DBCs; `/api/signals` lists messages/signals; `find_ambiguous_ids` surfaces overlaps.
+- AC3 -> Decode with preservation. Proof: `Decoder.decode_frame` emits `DecodedSignalSample`s and stamps `decode_status`, keeping every raw frame.
+- AC4 -> Stacked subplots. Proof: web UI renders one band per selected signal on a shared time axis.
+- AC5 -> Nearest-sample cursor. Proof: `store.nearest_sample` + client nearest-index; no interpolation, sample-and-hold rendering.
+- AC6 -> Trace view. Proof: `/api/trace` merges raw frames, decoded names, and non-data events (ErrorFrame, Status) time-ordered and paginated.
+- AC7 -> Configurable columns. Proof: trace columns support visibility, order, width, and format, persisted in localStorage.
+- AC8 -> Local-first. Proof: server binds 127.0.0.1 with no replay controls.
 
 # AI Context
 - Summary: Implement créer le mvp d'analyse locale de traces can asc.

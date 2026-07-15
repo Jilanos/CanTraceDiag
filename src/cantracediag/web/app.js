@@ -1,38 +1,59 @@
 "use strict";
-/* CanTraceDiag local UI: stacked signal plots + configurable trace view. */
+/* CanTraceDiag local diagnostic workspace.
+ * Four zones: signal explorer, stacked plot workspace, trace table, inspector.
+ * All heavy queries stay server-side (windowed/downsampled) so the browser
+ * never loads a whole acquisition. */
 
 const SERIES_COLORS = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6","--s7"];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const $ = (id) => document.getElementById(id);
 
-const state = {
-  signals: [],
-  selected: [],        // {message, signal, unit, color, t:[], v:[]}
-  trace: { offset: 0, limit: 200, total: 0 },
-  cursorX: null,       // canvas x of crosshair
+/* ---- local persistence (AC7) ------------------------------------------- */
+const store = {
+  get(key, fallback) {
+    try { const v = JSON.parse(localStorage.getItem("ctd." + key)); return v === null ? fallback : v; }
+    catch (_) { return fallback; }
+  },
+  set(key, value) { localStorage.setItem("ctd." + key, JSON.stringify(value)); },
 };
 
-/* ---- column model for the trace view (AC7) ------------------------------ */
+const state = {
+  signals: [],                      // catalog entries
+  selected: [],                     // {message, signal, unit, color, t:[], v:[], downsampled}
+  favorites: new Set(store.get("favorites", [])),
+  bounds: null,                     // [t0, t1] full data extent
+  view: null,                       // [t0, t1] visible window
+  cursor: { a: null, b: null, arm: "a" },
+  trace: { offset: 0, limit: 200, total: 0, rows: [], selectedTs: null },
+  seriesToken: 0,
+};
+
+/* ---- column model for the trace view ----------------------------------- */
 const DEFAULT_COLUMNS = [
   { key: "timestamp_s", label: "Time", visible: true, width: 110, format: "s" },
   { key: "channel",     label: "Ch",   visible: true, width: 44,  format: "text" },
-  { key: "kind",        label: "Kind", visible: true, width: 60,  format: "text" },
-  { key: "id_hex",      label: "ID",   visible: true, width: 90,  format: "text" },
-  { key: "name",        label: "Name", visible: true, width: 160, format: "text" },
+  { key: "kind",        label: "Kind", visible: true, width: 56,  format: "text" },
+  { key: "id_hex",      label: "ID",   visible: true, width: 84,  format: "text" },
+  { key: "name",        label: "Name", visible: true, width: 150, format: "text" },
   { key: "direction",   label: "Dir",  visible: true, width: 44,  format: "text" },
   { key: "dlc",         label: "DLC",  visible: true, width: 44,  format: "text" },
-  { key: "data_hex",    label: "Data", visible: true, width: 200, format: "text" },
-  { key: "decode_status", label: "Status", visible: true, width: 100, format: "status" },
-  { key: "detail",      label: "Detail", visible: true, width: 240, format: "text" },
+  { key: "data_hex",    label: "Data", visible: true, width: 190, format: "text" },
+  { key: "decode_status", label: "Status", visible: true, width: 96, format: "status" },
+  { key: "dbc_source",  label: "DBC",  visible: false, width: 120, format: "text" },
+  { key: "detail",      label: "Detail", visible: true, width: 220, format: "text" },
 ];
 function loadColumns() {
-  try {
-    const saved = JSON.parse(localStorage.getItem("ctd.columns"));
-    if (Array.isArray(saved) && saved.length) return saved;
-  } catch (_) {}
+  const saved = store.get("columns", null);
+  if (Array.isArray(saved) && saved.length) {
+    // Merge in any columns added since the saved layout (e.g. dbc_source).
+    const known = new Set(saved.map((c) => c.key));
+    for (const def of DEFAULT_COLUMNS) if (!known.has(def.key)) saved.push(structuredClone(def));
+    return saved;
+  }
   return structuredClone(DEFAULT_COLUMNS);
 }
 let columns = loadColumns();
-const saveColumns = () => localStorage.setItem("ctd.columns", JSON.stringify(columns));
+const saveColumns = () => store.set("columns", columns);
 
 /* ---- API helpers -------------------------------------------------------- */
 async function api(path, opts) {
@@ -44,10 +65,24 @@ async function api(path, opts) {
   return res.json();
 }
 
-/* ---- import ------------------------------------------------------------- */
-const $ = (id) => document.getElementById(id);
+// Upload with progress (AC8): XHR exposes upload.onprogress; fetch does not.
+function uploadWithProgress(url, formData, onProgress) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest();
+    xhr.open("POST", url);
+    xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.onload = () => {
+      let body = {};
+      try { body = JSON.parse(xhr.responseText); } catch (_) {}
+      if (xhr.status >= 200 && xhr.status < 300) resolve(body);
+      else reject(new Error(body.detail || `${xhr.status} ${xhr.statusText}`));
+    };
+    xhr.onerror = () => reject(new Error("Network error during upload."));
+    xhr.send(formData);
+  });
+}
 
-// Files chosen through the native picker, awaiting upload.
+/* ---- import ------------------------------------------------------------- */
 const picked = { trace: null, dbcs: [] };
 
 function refreshPicked() {
@@ -58,6 +93,13 @@ function refreshPicked() {
   $("loadBtn").disabled = !picked.trace;
 }
 
+function setProgress(frac) {
+  const wrap = $("progressWrap");
+  if (frac === null) { wrap.classList.remove("on"); return; }
+  wrap.classList.add("on");
+  $("progressBar").style.width = Math.round(frac * 100) + "%";
+}
+
 async function doLoad() {
   if (!picked.trace) return;
   const fd = new FormData();
@@ -65,82 +107,211 @@ async function doLoad() {
   for (const f of picked.dbcs) fd.append("dbcs", f, f.name);
 
   $("loadBtn").disabled = true;
-  $("summary").textContent = "Uploading & indexing…";
+  $("summary").innerHTML = "Uploading…";
+  setProgress(0);
   try {
-    const r = await api("/api/import-files", { method: "POST", body: fd });
-    renderSummary(r);
-    state.selected = [];
-    await loadSignals();
-    renderPlot();
-    await loadTrace(0);
+    const r = await uploadWithProgress("/api/import-files", fd, (frac) => {
+      setProgress(frac);
+      $("summary").innerHTML = frac >= 1 ? "Indexing…" : `Uploading ${Math.round(frac * 100)}%`;
+    });
+    setProgress(null);
+    if (r.needs_resolution) { openConflictDialog(r.conflicts); return; }
+    await onLoaded(r);
   } catch (e) {
-    $("summary").innerHTML = `<span class="warn">${e.message}</span>`;
+    setProgress(null);
+    $("summary").innerHTML = `<span class="err">${e.message}</span>`;
   } finally {
     $("loadBtn").disabled = !picked.trace;
   }
 }
 
+async function onLoaded(r) {
+  renderSummary(r);
+  populateEventFilter(r.summary && r.summary.event_types);
+  state.bounds = r.summary ? [r.summary.start_s, r.summary.end_s] : null;
+  state.view = state.bounds ? [...state.bounds] : null;
+  state.cursor = { a: null, b: null, arm: "a" };
+  await loadSignals();
+  await restoreSelected();
+  renderPlot();
+  await loadTrace(0);
+  clearInspector();
+}
+
 function renderSummary(r) {
   const s = r.summary;
+  if (!s) { $("summary").textContent = "No trace loaded."; return; }
+  const st = s.decode_status || {};
   let html = `<b>${s.frames}</b> frames · <b>${s.decoded_frames}</b> decoded · ` +
     `<b>${s.events}</b> events · <b>${s.unique_ids}</b> ids · ` +
     `${fmtTime(s.start_s)}–${fmtTime(s.end_s)}`;
-  const amb = Object.keys(r.ambiguous_ids || {});
-  if (amb.length) {
-    html += ` · <span class="warn">⚠ ${amb.length} ambiguous id(s): ` +
-      amb.map((k) => `${k} (${r.ambiguous_ids[k].join(", ")})`).join("; ") + "</span>";
-  }
+  const problems = [];
+  if (st.unknown_id) problems.push(`${st.unknown_id} unknown id`);
+  if (st.decode_error) problems.push(`${st.decode_error} decode error`);
+  if (problems.length) html += ` · <span class="warn">${problems.join(" · ")}</span>`;
+  const res = r.resolution && Object.keys(r.resolution).length;
+  if (res) html += ` · <span class="ok">${res} DBC conflict(s) resolved</span>`;
   $("summary").innerHTML = html;
 }
 
-/* ---- signal catalog ----------------------------------------------------- */
+/* ---- DBC conflict modal (AC10) ----------------------------------------- */
+function openConflictDialog(conflicts) {
+  const list = $("conflictList");
+  list.innerHTML = "";
+  for (const c of conflicts) {
+    const row = document.createElement("div");
+    row.className = "conflict-row";
+    const opts = c.options
+      .map((o, i) => `<option value="${o.database}" ${i === 0 ? "selected" : ""}>${o.database} → ${o.message}</option>`)
+      .join("");
+    row.innerHTML = `<span class="cid">${c.id_hex}</span> ` +
+      `<select data-id="${c.id_hex}">${opts}</select>`;
+    list.appendChild(row);
+  }
+  $("summary").innerHTML = `<span class="warn">DBC conflict — resolution required</span>`;
+  $("conflictDialog").showModal();
+}
+
+async function applyConflictResolution() {
+  const resolution = {};
+  for (const sel of $("conflictList").querySelectorAll("select")) {
+    resolution[sel.dataset.id] = sel.value;
+  }
+  $("conflictDialog").close();
+  $("summary").innerHTML = "Indexing…";
+  try {
+    const r = await api("/api/resolve", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ resolution }),
+    });
+    await onLoaded(r);
+  } catch (e) {
+    $("summary").innerHTML = `<span class="err">${e.message}</span>`;
+  }
+}
+
+/* ---- signal explorer (AC5) --------------------------------------------- */
 async function loadSignals() {
   const r = await api("/api/signals");
   state.signals = r.signals;
   renderSignalList();
 }
 
+function favKey(sig) { return `${sig.message_name}.${sig.signal_name}`; }
+
 function renderSignalList() {
-  const filter = $("filter").value.toLowerCase();
+  const filter = $("sigFilter").value.toLowerCase();
+  const favOnly = $("favOnly").checked;
   const list = $("signalList");
   list.innerHTML = "";
+
+  // Group by DBC database, then by message.
+  const groups = new Map();
   for (const sig of state.signals) {
-    const key = `${sig.message_name}.${sig.signal_name}`;
+    const key = favKey(sig);
     if (filter && !key.toLowerCase().includes(filter)) continue;
-    const sel = state.selected.find((s) => s.message === sig.message_name && s.signal === sig.signal_name);
-    const row = document.createElement("label");
-    row.className = "sig";
-    row.innerHTML =
-      `<input type="checkbox" ${sel ? "checked" : ""}/>` +
-      `<span class="name">${sig.message_name}.<b>${sig.signal_name}</b></span>` +
-      `<span class="unit">${sig.unit || ""}</span>`;
-    row.querySelector("input").addEventListener("change", (e) => {
-      toggleSignal(sig, e.target.checked);
-    });
-    list.appendChild(row);
+    if (favOnly && !state.favorites.has(key)) continue;
+    const db = (sig.databases && sig.databases[0]) || "(no DBC)";
+    if (!groups.has(db)) groups.set(db, []);
+    groups.get(db).push(sig);
   }
+
+  for (const [db, sigs] of [...groups.entries()].sort()) {
+    const head = document.createElement("div");
+    head.className = "grp";
+    head.textContent = db;
+    list.appendChild(head);
+    sigs.sort((a, b) => favKey(a).localeCompare(favKey(b)));
+    for (const sig of sigs) list.appendChild(signalRow(sig));
+  }
+  if (!list.children.length) {
+    const empty = document.createElement("div");
+    empty.className = "grp";
+    empty.textContent = state.signals.length ? "No matching signals." : "No signals (load a DBC).";
+    list.appendChild(empty);
+  }
+}
+
+function signalRow(sig) {
+  const key = favKey(sig);
+  const sel = state.selected.find((s) => s.message === sig.message_name && s.signal === sig.signal_name);
+  const row = document.createElement("label");
+  row.className = "sig";
+  const swatch = sel ? `<span class="swatch" style="background:${sel.color}"></span>` : `<span class="swatch"></span>`;
+  row.innerHTML =
+    `<span class="star ${state.favorites.has(key) ? "on" : ""}" title="Favorite">★</span>` +
+    `<input type="checkbox" ${sel ? "checked" : ""}/>` +
+    swatch +
+    `<span class="name">${sig.message_name}.<b>${sig.signal_name}</b></span>` +
+    `<span class="unit">${sig.unit || ""}</span>`;
+  row.querySelector(".star").addEventListener("click", (e) => {
+    e.preventDefault(); e.stopPropagation();
+    if (state.favorites.has(key)) state.favorites.delete(key); else state.favorites.add(key);
+    store.set("favorites", [...state.favorites]);
+    renderSignalList();
+  });
+  row.querySelector("input").addEventListener("change", (e) => toggleSignal(sig, e.target.checked));
+  return row;
+}
+
+function persistSelected() {
+  store.set("selected", state.selected.map((s) => ({ message: s.message, signal: s.signal })));
 }
 
 async function toggleSignal(sig, on) {
   if (on) {
+    if (state.selected.find((s) => s.message === sig.message_name && s.signal === sig.signal_name)) return;
     const color = css(SERIES_COLORS[state.selected.length % SERIES_COLORS.length]);
     const entry = { message: sig.message_name, signal: sig.signal_name, unit: sig.unit, color, t: [], v: [] };
     state.selected.push(entry);
     await fetchSeries(entry);
   } else {
     state.selected = state.selected.filter((s) => !(s.message === sig.message_name && s.signal === sig.signal_name));
+    // Reassign colors so bands stay stable and distinct.
+    state.selected.forEach((s, i) => { s.color = css(SERIES_COLORS[i % SERIES_COLORS.length]); });
   }
+  persistSelected();
+  renderSignalList();
+  await refreshCursorReadout();
   renderPlot();
 }
 
-async function fetchSeries(entry) {
-  const r = await api(`/api/series?message=${encodeURIComponent(entry.message)}&signal=${encodeURIComponent(entry.signal)}`);
-  entry.t = r.t; entry.v = r.v; entry.unit = r.unit || entry.unit; entry.truncated = r.truncated;
+async function restoreSelected() {
+  const saved = store.get("selected", []);
+  state.selected = [];
+  for (const item of saved) {
+    const sig = state.signals.find((s) => s.message_name === item.message && s.signal_name === item.signal);
+    if (!sig) continue;
+    const color = css(SERIES_COLORS[state.selected.length % SERIES_COLORS.length]);
+    const entry = { message: sig.message_name, signal: sig.signal_name, unit: sig.unit, color, t: [], v: [] };
+    state.selected.push(entry);
+  }
+  await fetchAllSeries();
+  renderSignalList();
 }
 
-/* ---- stacked plots (canvas) -------------------------------------------- */
+const pointBudget = () => Math.min(20000, Math.max(500, Math.round(($("plot").clientWidth || 900) * 2)));
+
+async function fetchSeries(entry) {
+  const [s, e] = state.view || [null, null];
+  const params = new URLSearchParams({ message: entry.message, signal: entry.signal, max_points: pointBudget() });
+  if (s != null) params.set("start", s);
+  if (e != null) params.set("end", e);
+  const r = await api(`/api/series?${params}`);
+  entry.t = r.t; entry.v = r.v; entry.unit = r.unit || entry.unit; entry.downsampled = r.downsampled;
+}
+
+async function fetchAllSeries() {
+  const token = ++state.seriesToken;
+  await Promise.all(state.selected.map((s) => fetchSeries(s)));
+  if (token !== state.seriesToken) return false;   // a newer request superseded us
+  return true;
+}
+
+/* ---- stacked plots (canvas) with zoom/pan (AC1) ------------------------ */
 const canvas = $("plot");
 const ctx = canvas.getContext("2d");
+const PAD_L = 66, PAD_R = 12, PAD_T = 8, PAD_B = 22;
 
 function resizeCanvas() {
   const dpr = window.devicePixelRatio || 1;
@@ -150,135 +321,269 @@ function resizeCanvas() {
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 }
 
-function timeBounds() {
-  let lo = Infinity, hi = -Infinity;
-  for (const s of state.selected) {
-    if (s.t.length) { lo = Math.min(lo, s.t[0]); hi = Math.max(hi, s.t[s.t.length - 1]); }
-  }
-  if (!isFinite(lo)) return null;
-  if (lo === hi) hi = lo + 1;
-  return [lo, hi];
+function plotGeom() {
+  const W = canvas.clientWidth, H = canvas.clientHeight;
+  const plotW = W - PAD_L - PAD_R;
+  const view = state.view || [0, 1];
+  let [t0, t1] = view;
+  if (t1 <= t0) t1 = t0 + 1;
+  return { W, H, plotW, t0, t1, xOf: (t) => PAD_L + ((t - t0) / (t1 - t0)) * plotW,
+           tOf: (x) => t0 + ((x - PAD_L) / plotW) * (t1 - t0) };
 }
-
-const PAD_L = 66, PAD_R = 12, PAD_T = 8, PAD_B = 22;
 
 function renderPlot() {
   $("plotHint").style.display = state.selected.length ? "none" : "flex";
   resizeCanvas();
-  const W = canvas.clientWidth, H = canvas.clientHeight;
-  ctx.clearRect(0, 0, W, H);
-  const bounds = timeBounds();
-  if (!bounds || !state.selected.length) return;
-  const [t0, t1] = bounds;
+  const g = plotGeom();
+  ctx.clearRect(0, 0, g.W, g.H);
+  updateViewHint(g);
+  if (!state.selected.length) return;
   const n = state.selected.length;
-  const plotW = W - PAD_L - PAD_R;
-  const bandH = (H - PAD_T - PAD_B) / n;
-  const xOf = (t) => PAD_L + ((t - t0) / (t1 - t0)) * plotW;
-
+  const bandH = (g.H - PAD_T - PAD_B) / n;
   ctx.font = "11px system-ui, sans-serif";
   state.selected.forEach((s, i) => {
     const top = PAD_T + i * bandH;
-    const bot = top + bandH - 6;
-    drawBand(s, i, top, bot, xOf, plotW);
+    drawBand(s, top, top + bandH - 6, g);
   });
-  drawTimeAxis(t0, t1, H, plotW);
-  if (state.cursorX != null) drawCursor(t0, t1, bandH, n, xOf, plotW);
+  drawTimeAxis(g);
+  drawCursors(g, bandH, n);
 }
 
-function drawBand(s, i, top, bot, xOf, plotW) {
+function drawBand(s, top, bot, g) {
   let lo = Infinity, hi = -Infinity;
   for (const v of s.v) { if (v < lo) lo = v; if (v > hi) hi = v; }
   if (!isFinite(lo)) { lo = 0; hi = 1; }
   if (lo === hi) { lo -= 1; hi += 1; }
   const yOf = (v) => bot - ((v - lo) / (hi - lo)) * (bot - top);
 
-  // frame + grid
   ctx.strokeStyle = css("--line");
-  ctx.strokeRect(PAD_L, top, plotW, bot - top);
+  ctx.strokeRect(PAD_L, top, g.plotW, bot - top);
   ctx.fillStyle = css("--muted");
   ctx.textAlign = "right";
   ctx.fillText(fmtNum(hi), PAD_L - 5, top + 9);
   ctx.fillText(fmtNum(lo), PAD_L - 5, bot - 1);
 
-  // label
   ctx.textAlign = "left";
   ctx.fillStyle = s.color;
   const unit = s.unit ? ` [${s.unit}]` : "";
-  ctx.fillText(`${s.message}.${s.signal}${unit}${s.truncated ? " (truncated)" : ""}`, PAD_L + 4, top + 11);
+  ctx.fillText(`${s.message}.${s.signal}${unit}${s.downsampled ? " (downsampled)" : ""}`, PAD_L + 4, top + 11);
 
-  // step line (sample-and-hold; no interpolation between samples)
+  // Sample-and-hold step line; no interpolation between samples.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(PAD_L, top, g.plotW, bot - top);
+  ctx.clip();
   ctx.strokeStyle = s.color;
   ctx.lineWidth = 1.25;
   ctx.beginPath();
   let started = false, prevY = 0;
   for (let k = 0; k < s.t.length; k++) {
-    const x = xOf(s.t[k]), y = yOf(s.v[k]);
+    const x = g.xOf(s.t[k]), y = yOf(s.v[k]);
     if (!started) { ctx.moveTo(x, y); started = true; }
     else { ctx.lineTo(x, prevY); ctx.lineTo(x, y); }
     prevY = y;
   }
   ctx.stroke();
+  ctx.restore();
   s._yOf = yOf; s._top = top; s._bot = bot;
 }
 
-function drawTimeAxis(t0, t1, H, plotW) {
+function drawTimeAxis(g) {
   ctx.fillStyle = css("--muted");
   ctx.textAlign = "center";
   const ticks = 6;
   for (let i = 0; i <= ticks; i++) {
-    const t = t0 + (i / ticks) * (t1 - t0);
-    const x = PAD_L + (i / ticks) * plotW;
-    ctx.fillText(fmtTime(t), x, H - 6);
+    const x = PAD_L + (i / ticks) * g.plotW;
+    ctx.fillText(fmtTime(g.t0 + (i / ticks) * (g.t1 - g.t0)), x, g.H - 6);
   }
 }
 
-function drawCursor(t0, t1, bandH, n, xOf, plotW) {
-  const x = state.cursorX;
-  if (x < PAD_L || x > PAD_L + plotW) return;
-  const t = t0 + ((x - PAD_L) / plotW) * (t1 - t0);
-  ctx.strokeStyle = css("--accent");
-  ctx.setLineDash([4, 3]);
-  ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T + n * bandH); ctx.stroke();
-  ctx.setLineDash([]);
+function drawCursors(g, bandH, n) {
+  for (const [which, colorVar] of [["a", "--accent"], ["b", "--warn"]]) {
+    const t = state.cursor[which];
+    if (t == null) continue;
+    const x = g.xOf(t);
+    if (x < PAD_L || x > PAD_L + g.plotW) continue;
+    ctx.strokeStyle = css(colorVar);
+    ctx.setLineDash(which === "b" ? [2, 3] : [4, 3]);
+    ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T + n * bandH); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = css(colorVar);
+    ctx.textAlign = x > PAD_L + g.plotW / 2 ? "right" : "left";
+    ctx.fillText(which.toUpperCase(), x + (x > PAD_L + g.plotW / 2 ? -4 : 4), PAD_T + 10);
+  }
+}
 
-  ctx.font = "11px system-ui";
-  state.selected.forEach((s) => {
-    const idx = nearestIndex(s.t, t);         // nearest sample; no interpolation (AC5)
-    if (idx < 0) return;
-    const vx = xOf(s.t[idx]), vy = s._yOf(s.v[idx]);
-    ctx.fillStyle = s.color;
-    ctx.beginPath(); ctx.arc(vx, vy, 3, 0, 2 * Math.PI); ctx.fill();
-    const label = `${fmtNum(s.v[idx])}${s.unit ? " " + s.unit : ""} @ ${fmtTime(s.t[idx])}`;
-    ctx.textAlign = x > PAD_L + plotW / 2 ? "right" : "left";
-    const lx = x > PAD_L + plotW / 2 ? x - 6 : x + 6;
-    ctx.fillText(label, lx, s._top + 22);
+function updateViewHint(g) {
+  if (!state.view) { $("viewHint").textContent = ""; return; }
+  const full = state.bounds ? (state.bounds[1] - state.bounds[0]) : 0;
+  const span = g.t1 - g.t0;
+  const zoom = full > 0 ? full / span : 1;
+  $("viewHint").textContent = `${fmtTime(g.t0)} – ${fmtTime(g.t1)}  (${zoom.toFixed(1)}×)`;
+}
+
+/* ---- plot view control -------------------------------------------------- */
+let viewTimer = null;
+function scheduleSeriesRefresh() {
+  clearTimeout(viewTimer);
+  viewTimer = setTimeout(async () => { if (await fetchAllSeries()) renderPlot(); }, 120);
+}
+
+function setView(t0, t1) {
+  if (!state.bounds) return;
+  const [lo, hi] = state.bounds;
+  const minSpan = Math.max((hi - lo) / 1e6, 1e-6);
+  if (t1 - t0 < minSpan) { const mid = (t0 + t1) / 2; t0 = mid - minSpan / 2; t1 = mid + minSpan / 2; }
+  t0 = Math.max(lo, t0); t1 = Math.min(hi, t1);
+  if (t1 <= t0) { t0 = lo; t1 = hi; }
+  state.view = [t0, t1];
+  renderPlot();
+  scheduleSeriesRefresh();
+}
+
+function zoomAt(centerT, factor) {
+  const [t0, t1] = state.view;
+  setView(centerT - (centerT - t0) * factor, centerT + (t1 - centerT) * factor);
+}
+
+function fitView() { if (state.bounds) setView(state.bounds[0], state.bounds[1]); }
+
+canvas.addEventListener("wheel", (e) => {
+  if (!state.view) return;
+  e.preventDefault();
+  const g = plotGeom();
+  zoomAt(g.tOf(e.offsetX), e.deltaY < 0 ? 0.8 : 1.25);
+}, { passive: false });
+
+let pan = null;
+canvas.addEventListener("mousedown", (e) => {
+  if (!state.view) return;
+  pan = { x: e.offsetX, t0: state.view[0], t1: state.view[1], moved: false };
+});
+window.addEventListener("mousemove", (e) => {
+  if (!pan) return;
+  const g = plotGeom();
+  const rect = canvas.getBoundingClientRect();
+  const dx = (e.clientX - rect.left) - pan.x;
+  if (Math.abs(dx) > 2) pan.moved = true;
+  const dt = (dx / g.plotW) * (pan.t1 - pan.t0);
+  setView(pan.t0 - dt, pan.t1 - dt);
+});
+window.addEventListener("mouseup", (e) => {
+  if (!pan) return;
+  const wasClick = !pan.moved;
+  const startedInCanvas = e.target === canvas || canvas.contains(e.target);
+  pan = null;
+  if (wasClick && startedInCanvas) {
+    const g = plotGeom();
+    const rect = canvas.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    if (x >= PAD_L && x <= PAD_L + g.plotW) placeCursor(g.tOf(x), e.shiftKey ? "b" : state.cursor.arm, true);
+  }
+});
+canvas.addEventListener("dblclick", () => fitView());
+
+/* ---- A/B cursors (AC2) + graph→trace sync (AC3) ------------------------ */
+function placeCursor(t, which, locate) {
+  state.cursor[which] = t;
+  renderPlot();
+  refreshCursorReadout();
+  if (locate) locateInTrace(t);
+}
+
+async function refreshCursorReadout() {
+  const box = $("cursorReadout");
+  const { a, b } = state.cursor;
+  if ((a == null && b == null) || !state.selected.length) { box.classList.add("empty"); return; }
+  box.classList.remove("empty");
+
+  // Nearest real samples come from the server (no interpolation, exact).
+  const at = async (t) => {
+    if (t == null) return {};
+    const out = {};
+    await Promise.all(state.selected.map(async (s) => {
+      try {
+        const r = await api(`/api/cursor?message=${encodeURIComponent(s.message)}&signal=${encodeURIComponent(s.signal)}&at=${t}`);
+        out[favSig(s)] = r;
+      } catch (_) { out[favSig(s)] = null; }
+    }));
+    return out;
+  };
+  const [va, vb] = await Promise.all([at(a), at(b)]);
+
+  const head = `<tr><th>Signal</th><th>A</th><th>B</th><th>Δ (B−A)</th></tr>`;
+  let rows = "";
+  const tRow = (label, av, bv, dv) =>
+    `<tr><td>${label}</td><td>${av}</td><td>${bv}</td><td>${dv}</td></tr>`;
+  rows += tRow("<b>time</b>",
+    a == null ? "—" : fmtTime(a), b == null ? "—" : fmtTime(b),
+    (a == null || b == null) ? "—" : fmtDelta(b - a) + " s");
+  for (const s of state.selected) {
+    const key = favSig(s);
+    const ra = va[key], rb = vb[key];
+    const num = (r) => (r && typeof r.value === "number") ? r.value : null;
+    const av = ra ? fmtVal(ra) : "—";
+    const bv = rb ? fmtVal(rb) : "—";
+    const na = num(ra), nb = num(rb);
+    const dv = (na != null && nb != null) ? fmtDelta(nb - na) + (s.unit ? " " + s.unit : "") : "—";
+    rows += tRow(`<span style="color:${s.color}">${s.message}.${s.signal}</span>`, av, bv, dv);
+  }
+  box.querySelector("thead").innerHTML = head;
+  box.querySelector("tbody").innerHTML = rows;
+}
+
+function favSig(s) { return `${s.message}.${s.signal}`; }
+function fmtVal(r) {
+  if (r.value == null) return "—";
+  const v = typeof r.value === "number" ? fmtNum(r.value) : r.value;
+  return `${v}${r.unit ? " " + r.unit : ""}`;
+}
+function fmtDelta(d) {
+  const sign = d >= 0 ? "+" : "";
+  return sign + fmtNum(d);
+}
+
+async function locateInTrace(t) {
+  const params = traceFilterParams();
+  params.set("at", t);
+  try {
+    const loc = await api(`/api/trace-locate?${params}`);
+    if (loc.index == null) return;
+    const page = Math.floor(loc.index / state.trace.limit) * state.trace.limit;
+    await loadTrace(page, loc.timestamp_s);
+  } catch (_) {}
+}
+
+/* ---- trace table (AC4, AC6) -------------------------------------------- */
+function traceFilterParams() {
+  const p = new URLSearchParams();
+  p.set("frames", $("showFrames").checked);
+  p.set("events", $("showEvents").checked);
+  const id = $("fId").value.trim(); if (id) p.set("id", id);
+  const msg = $("fMsg").value.trim(); if (msg) p.set("message", msg);
+  const dir = $("fDir").value; if (dir) p.set("direction", dir);
+  const stt = $("fStatus").value; if (stt) p.set("status", stt);
+  const evt = $("fEvent").value; if (evt) p.set("event_type", evt);
+  const s = $("fStart").value; if (s !== "") p.set("start", s);
+  const e = $("fEnd").value; if (e !== "") p.set("end", e);
+  return p;
+}
+
+function persistFilters() {
+  store.set("filters", {
+    id: $("fId").value, msg: $("fMsg").value, dir: $("fDir").value,
+    status: $("fStatus").value, event: $("fEvent").value,
+    frames: $("showFrames").checked, events: $("showEvents").checked,
   });
 }
 
-function nearestIndex(arr, t) {
-  if (!arr.length) return -1;
-  let lo = 0, hi = arr.length - 1;
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1;
-    if (arr[mid] < t) lo = mid + 1; else hi = mid;
-  }
-  // lo is first >= t; compare with previous for true nearest
-  if (lo > 0 && Math.abs(arr[lo - 1] - t) <= Math.abs(arr[lo] - t)) return lo - 1;
-  return lo;
-}
-
-canvas.addEventListener("mousemove", (e) => {
-  const rect = canvas.getBoundingClientRect();
-  state.cursorX = e.clientX - rect.left;
-  renderPlot();
-});
-canvas.addEventListener("mouseleave", () => { state.cursorX = null; renderPlot(); });
-
-/* ---- trace table -------------------------------------------------------- */
-async function loadTrace(offset) {
-  const frames = $("showFrames").checked, events = $("showEvents").checked;
-  const r = await api(`/api/trace?offset=${offset}&limit=${state.trace.limit}&frames=${frames}&events=${events}`);
-  state.trace.offset = r.offset; state.trace.total = r.total;
+async function loadTrace(offset, highlightTs) {
+  const params = traceFilterParams();
+  params.set("offset", offset);
+  params.set("limit", state.trace.limit);
+  const r = await api(`/api/trace?${params}`);
+  state.trace.offset = r.offset; state.trace.total = r.total; state.trace.rows = r.rows;
+  if (highlightTs !== undefined) state.trace.selectedTs = highlightTs;
   renderTable(r.rows);
   const from = r.total ? r.offset + 1 : 0;
   const to = Math.min(r.offset + state.trace.limit, r.total);
@@ -293,34 +598,28 @@ function renderTable(rows) {
   const vis = columns.filter((c) => c.visible);
   thead.innerHTML = "<tr>" + vis.map((c) => `<th style="min-width:${c.width}px">${c.label}</th>`).join("") + "</tr>";
   tbody.innerHTML = "";
-  for (const row of rows) {
+  rows.forEach((row) => {
     const tr = document.createElement("tr");
     const isFrame = row.kind === "frame";
     tr.className = isFrame ? "frame" : "event";
     if (isFrame && row.decode_status !== "ok") tr.classList.add("err");
+    if (state.trace.selectedTs != null && row.timestamp_s === state.trace.selectedTs) tr.classList.add("selected");
     tr.innerHTML = vis.map((c) => `<td>${fmtCell(c, row[c.key])}</td>`).join("");
-    if (isFrame && row.id_hex) {
-      tr.classList.add("expandable");
-      tr.addEventListener("click", () => toggleDetail(tr, row));
-    }
+    tr.classList.add("expandable");
+    tr.addEventListener("click", () => selectRow(row, tr));
     tbody.appendChild(tr);
-  }
+  });
 }
 
-async function toggleDetail(tr, row) {
-  if (tr.nextSibling && tr.nextSibling.classList && tr.nextSibling.classList.contains("detail")) {
-    tr.nextSibling.remove(); return;
-  }
-  const id = parseInt(row.id_hex, 16);
-  const r = await api(`/api/frame-signals?at=${row.timestamp_s}&id=${id}`);
-  const det = document.createElement("tr");
-  det.className = "detail";
-  const span = columns.filter((c) => c.visible).length;
-  const sigs = r.signals.length
-    ? r.signals.map((s) => `${s.signal_name}=${s.value_num ?? s.value_text}${s.unit ? " " + s.unit : ""}`).join("  ·  ")
-    : "no decoded signals";
-  det.innerHTML = `<td colspan="${span}">${sigs}</td>`;
-  tr.after(det);
+// Trace→graph sync (AC3): selecting a row moves cursor A and inspects it.
+function selectRow(row, tr) {
+  state.trace.selectedTs = row.timestamp_s;
+  for (const el of $("traceTable").querySelectorAll("tr.selected")) el.classList.remove("selected");
+  tr.classList.add("selected");
+  state.cursor.a = row.timestamp_s;
+  renderPlot();
+  refreshCursorReadout();
+  showInspector(row);
 }
 
 function fmtCell(col, value) {
@@ -328,6 +627,53 @@ function fmtCell(col, value) {
   if (col.format === "s") return `<span>${fmtTime(value)}</span>`;
   if (col.format === "status") return `<span class="st ${value}">${value}</span>`;
   return String(value);
+}
+
+/* ---- inspector (AC6) ---------------------------------------------------- */
+function clearInspector() {
+  $("inspBody").innerHTML = `<div class="insp-empty">Select a trace row to inspect it.</div>`;
+}
+
+async function showInspector(row) {
+  const rows = [
+    ["Timestamp", fmtTime(row.timestamp_s)],
+    ["Kind", row.kind],
+    ["Channel", row.channel ?? "—"],
+  ];
+  if (row.kind === "frame") {
+    rows.push(
+      ["Arbitration ID", row.id_hex ?? "—"],
+      ["Direction", row.direction ?? "—"],
+      ["DLC", row.dlc ?? "—"],
+      ["Data", row.data_hex ?? "—"],
+      ["Message", row.name ?? "(undecoded)"],
+      ["Decode status", row.decode_status ?? "—"],
+      ["DBC used", row.dbc_source ?? "—"],
+    );
+  } else {
+    rows.push(["Event", row.name ?? "—"], ["Detail", row.detail ?? "—"]);
+  }
+  let html = `<dl class="insp-grid">` +
+    rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("") + `</dl>`;
+
+  if (row.kind === "frame" && row.id_hex) {
+    html += `<div class="insp-sec">Decoded signals</div><div id="inspSignals" class="insp-empty">loading…</div>`;
+  }
+  $("inspBody").innerHTML = html;
+
+  if (row.kind === "frame" && row.id_hex) {
+    try {
+      const id = parseInt(row.id_hex, 16);
+      const r = await api(`/api/frame-signals?at=${row.timestamp_s}&id=${id}`);
+      const box = $("inspSignals");
+      if (!r.signals.length) { box.textContent = "no decoded signals"; box.className = "insp-empty"; return; }
+      box.className = "";
+      box.innerHTML = r.signals.map((s) => {
+        const v = s.value_num ?? s.value_text;
+        return `<div class="insp-sig"><span>${s.signal_name}</span><span class="v">${v}${s.unit ? " " + s.unit : ""}</span></div>`;
+      }).join("");
+    } catch (_) {}
+  }
 }
 
 /* ---- column config dialog ---------------------------------------------- */
@@ -340,27 +686,27 @@ function renderColDialog() {
     row.draggable = true;
     row.dataset.index = i;
     row.innerHTML =
-      `<span class="grab">⠿</span>` +
+      `<span class="grab">≡</span>` +
       `<label style="flex:1"><input type="checkbox" ${col.visible ? "checked" : ""}/> ${col.label}</label>` +
       `<input type="number" value="${col.width}" style="width:60px" title="width px"/>` +
       (col.key === "timestamp_s"
         ? `<select><option value="s">s</option><option value="ms">ms</option><option value="hms">h:m:s</option></select>`
         : "");
     row.querySelector('input[type=checkbox]').addEventListener("change", (e) => {
-      col.visible = e.target.checked; saveColumns(); loadTrace(state.trace.offset);
+      col.visible = e.target.checked; saveColumns(); renderTable(state.trace.rows);
     });
     row.querySelector('input[type=number]').addEventListener("change", (e) => {
-      col.width = Math.max(20, parseInt(e.target.value) || col.width); saveColumns(); loadTrace(state.trace.offset);
+      col.width = Math.max(20, parseInt(e.target.value) || col.width); saveColumns(); renderTable(state.trace.rows);
     });
     const sel = row.querySelector("select");
-    if (sel) { sel.value = col.format; sel.addEventListener("change", (e) => { col.format = e.target.value; saveColumns(); loadTrace(state.trace.offset); }); }
+    if (sel) { sel.value = col.format; sel.addEventListener("change", (e) => { col.format = e.target.value; saveColumns(); renderTable(state.trace.rows); renderPlot(); }); }
     row.addEventListener("dragstart", (e) => e.dataTransfer.setData("i", i));
     row.addEventListener("dragover", (e) => e.preventDefault());
     row.addEventListener("drop", (e) => {
       e.preventDefault();
-      const from = +e.dataTransfer.getData("i"), to = i;
-      const [m] = columns.splice(from, 1); columns.splice(to, 0, m);
-      saveColumns(); renderColDialog(); loadTrace(state.trace.offset);
+      const from = +e.dataTransfer.getData("i");
+      const [m] = columns.splice(from, 1); columns.splice(i, 0, m);
+      saveColumns(); renderColDialog(); renderTable(state.trace.rows);
     });
     list.appendChild(row);
   });
@@ -384,58 +730,142 @@ function fmtNum(v) {
   return (Math.round(v * 1000) / 1000).toString();
 }
 
+function populateEventFilter(types) {
+  const sel = $("fEvent");
+  const current = sel.value;
+  sel.innerHTML = `<option value="">Event</option>` +
+    (Array.isArray(types) ? types : Object.keys(types || {})).map((t) => `<option>${t}</option>`).join("");
+  sel.value = current;
+}
+
+/* ---- panel collapse + resize persistence (AC7) ------------------------- */
+function applyLayout() {
+  const L = store.get("layout", {});
+  if (L.explorerW) $("explorer").style.width = L.explorerW + "px";
+  if (L.inspectorW) $("inspector").style.width = L.inspectorW + "px";
+  if (L.traceH) $("traceWrap").style.height = L.traceH + "px";
+  setCollapsed("explorer", "explorerToggle", !!L.explorerCollapsed, "‹", "›");
+  setCollapsed("inspector", "inspectorToggle", !!L.inspectorCollapsed, "›", "‹");
+}
+function patchLayout(patch) { store.set("layout", { ...store.get("layout", {}), ...patch }); }
+
+function setCollapsed(panelId, btnId, collapsed, openGlyph, closedGlyph) {
+  $(panelId).classList.toggle("collapsed", collapsed);
+  $(btnId).textContent = collapsed ? closedGlyph : openGlyph;
+}
+
+function wireCollapse(panelId, btnId, key, openGlyph, closedGlyph) {
+  $(btnId).addEventListener("click", () => {
+    const collapsed = !$(panelId).classList.contains("collapsed");
+    setCollapsed(panelId, btnId, collapsed, openGlyph, closedGlyph);
+    patchLayout({ [key]: collapsed });
+    renderPlot();
+  });
+}
+
+function wireSideResize(resizerId, panelId, side, key) {
+  const resizer = $(resizerId), panel = $(panelId);
+  let dragging = false;
+  resizer.addEventListener("mousedown", () => { dragging = true; document.body.style.userSelect = "none"; });
+  window.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false; document.body.style.userSelect = "";
+    patchLayout({ [key]: panel.getBoundingClientRect().width });
+  });
+  window.addEventListener("mousemove", (e) => {
+    if (!dragging) return;
+    const rect = panel.getBoundingClientRect();
+    const w = side === "left" ? e.clientX - rect.left : rect.right - e.clientX;
+    panel.style.width = Math.min(Math.max(w, 150), 560) + "px";
+    renderPlot();
+  });
+}
+
 /* ---- events / bootstrap ------------------------------------------------- */
-// Native file pickers: buttons open the OS dialog, change events collect files.
 $("pickTraceBtn").addEventListener("click", () => $("traceFile").click());
 $("pickDbcBtn").addEventListener("click", () => $("dbcFiles").click());
 $("pickDbcDirBtn").addEventListener("click", () => $("dbcDir").click());
-$("traceFile").addEventListener("change", (e) => {
-  picked.trace = e.target.files[0] || null; refreshPicked();
-});
+$("traceFile").addEventListener("change", (e) => { picked.trace = e.target.files[0] || null; refreshPicked(); });
 $("dbcFiles").addEventListener("change", (e) => {
-  picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc"));
-  refreshPicked();
+  picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc")); refreshPicked();
 });
 $("dbcDir").addEventListener("change", (e) => {
-  // A whole folder: keep only the .dbc files inside it.
-  picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc"));
-  refreshPicked();
+  picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc")); refreshPicked();
 });
 $("loadBtn").addEventListener("click", doLoad);
-$("filter").addEventListener("input", renderSignalList);
-$("showFrames").addEventListener("change", () => loadTrace(0));
-$("showEvents").addEventListener("change", () => loadTrace(0));
+$("conflictApply").addEventListener("click", applyConflictResolution);
+
+$("sigFilter").addEventListener("input", renderSignalList);
+$("favOnly").addEventListener("change", () => { store.set("favOnly", $("favOnly").checked); renderSignalList(); });
+
+$("fitBtn").addEventListener("click", fitView);
+$("zoomInBtn").addEventListener("click", () => { const g = plotGeom(); zoomAt((g.t0 + g.t1) / 2, 0.7); });
+$("zoomOutBtn").addEventListener("click", () => { const g = plotGeom(); zoomAt((g.t0 + g.t1) / 2, 1.4); });
+$("curABtn").addEventListener("click", () => { state.cursor.arm = "a"; armButtons(); });
+$("curBBtn").addEventListener("click", () => { state.cursor.arm = "b"; armButtons(); });
+$("curClearBtn").addEventListener("click", () => { state.cursor.a = state.cursor.b = null; renderPlot(); refreshCursorReadout(); });
+function armButtons() {
+  $("curABtn").classList.toggle("active", state.cursor.arm === "a");
+  $("curBBtn").classList.toggle("active", state.cursor.arm === "b");
+}
+
+const reloadTrace = () => { persistFilters(); loadTrace(0); };
+for (const id of ["fId", "fMsg", "fStart", "fEnd"]) $(id).addEventListener("input", debounce(reloadTrace, 250));
+for (const id of ["fDir", "fStatus", "fEvent"]) $(id).addEventListener("change", reloadTrace);
+$("showFrames").addEventListener("change", reloadTrace);
+$("showEvents").addEventListener("change", reloadTrace);
+$("clearFilters").addEventListener("click", () => {
+  for (const id of ["fId", "fMsg", "fStart", "fEnd"]) $(id).value = "";
+  for (const id of ["fDir", "fStatus", "fEvent"]) $(id).value = "";
+  $("showFrames").checked = true; $("showEvents").checked = true;
+  reloadTrace();
+});
 $("prevBtn").addEventListener("click", () => loadTrace(Math.max(0, state.trace.offset - state.trace.limit)));
 $("nextBtn").addEventListener("click", () => loadTrace(state.trace.offset + state.trace.limit));
 $("colBtn").addEventListener("click", () => { renderColDialog(); $("colDialog").showModal(); });
 $("colClose").addEventListener("click", () => $("colDialog").close());
-window.addEventListener("resize", renderPlot);
+window.addEventListener("resize", debounce(() => { renderPlot(); scheduleSeriesRefresh(); }, 150));
+
+function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
 // vertical resize between plot and trace
 (function () {
   const divider = $("divider"), traceWrap = $("traceWrap");
   let dragging = false;
   divider.addEventListener("mousedown", () => { dragging = true; document.body.style.userSelect = "none"; });
-  window.addEventListener("mouseup", () => { dragging = false; document.body.style.userSelect = ""; });
+  window.addEventListener("mouseup", () => {
+    if (!dragging) return;
+    dragging = false; document.body.style.userSelect = "";
+    patchLayout({ traceH: traceWrap.getBoundingClientRect().height });
+  });
   window.addEventListener("mousemove", (e) => {
     if (!dragging) return;
-    const total = document.getElementById("content").clientHeight;
-    const fromTop = e.clientY - document.getElementById("content").getBoundingClientRect().top;
-    const h = Math.min(Math.max(total - fromTop, 80), total - 120);
-    traceWrap.style.height = h + "px";
+    const center = $("center");
+    const total = center.clientHeight;
+    const fromTop = e.clientY - center.getBoundingClientRect().top;
+    traceWrap.style.height = Math.min(Math.max(total - fromTop, 80), total - 120) + "px";
     renderPlot();
   });
 })();
 
-// restore last state if the server already has a trace loaded
+// restore persisted filters/prefs, then any active server-side trace
+function restoreFilters() {
+  const f = store.get("filters", null);
+  if (!f) return;
+  $("fId").value = f.id || ""; $("fMsg").value = f.msg || "";
+  $("fDir").value = f.dir || ""; $("fStatus").value = f.status || ""; $("fEvent").value = f.event || "";
+  if (typeof f.frames === "boolean") $("showFrames").checked = f.frames;
+  if (typeof f.events === "boolean") $("showEvents").checked = f.events;
+}
+
 (async function init() {
   refreshPicked();
+  $("favOnly").checked = store.get("favOnly", false);
+  applyLayout();
+  restoreFilters();
+  armButtons();
   try {
     const st = await api("/api/status");
-    if (st.loaded) {
-      renderSummary(st);
-      await loadSignals();
-      await loadTrace(0);
-    }
+    if (st.loaded) await onLoaded(st);
   } catch (_) {}
 })();

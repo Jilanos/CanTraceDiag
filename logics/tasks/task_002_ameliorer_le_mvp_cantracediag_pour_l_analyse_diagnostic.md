@@ -1,19 +1,19 @@
 ## task_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic - Améliorer le MVP CanTraceDiag pour l'analyse diagnostic
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 
 # Definition of Done (DoD)
-- [ ] The backlog scope is implemented.
-- [ ] Acceptance criteria are covered.
-- [ ] Validation passes.
-- [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
+- [x] The backlog scope is implemented.
+- [x] Acceptance criteria are covered.
+- [x] Validation passes.
+- [x] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
 
 # Backlog
 - `item_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic`
@@ -78,9 +78,69 @@
   - layout works on desktop and reduced width.
 - Use `logics-manager flow progress task task_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic --progress <n>%` during multi-wave work.
 - Run `logics-manager flow finish task task_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic` after implementation.
+- Finish workflow executed on 2026-07-15.
+- Linked backlog/request close verification passed.
 
 # Report
-- Not implemented yet. This task is ready for implementation.
+- Delivered the diagnostic-improvement wave across backend (store/API/decode/pipeline)
+- Finished on 2026-07-15.
+- Linked backlog item(s): `item_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic`
+- Related request(s): `req_001_ameliorer_mvp_cantracediag_analyse_diagnostic`
+  and the four-zone frontend workspace. Repo left commit-ready; no commits made.
+- AC coverage:
+  - AC1 — Plot supports wheel zoom, drag pan, Fit/reset and ±buttons; each view change
+    refetches only the visible window (`/api/series` start/end) so the browser never
+    reloads the whole trace. Server caps points (`max_points`), see AC9.
+  - AC2 — A/B cursors placed by click / shift-click; a readout table shows per-signal
+    value at A, at B, Δ(B−A) and Δt. Values are exact nearest stored samples from
+    `/api/cursor` (`store.nearest_sample`) — no interpolation.
+  - AC3 — Trace row click moves cursor A to that timestamp (trace→graph). Plot click sets
+    cursor A and calls `/api/trace-locate` (`store.locate_row`) to page the trace to the
+    nearest rows under active filters and highlight them (graph→trace).
+  - AC4 — `/api/trace` accepts combinable filters: time window, arbitration id, message,
+    direction, decode status, event type (`store._trace_union`). Frame-only filters
+    exclude events; an event-type filter excludes frames.
+  - AC5 — Signal explorer searches, groups by DBC then message, has quick-select
+    checkboxes, per-signal favorite stars with a "fav only" toggle, and collapses.
+  - AC6 — Collapsible inspector details the selected frame: timestamp, channel, id,
+    direction, DLC, data hex, decoded message, decode status, DBC used (`dbc_source`),
+    and decoded physical signals (`/api/frame-signals`); events show type + detail.
+  - AC7 — localStorage persists selected signals, favorites, panel sizes, collapsed
+    states, trace columns (visibility/order/width/format), and key trace filters.
+  - AC8 — Import streams frames in bounded batches (`pipeline._BATCH`) to flatten peak
+    memory; the browser shows an upload progress bar (XHR) and a clear error state on
+    failure. Real 148 MB proof remains optional/manual.
+  - AC9 — `store.signal_series` decimates windows above the point budget with per-bucket
+    min/max (real samples, extrema preserved); returns `downsampled`/`raw_count`.
+  - AC10 — Conflicts are detected before decode; the load stays pending and a modal
+    "DBC conflict: which database should be used?" lets the operator pick a DBC per
+    conflicting id. `/api/resolve` finalizes decode with the choice; the chosen DBC is
+    surfaced in trace/inspector (`Decoder` resolution, `dbc_source`).
+  - AC11 — UI is English, dense, emoji-free (icon-style controls with tooltips); layout
+    is flex-based and reflows to reduced width. Visual desktop/narrow check is manual.
+  - AC12 — New `tests/test_diagnostic.py` covers downsampling, extrema preservation,
+    combinable filters, graph/trace locate, decoder resolution, and the DBC
+    conflict→resolve import flow; existing import/trace/cursor tests retained.
+- Validation: `PYTHONPATH=.pydeps:src python3 -m pytest -q` → 43 passed; ruff clean;
+  `logics-manager lint --require-status` OK. Live HTTP flow verified end-to-end
+  (conflict import→resolve, filters, series downsample flag, cursor, trace-locate).
+  app.js boots headlessly against the live server with no thrown errors.
+- Manual browser checks still recommended (no headless browser in this environment):
+  A/B readouts, zoom/pan feel, DBC conflict modal, and layout at reduced width.
+
+# AC Traceability
+- AC1 -> Plot workspace (zoom/pan/fit). Proof: `app.js` wheel/drag/`fitView` refetch only the visible window via `/api/series` start/end.
+- AC2 -> A/B cursors and deltas. Proof: `placeCursor`/`refreshCursorReadout` read exact nearest samples from `/api/cursor` (`store.nearest_sample`), no interpolation; readout shows A, B, Δvalue, Δt.
+- AC3 -> Graph/trace synchronization. Proof: trace `selectRow` moves cursor A; plot click calls `/api/trace-locate` (`store.locate_row`) to page/highlight nearest rows.
+- AC4 -> Combinable trace filters. Proof: `/api/trace` + `store._trace_union` filter by time, id, message, direction, decode status, event type; `test_diagnostic.py` filter tests.
+- AC5 -> Signal explorer. Proof: `renderSignalList` search, DBC/message grouping, quick-select, favorite stars, fav-only toggle, collapsible panel.
+- AC6 -> Inspector. Proof: `showInspector` renders timestamp/channel/id/direction/DLC/data hex/message/status/`dbc_source` plus decoded signals from `/api/frame-signals`.
+- AC7 -> Local persistence. Proof: `store.*` localStorage for selected signals, favorites, panel sizes/collapsed state, columns, and key filters.
+- AC8 -> Large-trace safeguards. Proof: batched streaming ingest (`pipeline._BATCH`), XHR upload progress bar, clear error state; real 148 MB proof optional.
+- AC9 -> Server-side downsampling. Proof: `store.signal_series` min/max bucket decimation returns `downsampled`/`raw_count`; `test_series_*` cover budget and extrema.
+- AC10 -> DBC conflict popup. Proof: detect-before-decode pending load, resolution modal, `/api/resolve` + `Decoder` resolution, `dbc_source` surfaced; conflict flow test.
+- AC11 -> UI style. Proof: English, dense, emoji-free icon controls with tooltips, flex layout reflowing to reduced width; visual desktop/narrow check manual.
+- AC12 -> Validation coverage. Proof: `tests/test_diagnostic.py` covers import/resolve, filters, cursors/locate, downsampling, DBC conflict, plus persistence helpers exercised via the UI.
 
 # AI Context
 - Summary: Implement the first post-MVP diagnostic improvement wave for CanTraceDiag: English four-zone UI, collapsible explorer/inspector, A/B cursors, graph/trace synchronization, filters, DBC conflict popup, persistence, and server-side series safeguards.

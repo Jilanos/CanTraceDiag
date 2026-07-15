@@ -8,7 +8,7 @@
   :root {
     --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
     --fg: #e6e9ef; --muted: #9aa3b2; --accent: #5aa9ff; --ok: #4ec9a5;
-    --warn: #e0a44e; --err: #e06c75;
+    --warn: #e0a44e; --err: #e06c75; --sel: #274060;
     --s0:#5aa9ff; --s1:#4ec9a5; --s2:#e0a44e; --s3:#c678dd;
     --s4:#e06c75; --s5:#56b6c2; --s6:#d19a66; --s7:#98c379;
   }
@@ -20,46 +20,86 @@
   }
   header {
     background: var(--panel); border-bottom: 1px solid var(--line);
-    padding: 8px 12px; display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;
+    padding: 6px 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
   }
-  header h1 { font-size: 15px; margin: 0 12px 0 0; color: var(--accent); align-self: center; }
-  .import { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-  input[type=text] {
-    background: var(--panel2); border: 1px solid var(--line); color: var(--fg);
-    padding: 4px 7px; border-radius: 4px; min-width: 260px;
-  }
+  header h1 { font-size: 14px; margin: 0 6px 0 0; color: var(--accent); letter-spacing: .3px; }
+  .import { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
   button {
-    background: var(--accent); color: #05121f; border: 0; padding: 5px 12px;
-    border-radius: 4px; cursor: pointer; font-weight: 600;
+    background: var(--accent); color: #05121f; border: 0; padding: 5px 11px;
+    border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;
   }
   button.ghost { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
-  button:disabled { opacity: .5; cursor: default; }
-  .summary { color: var(--muted); align-self: center; }
-  .picked { color: var(--muted); align-self: center; font-size: 12px; max-width: 340px; }
-  .picked b { color: var(--fg); }
-  .summary b { color: var(--fg); }
-  .warn { color: var(--warn); }
-  main { flex: 1; display: flex; min-height: 0; }
-  #sidebar {
-    width: 260px; background: var(--panel); border-right: 1px solid var(--line);
-    display: flex; flex-direction: column; min-height: 0;
+  button.ghost:hover { border-color: var(--accent); }
+  button.icon { padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; }
+  button.icon svg { width: 13px; height: 13px; }
+  button:disabled { opacity: .45; cursor: default; }
+  button.active { background: var(--accent); color: #05121f; }
+  input[type=text], input[type=number], select {
+    background: var(--panel2); border: 1px solid var(--line); color: var(--fg);
+    padding: 4px 7px; border-radius: 4px; font-size: 12px;
   }
-  #sidebar .head { padding: 8px 10px; border-bottom: 1px solid var(--line); font-weight: 600; }
-  #signalList { overflow: auto; flex: 1; padding: 4px 0; }
-  .sig { display: flex; align-items: baseline; gap: 6px; padding: 3px 10px; cursor: pointer; }
+  .picked { color: var(--muted); font-size: 12px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .picked b { color: var(--fg); }
+  .summary { color: var(--muted); margin-left: auto; text-align: right; }
+  .summary b { color: var(--fg); }
+  .warn { color: var(--warn); } .err { color: var(--err); } .ok { color: var(--ok); }
+
+  #progressWrap { flex-basis: 100%; height: 3px; background: var(--panel2); border-radius: 2px; display: none; }
+  #progressWrap.on { display: block; }
+  #progressBar { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width .1s linear; }
+
+  main { flex: 1; display: flex; min-height: 0; }
+
+  /* -- collapsible side panels -- */
+  .panel { background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
+  #explorer { width: 270px; border-right: 1px solid var(--line); }
+  #inspector { width: 300px; border-left: 1px solid var(--line); }
+  .panel.collapsed { width: 30px; }
+  .panel .phead {
+    padding: 7px 9px; border-bottom: 1px solid var(--line); font-weight: 600;
+    display: flex; align-items: center; gap: 6px; user-select: none;
+  }
+  .panel .phead .title { flex: 1; }
+  .panel.collapsed .phead { writing-mode: vertical-rl; height: 100%; border-bottom: 0; }
+  .panel.collapsed .pbody { display: none; }
+  .collapse-btn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 2px; font-weight: 700; }
+  .collapse-btn:hover { color: var(--fg); }
+  .side-resizer { width: 5px; cursor: col-resize; background: transparent; }
+  .side-resizer:hover { background: var(--line); }
+
+  /* -- signal explorer -- */
+  #explorer .pbody { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #sigFilter { margin: 6px 8px; }
+  #signalList { overflow: auto; flex: 1; padding: 2px 0; }
+  .grp { padding: 4px 9px 2px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; position: sticky; top: 0; background: var(--panel); }
+  .sig { display: flex; align-items: center; gap: 6px; padding: 2px 9px 2px 16px; cursor: pointer; }
   .sig:hover { background: var(--panel2); }
-  .sig .name { flex: 1; }
+  .sig .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sig .unit { color: var(--muted); font-size: 11px; }
   .sig input { accent-color: var(--accent); }
-  #filter { margin: 6px 8px; }
-  #content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #plotWrap { flex: 1; min-height: 120px; position: relative; }
-  #plot { width: 100%; height: 100%; display: block; }
-  #plotHint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .star { cursor: pointer; color: var(--line); font-size: 13px; }
+  .star.on { color: var(--warn); }
+  .sig .swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
+
+  /* -- center: plot + trace -- */
+  #center { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #plotArea { flex: 1; display: flex; flex-direction: column; min-height: 120px; }
+  .plotbar { display: flex; gap: 6px; align-items: center; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  .plotbar .spacer { flex: 1; }
+  .plotbar .hint { color: var(--muted); font-size: 11px; }
+  #plotWrap { flex: 1; min-height: 80px; position: relative; }
+  #plot { width: 100%; height: 100%; display: block; cursor: crosshair; }
+  #plotHint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; }
+  #cursorReadout { border-top: 1px solid var(--line); background: var(--panel); max-height: 130px; overflow: auto; }
+  #cursorReadout table { width: 100%; }
+  #cursorReadout.empty { display: none; }
+
   .divider { height: 6px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  #traceWrap { height: 44%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
-  .tracebar { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  #traceWrap { height: 42%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
+  .tracebar { display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
   .tracebar label { color: var(--muted); display: flex; gap: 4px; align-items: center; }
+  .tracebar input[type=text], .tracebar input[type=number] { width: 90px; }
+  .tracebar .tw { width: 74px; }
   #tableScroll { overflow: auto; flex: 1; }
   table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
   th, td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -67,67 +107,137 @@
   tr.event td { color: var(--warn); }
   tr.frame.err td .st { color: var(--err); }
   tr.expandable { cursor: pointer; }
+  tr.selected td { background: var(--sel); }
   tr.detail td { background: var(--panel2); color: var(--muted); white-space: normal; }
   .st.ok { color: var(--ok); } .st.unknown_id, .st.no_database { color: var(--muted); } .st.decode_error { color: var(--err); }
-  .pager { display: flex; gap: 6px; align-items: center; margin-left: auto; }
-  dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; max-width: 420px; }
+  .pager { display: flex; gap: 6px; align-items: center; margin-left: auto; color: var(--muted); }
+
+  /* -- inspector -- */
+  #inspector .pbody { flex: 1; overflow: auto; padding: 8px 10px; }
+  .insp-empty { color: var(--muted); }
+  .insp-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin-bottom: 10px; }
+  .insp-grid dt { color: var(--muted); }
+  .insp-grid dd { margin: 0; word-break: break-all; }
+  .insp-sec { font-weight: 600; margin: 6px 0 4px; border-top: 1px solid var(--line); padding-top: 6px; }
+  .insp-sig { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
+  .insp-sig .v { color: var(--accent); }
+
+  dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; max-width: 460px; padding: 16px 18px; }
   dialog h3 { margin-top: 0; }
   .col-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
   .col-row .grab { cursor: grab; color: var(--muted); }
+  .conflict-row { padding: 6px 0; border-top: 1px solid var(--line); }
+  .conflict-row .cid { font-weight: 600; color: var(--accent); }
   code { color: var(--accent); }
+  .kbd { color: var(--muted); font-size: 11px; }
 </style>
 </head>
 <body>
 <header>
   <h1>CanTraceDiag</h1>
   <div class="import">
-    <button class="ghost" id="pickTraceBtn">📄 Trace .asc…</button>
-    <button class="ghost" id="pickDbcBtn">🗂 DBC files…</button>
-    <button class="ghost" id="pickDbcDirBtn">📁 DBC folder…</button>
+    <button class="ghost icon" id="pickTraceBtn" title="Choose a CANalyzer .asc trace">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1.5h5l3 3v10h-8z"/><path d="M9 1.5v3h3"/></svg>Trace</button>
+    <button class="ghost icon" id="pickDbcBtn" title="Choose one or more DBC files">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12"/></svg>DBC files</button>
+    <button class="ghost icon" id="pickDbcDirBtn" title="Choose a folder of DBC files">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h4l1.5 2H14v7H2z"/></svg>DBC folder</button>
     <button id="loadBtn" disabled>Load</button>
     <span class="picked" id="picked"></span>
-    <!-- Native OS file pickers; the browser uploads file contents. -->
     <input id="traceFile" type="file" accept=".asc" hidden />
     <input id="dbcFiles" type="file" accept=".dbc" multiple hidden />
     <input id="dbcDir" type="file" webkitdirectory hidden />
   </div>
   <div class="summary" id="summary">No trace loaded.</div>
+  <div id="progressWrap"><div id="progressBar"></div></div>
 </header>
+
 <main>
-  <aside id="sidebar">
-    <div class="head">Signals</div>
-    <input id="filter" type="text" placeholder="filter…" />
-    <div id="signalList"></div>
+  <!-- Zone: signal explorer -->
+  <aside class="panel" id="explorer">
+    <div class="phead">
+      <button class="collapse-btn" id="explorerToggle" title="Collapse / expand">‹</button>
+      <span class="title">Signals</span>
+      <label class="kbd" title="Show favorites only"><input type="checkbox" id="favOnly" /> fav</label>
+    </div>
+    <div class="pbody">
+      <input id="sigFilter" type="text" placeholder="Search signals…" />
+      <div id="signalList"></div>
+    </div>
   </aside>
-  <section id="content">
-    <div id="plotWrap">
-      <canvas id="plot"></canvas>
-      <div id="plotHint">Select signals to plot.</div>
+  <div class="side-resizer" id="explorerResizer"></div>
+
+  <!-- Zone: plot + trace -->
+  <section id="center">
+    <div id="plotArea">
+      <div class="plotbar">
+        <button class="ghost" id="fitBtn" title="Fit all data (double-click plot)">Fit</button>
+        <button class="ghost" id="zoomInBtn" title="Zoom in">+</button>
+        <button class="ghost" id="zoomOutBtn" title="Zoom out">−</button>
+        <span class="hint" id="viewHint"></span>
+        <div class="spacer"></div>
+        <button class="ghost" id="curABtn" title="Click plot to place cursor A">Cursor A</button>
+        <button class="ghost" id="curBBtn" title="Click plot to place cursor B">Cursor B</button>
+        <button class="ghost" id="curClearBtn" title="Clear cursors">Clear</button>
+        <span class="hint">wheel: zoom · drag: pan · click: cursor</span>
+      </div>
+      <div id="plotWrap">
+        <canvas id="plot"></canvas>
+        <div id="plotHint">Select signals to plot.</div>
+      </div>
+      <div id="cursorReadout" class="empty"><table><thead></thead><tbody></tbody></table></div>
     </div>
     <div class="divider" id="divider"></div>
     <div id="traceWrap">
       <div class="tracebar">
         <strong>Trace</strong>
+        <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" />
+        <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" />
+        <select id="fDir" title="Direction"><option value="">Dir</option><option>Rx</option><option>Tx</option></select>
+        <select id="fStatus" title="Decode status"><option value="">Status</option><option value="ok">ok</option><option value="unknown_id">unknown_id</option><option value="no_database">no_database</option><option value="decode_error">decode_error</option></select>
+        <select id="fEvent" title="Event type"><option value="">Event</option></select>
+        <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" />
+        <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" />
         <label><input type="checkbox" id="showFrames" checked /> frames</label>
         <label><input type="checkbox" id="showEvents" checked /> events</label>
+        <button class="ghost" id="clearFilters" title="Clear all filters">Reset</button>
         <button class="ghost" id="colBtn">Columns…</button>
         <div class="pager">
-          <button class="ghost" id="prevBtn">‹ Prev</button>
+          <button class="ghost" id="prevBtn">Prev</button>
           <span id="pageInfo">—</span>
-          <button class="ghost" id="nextBtn">Next ›</button>
+          <button class="ghost" id="nextBtn">Next</button>
         </div>
       </div>
       <div id="tableScroll"><table id="traceTable"><thead></thead><tbody></tbody></table></div>
     </div>
   </section>
+
+  <!-- Zone: inspector -->
+  <div class="side-resizer" id="inspectorResizer"></div>
+  <aside class="panel" id="inspector">
+    <div class="phead">
+      <button class="collapse-btn" id="inspectorToggle" title="Collapse / expand">›</button>
+      <span class="title">Inspector</span>
+    </div>
+    <div class="pbody" id="inspBody"><div class="insp-empty">Select a trace row to inspect it.</div></div>
+  </aside>
 </main>
 
 <dialog id="colDialog">
   <h3>Trace columns</h3>
-  <p class="summary">Toggle visibility and drag to reorder. Width and format are per-column and persist for this session.</p>
+  <p class="summary" style="margin:0 0 8px">Toggle visibility and drag to reorder. Width and time format persist locally.</p>
   <div id="colList"></div>
   <div style="text-align:right; margin-top:10px;">
     <button class="ghost" id="colClose">Done</button>
+  </div>
+</dialog>
+
+<dialog id="conflictDialog">
+  <h3>DBC conflict: which database should be used?</h3>
+  <p class="summary" style="margin:0 0 8px">Several DBC files define the same arbitration id. Choose which database decodes each one before the analysis is finalized.</p>
+  <div id="conflictList"></div>
+  <div style="text-align:right; margin-top:12px;">
+    <button id="conflictApply">Apply and load</button>
   </div>
 </dialog>
 

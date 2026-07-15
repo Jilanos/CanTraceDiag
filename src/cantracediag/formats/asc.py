@@ -103,6 +103,24 @@ def iter_asc(path: str | Path) -> Iterator[RawCanFrame | NonDataEvent]:
                 yield event
 
 
+def stream_asc(path: str | Path) -> tuple[_Scanner, Iterator[RawCanFrame | NonDataEvent]]:
+    """Stream frames/events and expose the scanner so the caller can read the
+    detected numeric ``base`` after iteration completes."""
+
+    scanner = _Scanner()
+
+    def _gen() -> Iterator[RawCanFrame | NonDataEvent]:
+        with open(path, encoding="utf-8", errors="replace") as handle:
+            for line in handle:
+                frame, event = scanner.feed(line)
+                if frame is not None:
+                    yield frame
+                if event is not None:
+                    yield event
+
+    return scanner, _gen()
+
+
 def _is_header(stripped: str) -> bool:
     lowered = stripped.lower()
     if lowered.startswith("//"):

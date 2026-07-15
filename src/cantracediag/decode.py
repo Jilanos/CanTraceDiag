@@ -24,9 +24,16 @@ from cantracediag.models import (
 class Decoder:
     """Decodes frames against a merged DBC message index."""
 
-    def __init__(self, message_index: dict[int, list[tuple[str, Message]]] | None):
+    def __init__(
+        self,
+        message_index: dict[int, list[tuple[str, Message]]] | None,
+        resolution: dict[int, str] | None = None,
+    ):
         self._index = message_index or {}
         self._has_db = bool(message_index)
+        # Per-arbitration-id operator choice of which DBC owns a conflicting id
+        # (AC10). Maps arbitration_id -> database name.
+        self._resolution = resolution or {}
 
     def decode_frame(
         self, frame: RawCanFrame
@@ -38,22 +45,42 @@ class Decoder:
         if not entries:
             return replace(frame, decode_status=DECODE_UNKNOWN_ID), []
 
-        # When several DBCs claim the same id we take the first; ambiguity is
+        # When several DBCs claim the same id, honour the operator's resolution
+        # if one was made; otherwise take the first. Remaining ambiguity is
         # surfaced separately via DbcCatalog.find_ambiguous_ids.
-        _, message = entries[0]
+        db_name, message = self._pick(frame.arbitration_id, entries)
         if frame.is_remote:
-            return replace(frame, message_name=message.name, decode_status=DECODE_OK), []
+            return replace(
+                frame, message_name=message.name, decode_status=DECODE_OK,
+                dbc_source=db_name,
+            ), []
 
         try:
             decoded = message.decode(
                 frame.data, decode_choices=False, allow_truncated=True
             )
         except Exception:
-            return replace(frame, message_name=message.name, decode_status=DECODE_ERROR), []
+            return replace(
+                frame, message_name=message.name, decode_status=DECODE_ERROR,
+                dbc_source=db_name,
+            ), []
 
         samples = self._to_samples(frame, message, decoded)
-        updated = replace(frame, message_name=message.name, decode_status=DECODE_OK)
+        updated = replace(
+            frame, message_name=message.name, decode_status=DECODE_OK,
+            dbc_source=db_name,
+        )
         return updated, samples
+
+    def _pick(
+        self, arbitration_id: int, entries: list[tuple[str, Message]]
+    ) -> tuple[str, Message]:
+        chosen = self._resolution.get(arbitration_id)
+        if chosen is not None:
+            for db_name, message in entries:
+                if db_name == chosen:
+                    return db_name, message
+        return entries[0]
 
     def _to_samples(
         self, frame: RawCanFrame, message: Message, decoded: dict

@@ -27,6 +27,7 @@ class RawCanFrame:
     is_remote: bool = False
     message_name: str | None = None
     decode_status: str = DECODE_NOT_DECODED
+    dbc_source: str | None = None
 
 
 @dataclass(frozen=True, slots=True)

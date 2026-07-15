@@ -26,6 +26,33 @@ from cantracediag.store import TraceStore
 _WEB_DIR = Path(__file__).parent / "web"
 
 
+class Pending:
+    """A parsed-but-not-finalized load awaiting DBC conflict resolution (AC10)."""
+
+    def __init__(
+        self,
+        trace: Path,
+        catalog: DbcCatalog,
+        dbc_paths: list[Path],
+        display_trace: str,
+        display_dbcs: list[str],
+        ambiguous_ids: dict[int, list[str]],
+        tmpdir: Path | None,
+    ) -> None:
+        self.trace = trace
+        self.catalog = catalog
+        self.dbc_paths = dbc_paths
+        self.display_trace = display_trace
+        self.display_dbcs = display_dbcs
+        self.ambiguous_ids = ambiguous_ids
+        self.tmpdir = tmpdir
+
+    def cleanup(self) -> None:
+        if self.tmpdir is not None:
+            shutil.rmtree(self.tmpdir, ignore_errors=True)
+            self.tmpdir = None
+
+
 class Session:
     """Holds the currently loaded acquisition."""
 
@@ -35,46 +62,101 @@ class Session:
         self.trace_path: str | None = None
         self.dbc_paths: list[str] = []
         self.ambiguous_ids: dict[int, list[str]] = {}
+        self.resolution: dict[int, str] = {}
         self.asc_base: str | None = None
+        self.pending: Pending | None = None
 
     def require_store(self) -> TraceStore:
         if self.store is None:
             raise HTTPException(status_code=409, detail="No trace loaded. POST /api/import first.")
         return self.store
 
+    def clear_pending(self) -> None:
+        if self.pending is not None:
+            self.pending.cleanup()
+            self.pending = None
+
 
 class ImportRequest(BaseModel):
     trace_path: str
     dbc_paths: list[str] = []
+    resolution: dict[str, str] = {}
+
+
+class ResolveRequest(BaseModel):
+    resolution: dict[str, str] = {}
 
 
 def create_app() -> FastAPI:
     app = FastAPI(title="CanTraceDiag", version="0.1.0")
     session = Session()
 
-    def _load(trace: Path, dbcs: list[Path], display_trace: str, display_dbcs: list[str]) -> dict:
-        if session.store is not None:
-            session.store.close()
-            session.store = None
+    def _prepare(
+        trace: Path,
+        dbcs: list[Path],
+        display_trace: str,
+        display_dbcs: list[str],
+        resolution: dict[int, str],
+        tmpdir: Path | None,
+    ) -> dict:
+        """Load DBCs, detect conflicts, and either finalize or ask the operator.
+
+        Conflict resolution happens *before* the (potentially long) decode so
+        the operator picks which DBC owns each conflicting id first (AC10).
+        """
+        session.clear_pending()
 
         catalog = DbcCatalog()
         for dbc in dbcs:
             catalog.load(dbc)
+        ambiguous = catalog.find_ambiguous_ids()
 
-        store, result = import_trace(trace, dbcs)
+        unresolved = [k for k in ambiguous if k not in resolution]
+        if unresolved:
+            session.pending = Pending(
+                trace, catalog, dbcs, display_trace, display_dbcs, ambiguous, tmpdir
+            )
+            return {
+                "needs_resolution": True,
+                "conflicts": _conflicts_payload(catalog, ambiguous),
+            }
+
+        return _finalize(
+            trace, catalog, dbcs, display_trace, display_dbcs, ambiguous, resolution
+        )
+
+    def _finalize(
+        trace: Path,
+        catalog: DbcCatalog,
+        dbcs: list[Path],
+        display_trace: str,
+        display_dbcs: list[str],
+        ambiguous: dict[int, list[str]],
+        resolution: dict[int, str],
+    ) -> dict:
+        if session.store is not None:
+            session.store.close()
+            session.store = None
+
+        store, result = import_trace(
+            trace, dbcs, resolution=resolution, catalog=catalog
+        )
         session.store = store
         session.catalog = catalog
         session.trace_path = display_trace
         session.dbc_paths = display_dbcs
-        session.ambiguous_ids = result.ambiguous_ids
+        session.ambiguous_ids = ambiguous
+        session.resolution = resolution
         session.asc_base = result.asc_base
 
         return {
+            "needs_resolution": False,
             "trace_path": session.trace_path,
             "dbc_paths": session.dbc_paths,
             "summary": result.summary,
             "asc_base": result.asc_base,
-            "ambiguous_ids": {hex(k): v for k, v in result.ambiguous_ids.items()},
+            "ambiguous_ids": {hex(k): v for k, v in ambiguous.items()},
+            "resolution": {hex(k): v for k, v in resolution.items()},
         }
 
     @app.post("/api/import")
@@ -87,7 +169,10 @@ def create_app() -> FastAPI:
         for dbc in dbc_paths:
             if not dbc.is_file():
                 raise HTTPException(404, f"DBC not found: {dbc}")
-        return _load(trace, dbc_paths, str(trace), [str(p) for p in dbc_paths])
+        return _prepare(
+            trace, dbc_paths, str(trace), [str(p) for p in dbc_paths],
+            _parse_resolution(req.resolution), tmpdir=None,
+        )
 
     @app.post("/api/import-files")
     async def api_import_files(
@@ -99,12 +184,14 @@ def create_app() -> FastAPI:
         The browser sends file *contents* (it never exposes real paths), so the
         UI works regardless of where the backend runs (e.g. WSL). Uploads land
         in a temporary directory that is removed once the acquisition is indexed
-        in memory; nothing is written into the repository (AC1, AC8).
+        in memory, or once conflict resolution finalizes the load; nothing is
+        written into the repository (AC1, AC8).
         """
         if not (trace.filename or "").lower().endswith(".asc"):
             raise HTTPException(400, "Trace file must be a .asc file.")
 
         tmpdir = Path(tempfile.mkdtemp(prefix="ctd_"))
+        keep_tmpdir = False
         try:
             trace_path = tmpdir / _safe_name(trace.filename)
             await _spool(trace, trace_path)
@@ -120,9 +207,34 @@ def create_app() -> FastAPI:
                 dbc_paths.append(dest)
                 display_dbcs.append(Path(name).name)
 
-            return _load(trace_path, dbc_paths, Path(trace.filename).name, display_dbcs)
+            result = _prepare(
+                trace_path, dbc_paths, Path(trace.filename).name, display_dbcs,
+                resolution={}, tmpdir=tmpdir,
+            )
+            # When resolution is required the temp files must survive until
+            # /api/resolve finalizes the load; Pending owns cleanup then.
+            keep_tmpdir = result.get("needs_resolution", False)
+            return result
         finally:
-            shutil.rmtree(tmpdir, ignore_errors=True)
+            if not keep_tmpdir:
+                shutil.rmtree(tmpdir, ignore_errors=True)
+
+    @app.post("/api/resolve")
+    def api_resolve(req: ResolveRequest) -> dict:
+        """Finalize a pending upload using the operator's DBC choices (AC10)."""
+        pending = session.pending
+        if pending is None:
+            raise HTTPException(409, "No load is awaiting DBC conflict resolution.")
+        resolution = _parse_resolution(req.resolution)
+        session.pending = None  # take ownership; _finalize / cleanup below
+        try:
+            return _finalize(
+                pending.trace, pending.catalog, pending.dbc_paths,
+                pending.display_trace, pending.display_dbcs,
+                pending.ambiguous_ids, resolution,
+            )
+        finally:
+            pending.cleanup()
 
     @app.get("/api/status")
     def api_status() -> dict:
@@ -134,6 +246,8 @@ def create_app() -> FastAPI:
             "dbc_paths": session.dbc_paths,
             "summary": session.store.summary(),
             "ambiguous_ids": {hex(k): v for k, v in session.ambiguous_ids.items()},
+            "resolution": {hex(k): v for k, v in session.resolution.items()},
+            "event_types": session.store.event_types(),
         }
 
     @app.get("/api/signals")
@@ -161,9 +275,10 @@ def create_app() -> FastAPI:
         signal: str,
         start: float | None = None,
         end: float | None = None,
-        max_points: int = 200_000,
+        max_points: int = 4000,
     ) -> dict:
         store = session.require_store()
+        max_points = max(2, min(max_points, 50_000))
         return store.signal_series(message, signal, start, end, max_points)
 
     @app.get("/api/cursor")
@@ -182,10 +297,39 @@ def create_app() -> FastAPI:
         end: float | None = None,
         frames: bool = True,
         events: bool = True,
+        id: str | None = None,
+        message: str | None = None,
+        direction: str | None = None,
+        status: str | None = None,
+        event_type: str | None = None,
     ) -> dict:
         store = session.require_store()
         limit = max(1, min(limit, 2000))
-        return store.trace_rows(offset, limit, start, end, frames, events)
+        return store.trace_rows(
+            offset, limit, start, end, frames, events,
+            id_hex=id, message=message, direction=direction,
+            decode_status=status, event_type=event_type,
+        )
+
+    @app.get("/api/trace-locate")
+    def api_trace_locate(
+        at: float,
+        start: float | None = None,
+        end: float | None = None,
+        frames: bool = True,
+        events: bool = True,
+        id: str | None = None,
+        message: str | None = None,
+        direction: str | None = None,
+        status: str | None = None,
+        event_type: str | None = None,
+    ) -> dict:
+        store = session.require_store()
+        return store.locate_row(
+            at, frames, events, start, end,
+            id_hex=id, message=message, direction=direction,
+            decode_status=status, event_type=event_type,
+        )
 
     @app.get("/api/frame-signals")
     def api_frame_signals(at: float, id: int) -> dict:
@@ -244,6 +388,37 @@ def _safe_name(name: str) -> str:
 def _id_hex(arbitration_id: int, is_extended: bool) -> str:
     width = 8 if is_extended else 3
     return f"{arbitration_id:0{width}X}"
+
+
+def _parse_resolution(raw: dict[str, str]) -> dict[int, str]:
+    """Map ``{id_hex: db_name}`` from the client to ``{arbitration_id: name}``."""
+    out: dict[int, str] = {}
+    for key, name in raw.items():
+        try:
+            out[int(str(key).removeprefix("0x").removeprefix("0X"), 16)] = name
+        except ValueError:
+            continue
+    return out
+
+
+def _conflicts_payload(
+    catalog: DbcCatalog, ambiguous: dict[int, list[str]]
+) -> list[dict]:
+    """Per-conflicting-id choices for the resolution modal (AC10)."""
+    index = catalog.message_index()
+    payload: list[dict] = []
+    for frame_id in sorted(ambiguous):
+        entries = index.get(frame_id, [])
+        payload.append(
+            {
+                "id_hex": hex(frame_id),
+                "options": [
+                    {"database": db_name, "message": message.name}
+                    for db_name, message in entries
+                ],
+            }
+        )
+    return payload
 
 
 app = create_app()

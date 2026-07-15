@@ -1,10 +1,10 @@
 ## item_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic - Améliorer le MVP CanTraceDiag pour l'analyse diagnostic
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -112,6 +112,7 @@ Rendre le comportement multi-DBC explicite, notamment quand plusieurs DBC revend
 - Hybrid rationale: Derived from request `req_001_ameliorer_mvp_cantracediag_analyse_diagnostic` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_001_ameliorer_mvp_cantracediag_analyse_diagnostic.md`.
 - Generated locally by logics-manager.
+- Task `task_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic` was finished via `logics-manager flow finish task` on 2026-07-15.
 
 # Tasks
 - `task_002_ameliorer_le_mvp_cantracediag_pour_l_analyse_diagnostic`

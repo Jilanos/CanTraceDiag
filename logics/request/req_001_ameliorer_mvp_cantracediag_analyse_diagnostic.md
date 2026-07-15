@@ -1,7 +1,7 @@
 ## req_001_ameliorer_mvp_cantracediag_analyse_diagnostic - Améliorer le MVP CanTraceDiag pour l'analyse diagnostic
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: Transformer le MVP technique actuel en outil de diagnostic local utilisable au quotidien, en priorisant ergonomie UI, curseurs synchronisés, filtres trace, performance grosses traces et résolution des ambiguïtés DBC.
 > Confidence: high
 > Complexity: high

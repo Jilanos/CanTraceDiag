@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS frames (
     direction      VARCHAR,
     is_remote      BOOLEAN,
     message_name   VARCHAR,
-    decode_status  VARCHAR
+    decode_status  VARCHAR,
+    dbc_source     VARCHAR
 );
 CREATE TABLE IF NOT EXISTS events (
     seq         BIGINT,
@@ -67,10 +68,10 @@ class TraceStore:
 
     # -- ingestion ---------------------------------------------------------
 
-    def ingest_frames(self, frames: Iterable[RawCanFrame]) -> int:
+    def ingest_frames(self, frames: Iterable[RawCanFrame], seq_start: int = 0) -> int:
         rows = [
             {
-                "seq": i,
+                "seq": seq_start + i,
                 "timestamp_s": f.timestamp_s,
                 "channel": f.channel,
                 "arbitration_id": f.arbitration_id,
@@ -82,15 +83,16 @@ class TraceStore:
                 "is_remote": f.is_remote,
                 "message_name": f.message_name,
                 "decode_status": f.decode_status,
+                "dbc_source": f.dbc_source,
             }
             for i, f in enumerate(frames)
         ]
         return self._append("frames", rows)
 
-    def ingest_events(self, events: Iterable[NonDataEvent]) -> int:
+    def ingest_events(self, events: Iterable[NonDataEvent], seq_start: int = 0) -> int:
         rows = [
             {
-                "seq": i,
+                "seq": seq_start + i,
                 "timestamp_s": e.timestamp_s,
                 "channel": e.channel,
                 "event_type": e.event_type,
@@ -147,6 +149,12 @@ class TraceStore:
         ids = self.con.execute(
             "SELECT count(DISTINCT arbitration_id) FROM frames"
         ).fetchone()[0]
+        status_rows = self.con.execute(
+            "SELECT decode_status, count(*) FROM frames GROUP BY decode_status"
+        ).fetchall()
+        event_rows = self.con.execute(
+            "SELECT event_type, count(*) FROM events GROUP BY event_type"
+        ).fetchall()
         bounds = self.time_bounds()
         return {
             "frames": frames,
@@ -155,6 +163,8 @@ class TraceStore:
             "unique_ids": ids,
             "start_s": bounds.start_s,
             "end_s": bounds.end_s,
+            "decode_status": {r[0]: r[1] for r in status_rows},
+            "event_types": {r[0]: r[1] for r in event_rows},
         }
 
     def signal_series(
@@ -163,9 +173,16 @@ class TraceStore:
         signal_name: str,
         start_s: float | None = None,
         end_s: float | None = None,
-        max_points: int = 200_000,
+        max_points: int = 4000,
     ) -> dict:
-        """Ordered (t, value) pairs for a signal over an optional window."""
+        """Ordered (t, value) pairs for a signal over an optional window.
+
+        When the window holds more samples than ``max_points``, the series is
+        decimated server-side (AC9): the window is split into time buckets and
+        each bucket contributes its min-value and max-value samples. Every point
+        returned is a real stored sample (no interpolation, AC2), and spikes are
+        preserved because per-bucket extrema are kept.
+        """
         clauses = ["message_name = ?", "signal_name = ?", "value_num IS NOT NULL"]
         params: list[object] = [message_name, signal_name]
         if start_s is not None:
@@ -175,19 +192,26 @@ class TraceStore:
             clauses.append("timestamp_s <= ?")
             params.append(end_s)
         where = " AND ".join(clauses)
-        df = self.con.execute(
-            f"""
-            SELECT timestamp_s, value_num
-            FROM samples
-            WHERE {where}
-            ORDER BY timestamp_s
-            LIMIT {int(max_points) + 1}
-            """,
+
+        stats = self.con.execute(
+            f"SELECT count(*), min(timestamp_s), max(timestamp_s) "
+            f"FROM samples WHERE {where}",
             params,
-        ).df()
-        truncated = len(df) > max_points
-        if truncated:
-            df = df.iloc[:max_points]
+        ).fetchone()
+        raw_count = int(stats[0] or 0)
+        t_lo, t_hi = stats[1], stats[2]
+
+        max_points = max(2, int(max_points))
+        downsampled = raw_count > max_points and t_hi is not None and t_hi > t_lo
+        if downsampled:
+            df = self._decimate(where, params, max_points, t_lo, t_hi)
+        else:
+            df = self.con.execute(
+                f"SELECT timestamp_s, value_num FROM samples WHERE {where} "
+                f"ORDER BY timestamp_s",
+                params,
+            ).df()
+
         unit = self.con.execute(
             "SELECT unit FROM samples WHERE message_name = ? AND signal_name = ? "
             "AND unit IS NOT NULL LIMIT 1",
@@ -199,8 +223,48 @@ class TraceStore:
             "unit": unit[0] if unit else None,
             "t": df["timestamp_s"].tolist(),
             "v": df["value_num"].tolist(),
-            "truncated": truncated,
+            "raw_count": raw_count,
+            "downsampled": downsampled,
         }
+
+    def _decimate(
+        self,
+        where: str,
+        params: list[object],
+        max_points: int,
+        t_lo: float,
+        t_hi: float,
+    ) -> pd.DataFrame:
+        """Min/max time-bucket decimation returning real samples in time order."""
+        # Two points per bucket (min + max), so half as many buckets as points.
+        nbuckets = max(1, max_points // 2)
+        span = t_hi - t_lo
+        # arg_min/arg_max pick the actual timestamp at which each extreme occurs.
+        df = self.con.execute(
+            f"""
+            WITH win AS (
+                SELECT timestamp_s, value_num,
+                       least({nbuckets - 1},
+                             CAST((timestamp_s - {t_lo!r}) / {span!r}
+                                  * {nbuckets} AS BIGINT)) AS bucket
+                FROM samples WHERE {where}
+            ),
+            agg AS (
+                SELECT bucket,
+                       arg_min(timestamp_s, value_num) AS t_min, min(value_num) AS v_min,
+                       arg_max(timestamp_s, value_num) AS t_max, max(value_num) AS v_max
+                FROM win GROUP BY bucket
+            ),
+            pts AS (
+                SELECT t_min AS timestamp_s, v_min AS value_num FROM agg
+                UNION ALL
+                SELECT t_max AS timestamp_s, v_max AS value_num FROM agg
+            )
+            SELECT DISTINCT timestamp_s, value_num FROM pts ORDER BY timestamp_s
+            """,
+            params,
+        ).df()
+        return df
 
     def nearest_sample(
         self, message_name: str, signal_name: str, at_s: float
@@ -232,36 +296,25 @@ class TraceStore:
         end_s: float | None = None,
         include_frames: bool = True,
         include_events: bool = True,
+        id_hex: str | None = None,
+        message: str | None = None,
+        direction: str | None = None,
+        decode_status: str | None = None,
+        event_type: str | None = None,
     ) -> dict:
-        """Time-ordered, paginated view mixing frames and events (AC6)."""
-        selects: list[str] = []
-        window_params: list[object] = []
-        window = self._window_clause(start_s, end_s, window_params)
+        """Time-ordered, paginated view mixing frames and events (AC4, AC6).
 
-        if include_frames:
-            selects.append(
-                f"""
-                SELECT timestamp_s, channel, 'frame' AS kind, id_hex,
-                       message_name AS name, direction, dlc, data_hex,
-                       decode_status, NULL AS detail
-                FROM frames {window}
-                """
-            )
-        if include_events:
-            selects.append(
-                f"""
-                SELECT timestamp_s, channel, 'event' AS kind, NULL AS id_hex,
-                       event_type AS name, NULL AS direction, NULL AS dlc,
-                       NULL AS data_hex, NULL AS decode_status, detail
-                FROM events {window}
-                """
-            )
-        if not selects:
+        Every filter is combinable and applied server-side so the browser never
+        loads the whole trace. ``id_hex``/``message`` match case-insensitive
+        substrings; the rest match exactly.
+        """
+        union, params = self._trace_union(
+            start_s, end_s, include_frames, include_events,
+            id_hex, message, direction, decode_status, event_type,
+        )
+        if union is None:
             return {"total": 0, "offset": offset, "limit": limit, "rows": []}
 
-        union = " UNION ALL ".join(selects)
-        # The window clause (and its placeholders) is repeated once per select.
-        params = window_params * len(selects)
         total = self.con.execute(
             f"SELECT count(*) FROM ({union})", list(params)
         ).fetchone()[0]
@@ -279,6 +332,173 @@ class TraceStore:
             "limit": limit,
             "rows": _records(rows),
         }
+
+    def locate_row(
+        self,
+        at_s: float,
+        include_frames: bool = True,
+        include_events: bool = True,
+        start_s: float | None = None,
+        end_s: float | None = None,
+        id_hex: str | None = None,
+        message: str | None = None,
+        direction: str | None = None,
+        decode_status: str | None = None,
+        event_type: str | None = None,
+    ) -> dict:
+        """Row index of the trace row nearest to ``at_s`` under active filters.
+
+        Powers graph-to-trace synchronization (AC3): the UI pages to the index
+        so the nearest frames become visible and can be highlighted.
+        """
+        union, params = self._trace_union(
+            start_s, end_s, include_frames, include_events,
+            id_hex, message, direction, decode_status, event_type,
+        )
+        if union is None:
+            return {"total": 0, "index": None, "timestamp_s": None}
+        total = self.con.execute(
+            f"SELECT count(*) FROM ({union})", list(params)
+        ).fetchone()[0]
+        # Rows strictly before the nearest sit ahead of it in time order.
+        row = self.con.execute(
+            f"""
+            WITH ordered AS (
+                SELECT timestamp_s,
+                       row_number() OVER (ORDER BY timestamp_s) - 1 AS idx
+                FROM ({union})
+            )
+            SELECT idx, timestamp_s FROM ordered
+            ORDER BY abs(timestamp_s - ?) , idx LIMIT 1
+            """,
+            [*params, at_s],
+        ).fetchone()
+        if row is None:
+            return {"total": total, "index": None, "timestamp_s": None}
+        return {"total": total, "index": int(row[0]), "timestamp_s": row[1]}
+
+    def _trace_union(
+        self,
+        start_s: float | None,
+        end_s: float | None,
+        include_frames: bool,
+        include_events: bool,
+        id_hex: str | None,
+        message: str | None,
+        direction: str | None,
+        decode_status: str | None,
+        event_type: str | None,
+    ) -> tuple[str | None, list[object]]:
+        selects: list[str] = []
+        params: list[object] = []
+
+        # A frame-only attribute filter excludes events (they carry no id /
+        # direction / decode status); an event-type filter excludes frames.
+        # ``message`` matches decoded message names and event types, so it is
+        # kept on both sides.
+        if id_hex or direction or decode_status:
+            include_events = False
+        if event_type:
+            include_frames = False
+
+        if include_frames:
+            clauses, fparams = self._frame_filters(
+                start_s, end_s, id_hex, message, direction, decode_status
+            )
+            where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+            selects.append(
+                f"""
+                SELECT timestamp_s, channel, 'frame' AS kind, id_hex,
+                       message_name AS name, direction, dlc, data_hex,
+                       decode_status, dbc_source, NULL AS detail
+                FROM frames {where}
+                """
+            )
+            params.extend(fparams)
+        if include_events:
+            clauses, eparams = self._event_filters(
+                start_s, end_s, message, event_type
+            )
+            where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+            selects.append(
+                f"""
+                SELECT timestamp_s, channel, 'event' AS kind, NULL AS id_hex,
+                       event_type AS name, NULL AS direction, NULL AS dlc,
+                       NULL AS data_hex, NULL AS decode_status,
+                       NULL AS dbc_source, detail
+                FROM events {where}
+                """
+            )
+            params.extend(eparams)
+
+        if not selects:
+            return None, []
+        return " UNION ALL ".join(selects), params
+
+    def _frame_filters(
+        self,
+        start_s: float | None,
+        end_s: float | None,
+        id_hex: str | None,
+        message: str | None,
+        direction: str | None,
+        decode_status: str | None,
+    ) -> tuple[list[str], list[object]]:
+        clauses: list[str] = []
+        params: list[object] = []
+        self._time_clauses(start_s, end_s, clauses, params)
+        if id_hex:
+            clauses.append("lower(id_hex) LIKE ?")
+            params.append(f"%{id_hex.lower().removeprefix('0x')}%")
+        if message:
+            clauses.append("lower(coalesce(message_name, '')) LIKE ?")
+            params.append(f"%{message.lower()}%")
+        if direction:
+            clauses.append("direction = ?")
+            params.append(direction)
+        if decode_status:
+            clauses.append("decode_status = ?")
+            params.append(decode_status)
+        return clauses, params
+
+    def _event_filters(
+        self,
+        start_s: float | None,
+        end_s: float | None,
+        message: str | None,
+        event_type: str | None,
+    ) -> tuple[list[str], list[object]]:
+        clauses: list[str] = []
+        params: list[object] = []
+        self._time_clauses(start_s, end_s, clauses, params)
+        # A frame-oriented id/direction/status filter must exclude every event.
+        if event_type:
+            clauses.append("event_type = ?")
+            params.append(event_type)
+        if message:
+            clauses.append("lower(event_type) LIKE ?")
+            params.append(f"%{message.lower()}%")
+        return clauses, params
+
+    def _time_clauses(
+        self,
+        start_s: float | None,
+        end_s: float | None,
+        clauses: list[str],
+        params: list[object],
+    ) -> None:
+        if start_s is not None:
+            clauses.append("timestamp_s >= ?")
+            params.append(start_s)
+        if end_s is not None:
+            clauses.append("timestamp_s <= ?")
+            params.append(end_s)
+
+    def event_types(self) -> list[str]:
+        rows = self.con.execute(
+            "SELECT DISTINCT event_type FROM events ORDER BY event_type"
+        ).fetchall()
+        return [r[0] for r in rows]
 
     def frame_signals(self, timestamp_s: float, arbitration_id: int) -> list[dict]:
         """Decoded signals for one frame, keyed by exact time and id."""

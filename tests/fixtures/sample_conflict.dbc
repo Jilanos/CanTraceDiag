@@ -1,0 +1,13 @@
+VERSION ""
+
+NS_ :
+
+BS_:
+
+BU_: BCM
+
+BO_ 256 BrakeData: 8 BCM
+ SG_ BrakePressure : 0|16@1+ (0.5,0) [0|32767.5] "bar" Vector__XXX
+
+BO_ 768 DoorState: 1 BCM
+ SG_ DoorsOpen : 0|8@1+ (1,0) [0|255] "" Vector__XXX
