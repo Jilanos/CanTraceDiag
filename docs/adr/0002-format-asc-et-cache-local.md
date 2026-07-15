@@ -12,9 +12,17 @@ Les traces disponibles sont principalement au format CANalyzer ASCII `.asc`. Des
 
 Le MVP cible le format ASC et normalise les données dans un modèle interne indépendant du format source. Les données importées doivent pouvoir être cachées localement dans un format indexable, typiquement Parquet et/ou DuckDB.
 
+Depuis le durcissement du 15 juillet 2026, les imports API utilisent un fichier
+DuckDB temporaire hors dépôt plutôt qu'une base complète en mémoire pour la
+session courante. Les imports CLI peuvent encore utiliser le comportement par
+défaut en mémoire tant qu'aucun chemin de cache n'est fourni.
+
 ## Conséquences
 
 - Le parser ASC peut être implémenté et testé en premier.
 - L'ajout de BLF/MF4 devra produire le même modèle interne.
 - Le frontend interroge des plages temporelles et filtres au lieu de charger toute la trace.
 - Les fichiers `.asc`, `.dbc`, `.blf`, `.mf4`, `.parquet`, `.duckdb` restent exclus du dépôt.
+- Les performances volumineuses doivent être mesurées avec des traces réelles
+  hors dépôt ou des générateurs synthétiques, puis documentées avec la machine
+  de référence.

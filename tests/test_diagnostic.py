@@ -170,8 +170,14 @@ def test_import_flow_requires_then_resolves_conflict(client: TestClient) -> None
     assert body["needs_resolution"] is True
     ids = {c["id_hex"] for c in body["conflicts"]}
     assert "0x100" in ids
-    # The load is not finalized until resolution is posted.
-    assert client.get("/api/status").json()["loaded"] is False
+    # Non-ambiguous content is visible before resolution; conflicting ids are
+    # marked and not decoded with an arbitrary first DBC.
+    status = client.get("/api/status").json()
+    assert status["loaded"] is True
+    assert status["summary"]["decode_status"]["ambiguous_id"] >= 1
+    preview = client.get("/api/trace", params={"limit": 100, "id": "100"}).json()
+    assert any(r["decode_status"] == "ambiguous_id" for r in preview["rows"])
+    assert all(r["dbc_source"] is None for r in preview["rows"] if r["kind"] == "frame")
 
     resolved = client.post(
         "/api/resolve", json={"resolution": {"0x100": "sample_conflict.dbc"}}
@@ -183,6 +189,30 @@ def test_import_flow_requires_then_resolves_conflict(client: TestClient) -> None
     # Frame 0x100 now decodes with the chosen DBC.
     trace = client.get("/api/trace", params={"limit": 100, "id": "100"}).json()
     assert any(r["dbc_source"] == "sample_conflict.dbc" for r in trace["rows"])
+
+
+def test_resolve_rejects_unknown_or_invalid_choice(client: TestClient) -> None:
+    asc = (FIX / "sample.asc").read_bytes()
+    dbc_a = (FIX / "sample.dbc").read_bytes()
+    dbc_b = (FIX / "sample_conflict.dbc").read_bytes()
+    first = client.post(
+        "/api/import-files",
+        files=[
+            ("trace", ("sample.asc", asc, "application/octet-stream")),
+            ("dbcs", ("sample.dbc", dbc_a, "application/octet-stream")),
+            ("dbcs", ("sample_conflict.dbc", dbc_b, "application/octet-stream")),
+        ],
+    )
+    assert first.status_code == 200
+    assert first.json()["needs_resolution"] is True
+
+    unknown = client.post("/api/resolve", json={"resolution": {"0x999": "sample.dbc"}})
+    assert unknown.status_code == 400
+    assert "Unknown DBC conflict id" in unknown.json()["detail"]
+
+    invalid = client.post("/api/resolve", json={"resolution": {"0x100": "missing.dbc"}})
+    assert invalid.status_code == 400
+    assert "Invalid DBC choice" in invalid.json()["detail"]
 
 
 def test_resolve_without_pending_returns_409(client: TestClient) -> None:
@@ -198,3 +228,17 @@ def test_import_without_conflict_finalizes_directly(client: TestClient) -> None:
     assert r.status_code == 200
     assert r.json()["needs_resolution"] is False
     assert client.get("/api/status").json()["loaded"] is True
+
+
+def test_signals_report_presence_and_trace_filters_by_signal(client: TestClient) -> None:
+    r = client.post(
+        "/api/import",
+        json={"trace_path": str(FIX / "sample.asc"),
+              "dbc_paths": [str(FIX / "sample.dbc")]},
+    )
+    assert r.status_code == 200
+    signals = client.get("/api/signals").json()["signals"]
+    assert any(s["signal_name"] == "EngineSpeed" and s["present"] is True for s in signals)
+    page = client.get("/api/trace", params={"limit": 100, "signal": "EngineSpeed"}).json()
+    assert page["total"] > 0
+    assert all(row["name"] == "EngineData" for row in page["rows"])

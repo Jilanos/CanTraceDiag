@@ -10,6 +10,7 @@ DECODE_OK = "ok"
 DECODE_NO_DB = "no_database"
 DECODE_UNKNOWN_ID = "unknown_id"
 DECODE_ERROR = "decode_error"
+DECODE_AMBIGUOUS_ID = "ambiguous_id"
 DECODE_NOT_DECODED = "not_decoded"
 
 

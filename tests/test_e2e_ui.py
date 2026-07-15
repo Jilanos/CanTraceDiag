@@ -219,6 +219,17 @@ def test_click_places_cursor(page):
     assert a == pytest.approx(8.0, abs=0.4), a
 
 
+def test_keyboard_moves_armed_cursor(page):
+    page.evaluate("() => { setView(0, 20); state.cursor.a = null; state.cursor.arm = 'a'; }")
+    page.focus("#plot")
+    page.keyboard.press("ArrowRight")
+    a = page.evaluate("() => state.cursor.a")
+    assert a is not None
+    page.keyboard.press("ArrowRight")
+    b = page.evaluate("() => state.cursor.a")
+    assert b > a
+
+
 @pytest.mark.parametrize(
     "panel,toggle",
     [("explorer", "explorerToggle"), ("inspector", "inspectorToggle")],
@@ -264,3 +275,55 @@ def test_rapid_zoom_pan_no_server_errors(page):
         page.evaluate("() => refreshCursorReadout()")
     page.wait_for_timeout(600)   # let debounced series refreshes settle
     assert not page._ctd_http_errors, page._ctd_http_errors
+
+
+def test_imported_text_does_not_execute_html(browser, live_url, tmp_path):
+    """Hostile ASC/DBC text must render as text, not executable markup."""
+    trace = tmp_path / "hostile.asc"
+    trace.write_text(
+        "\n".join(
+            [
+                "date Tue Jul 15 10:00:00 2026",
+                "base hex  timestamps absolute",
+                "Begin Triggerblock Tue Jul 15 10:00:00 2026",
+                "   0.000000 1  100             Rx   d 8 00 10 64 00 00 00 00 00",
+                "   0.001000 <img src=x onerror=window.__ctdXss=1>",
+                "End Triggerblock",
+            ]
+        )
+        + "\n"
+    )
+    dbc = tmp_path / "hostile.dbc"
+    dbc.write_text(
+        'VERSION ""\nNS_ :\nBS_:\nBU_: ECU\n'
+        "BO_ 256 EngineData: 8 ECU\n"
+        ' SG_ EngineSpeed : 0|16@1+ (0.25,0) [0|16383.75] '
+        '"<svg/onload=window.__ctdXss=2>" Vector__XXX\n'
+    )
+
+    ctx = browser.new_context(viewport={"width": 1280, "height": 720})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.evaluate("() => { localStorage.clear(); window.__ctdXss = 0; }")
+    pg.set_input_files("#traceFile", str(trace))
+    pg.set_input_files("#dbcFiles", str(dbc))
+    pg.click("#loadBtn")
+    pg.wait_for_function("() => typeof state !== 'undefined' && state.signals.length === 1")
+    pg.wait_for_selector("#traceTable tbody tr")
+    pg.wait_for_timeout(200)
+    assert pg.evaluate("() => window.__ctdXss") == 0
+    assert "<img src=x onerror=window.__ctdXss=1>" in pg.locator("#traceTable").inner_text()
+    assert "<svg/onload=window.__ctdXss=2>" in pg.locator("#signalList").inner_text()
+    ctx.close()
+
+
+def test_narrow_viewport_keeps_critical_actions_reachable(browser, live_url):
+    ctx = browser.new_context(viewport={"width": 390, "height": 844})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    for selector in ["#pickTraceBtn", "#pickDbcBtn", "#loadBtn", "#fitBtn", "#colBtn"]:
+        box = pg.locator(selector).bounding_box()
+        assert box is not None, selector
+        assert box["x"] >= 0
+        assert box["x"] + box["width"] <= 390
+    ctx.close()

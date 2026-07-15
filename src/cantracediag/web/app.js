@@ -7,6 +7,12 @@
 const SERIES_COLORS = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6","--s7"];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "")
+  .replaceAll("&", "&amp;")
+  .replaceAll("<", "&lt;")
+  .replaceAll(">", "&gt;")
+  .replaceAll('"', "&quot;")
+  .replaceAll("'", "&#39;");
 
 /* ---- local persistence (AC7) ------------------------------------------- */
 const store = {
@@ -34,11 +40,11 @@ const DEFAULT_COLUMNS = [
   { key: "timestamp_s", label: "Time", visible: true, width: 110, format: "s" },
   { key: "channel",     label: "Ch",   visible: true, width: 44,  format: "text" },
   { key: "kind",        label: "Kind", visible: true, width: 56,  format: "text" },
-  { key: "id_hex",      label: "ID",   visible: true, width: 84,  format: "text" },
+  { key: "id_hex",      label: "ID",   visible: true, width: 84,  format: "hex" },
   { key: "name",        label: "Name", visible: true, width: 150, format: "text" },
   { key: "direction",   label: "Dir",  visible: true, width: 44,  format: "text" },
-  { key: "dlc",         label: "DLC",  visible: true, width: 44,  format: "text" },
-  { key: "data_hex",    label: "Data", visible: true, width: 190, format: "text" },
+  { key: "dlc",         label: "DLC",  visible: true, width: 44,  format: "dec" },
+  { key: "data_hex",    label: "Data", visible: true, width: 190, format: "hex" },
   { key: "decode_status", label: "Status", visible: true, width: 96, format: "status" },
   { key: "dbc_source",  label: "DBC",  visible: false, width: 120, format: "text" },
   { key: "detail",      label: "Detail", visible: true, width: 220, format: "text" },
@@ -88,7 +94,7 @@ const picked = { trace: null, dbcs: [] };
 
 function refreshPicked() {
   const parts = [];
-  if (picked.trace) parts.push(`<b>${picked.trace.name}</b>`);
+  if (picked.trace) parts.push(`<b>${esc(picked.trace.name)}</b>`);
   if (picked.dbcs.length) parts.push(`${picked.dbcs.length} DBC`);
   $("picked").innerHTML = parts.join(" · ") || "no files selected";
   $("loadBtn").disabled = !picked.trace;
@@ -116,11 +122,15 @@ async function doLoad() {
       $("summary").innerHTML = frac >= 1 ? "Indexing…" : `Uploading ${Math.round(frac * 100)}%`;
     });
     setProgress(null);
-    if (r.needs_resolution) { openConflictDialog(r.conflicts); return; }
+    if (r.needs_resolution) {
+      await onLoaded(r);
+      openConflictDialog(r.conflicts);
+      return;
+    }
     await onLoaded(r);
   } catch (e) {
     setProgress(null);
-    $("summary").innerHTML = `<span class="err">${e.message}</span>`;
+    $("summary").innerHTML = `<span class="err">${esc(e.message)}</span>`;
   } finally {
     $("loadBtn").disabled = !picked.trace;
   }
@@ -148,6 +158,7 @@ function renderSummary(r) {
     `${fmtTime(s.start_s)}–${fmtTime(s.end_s)}`;
   const problems = [];
   if (st.unknown_id) problems.push(`${st.unknown_id} unknown id`);
+  if (st.ambiguous_id) problems.push(`${st.ambiguous_id} ambiguous id`);
   if (st.decode_error) problems.push(`${st.decode_error} decode error`);
   if (problems.length) html += ` · <span class="warn">${problems.join(" · ")}</span>`;
   const res = r.resolution && Object.keys(r.resolution).length;
@@ -163,10 +174,10 @@ function openConflictDialog(conflicts) {
     const row = document.createElement("div");
     row.className = "conflict-row";
     const opts = c.options
-      .map((o, i) => `<option value="${o.database}" ${i === 0 ? "selected" : ""}>${o.database} → ${o.message}</option>`)
+      .map((o, i) => `<option value="${esc(o.database)}" ${i === 0 ? "selected" : ""}>${esc(o.database)} → ${esc(o.message)}</option>`)
       .join("");
-    row.innerHTML = `<span class="cid">${c.id_hex}</span> ` +
-      `<select data-id="${c.id_hex}">${opts}</select>`;
+    row.innerHTML = `<span class="cid">${esc(c.id_hex)}</span> ` +
+      `<select data-id="${esc(c.id_hex)}">${opts}</select>`;
     list.appendChild(row);
   }
   $("summary").innerHTML = `<span class="warn">DBC conflict — resolution required</span>`;
@@ -187,7 +198,7 @@ async function applyConflictResolution() {
     });
     await onLoaded(r);
   } catch (e) {
-    $("summary").innerHTML = `<span class="err">${e.message}</span>`;
+    $("summary").innerHTML = `<span class="err">${esc(e.message)}</span>`;
   }
 }
 
@@ -210,7 +221,11 @@ function renderSignalList() {
   const groups = new Map();
   for (const sig of state.signals) {
     const key = favKey(sig);
-    if (filter && !key.toLowerCase().includes(filter)) continue;
+    const haystack = [
+      sig.message_name, sig.signal_name, sig.id_hex, sig.unit,
+      ...(sig.databases || []),
+    ].join(" ").toLowerCase();
+    if (filter && !haystack.includes(filter)) continue;
     if (favOnly && !state.favorites.has(key)) continue;
     const db = (sig.databases && sig.databases[0]) || "(no DBC)";
     if (!groups.has(db)) groups.set(db, []);
@@ -238,13 +253,14 @@ function signalRow(sig) {
   const sel = state.selected.find((s) => s.message === sig.message_name && s.signal === sig.signal_name);
   const row = document.createElement("label");
   row.className = "sig";
+  if (sig.present === false) row.classList.add("absent");
   const swatch = sel ? `<span class="swatch" style="background:${sel.color}"></span>` : `<span class="swatch"></span>`;
   row.innerHTML =
     `<span class="star ${state.favorites.has(key) ? "on" : ""}" title="Favorite">★</span>` +
     `<input type="checkbox" ${sel ? "checked" : ""}/>` +
     swatch +
-    `<span class="name">${sig.message_name}.<b>${sig.signal_name}</b></span>` +
-    `<span class="unit">${sig.unit || ""}</span>`;
+    `<span class="name">${esc(sig.message_name)}.<b>${esc(sig.signal_name)}</b></span>` +
+    `<span class="unit">${esc(sig.unit || "")}${sig.present === false ? " · DBC" : ""}</span>`;
   row.querySelector(".star").addEventListener("click", (e) => {
     e.preventDefault(); e.stopPropagation();
     if (state.favorites.has(key)) state.favorites.delete(key); else state.favorites.add(key);
@@ -588,6 +604,17 @@ window.addEventListener("mouseup", (e) => {
   }
 });
 canvas.addEventListener("dblclick", () => fitView());
+canvas.addEventListener("keydown", (e) => {
+  if (!state.view || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  e.preventDefault();
+  const which = state.cursor.arm || "a";
+  const span = state.view[1] - state.view[0];
+  const step = span / (e.shiftKey ? 10 : 100);
+  const current = state.cursor[which] ?? ((state.view[0] + state.view[1]) / 2);
+  const dir = e.key === "ArrowRight" ? 1 : -1;
+  const next = Math.max(state.view[0], Math.min(state.view[1], current + dir * step));
+  placeCursor(next, which, true);
+});
 
 /* ---- A/B cursors (AC2) + graph→trace sync (AC3) ------------------------ */
 function placeCursor(t, which, locate) {
@@ -636,7 +663,7 @@ async function refreshCursorReadout() {
     const bv = rb ? fmtVal(rb) : "—";
     const na = num(ra), nb = num(rb);
     const dv = (na != null && nb != null) ? fmtDelta(nb - na) + (s.unit ? " " + s.unit : "") : "—";
-    rows += tRow(`<span style="color:${s.color}">${s.message}.${s.signal}</span>`, av, bv, dv);
+    rows += tRow(`<span style="color:${s.color}">${esc(s.message)}.${esc(s.signal)}</span>`, av, bv, esc(dv));
   }
   box.querySelector("thead").innerHTML = head;
   box.querySelector("tbody").innerHTML = rows;
@@ -646,7 +673,7 @@ function favSig(s) { return `${s.message}.${s.signal}`; }
 function fmtVal(r) {
   if (r.value == null) return "—";
   const v = typeof r.value === "number" ? fmtNum(r.value) : r.value;
-  return `${v}${r.unit ? " " + r.unit : ""}`;
+  return esc(`${v}${r.unit ? " " + r.unit : ""}`);
 }
 function fmtDelta(d) {
   const sign = d >= 0 ? "+" : "";
@@ -671,6 +698,7 @@ function traceFilterParams() {
   p.set("events", $("showEvents").checked);
   const id = $("fId").value.trim(); if (id) p.set("id", id);
   const msg = $("fMsg").value.trim(); if (msg) p.set("message", msg);
+  const sig = $("fSignal").value.trim(); if (sig) p.set("signal", sig);
   const dir = $("fDir").value; if (dir) p.set("direction", dir);
   const stt = $("fStatus").value; if (stt) p.set("status", stt);
   const evt = $("fEvent").value; if (evt) p.set("event_type", evt);
@@ -682,7 +710,7 @@ function traceFilterParams() {
 function persistFilters() {
   store.set("filters", {
     id: $("fId").value, msg: $("fMsg").value, dir: $("fDir").value,
-    status: $("fStatus").value, event: $("fEvent").value,
+    status: $("fStatus").value, event: $("fEvent").value, signal: $("fSignal").value,
     frames: $("showFrames").checked, events: $("showEvents").checked,
   });
 }
@@ -706,7 +734,7 @@ function renderTable(rows) {
   const thead = $("traceTable").querySelector("thead");
   const tbody = $("traceTable").querySelector("tbody");
   const vis = columns.filter((c) => c.visible);
-  thead.innerHTML = "<tr>" + vis.map((c) => `<th style="min-width:${c.width}px">${c.label}</th>`).join("") + "</tr>";
+  thead.innerHTML = "<tr>" + vis.map((c) => `<th style="min-width:${Number(c.width) || 60}px">${esc(c.label)}</th>`).join("") + "</tr>";
   tbody.innerHTML = "";
   rows.forEach((row) => {
     const tr = document.createElement("tr");
@@ -735,8 +763,17 @@ function selectRow(row, tr) {
 function fmtCell(col, value) {
   if (value === null || value === undefined) return "";
   if (col.format === "s") return `<span>${fmtTime(value)}</span>`;
-  if (col.format === "status") return `<span class="st ${value}">${value}</span>`;
-  return String(value);
+  if (col.format === "status") return `<span class="st ${esc(value)}">${esc(value)}</span>`;
+  if (col.format === "hex") return esc(String(value).toUpperCase());
+  if (col.format === "dec") {
+    const n = Number(value);
+    return Number.isFinite(n) ? String(n) : esc(value);
+  }
+  if (col.format === "bin") {
+    const n = typeof value === "number" ? value : parseInt(String(value).replaceAll(" ", ""), 16);
+    return Number.isFinite(n) ? `0b${n.toString(2)}` : esc(value);
+  }
+  return esc(value);
 }
 
 /* ---- inspector (AC6) ---------------------------------------------------- */
@@ -764,7 +801,7 @@ async function showInspector(row) {
     rows.push(["Event", row.name ?? "—"], ["Detail", row.detail ?? "—"]);
   }
   let html = `<dl class="insp-grid">` +
-    rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join("") + `</dl>`;
+    rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("") + `</dl>`;
 
   if (row.kind === "frame" && row.id_hex) {
     html += `<div class="insp-sec">Decoded signals</div><div id="inspSignals" class="insp-empty">loading…</div>`;
@@ -780,7 +817,7 @@ async function showInspector(row) {
       box.className = "";
       box.innerHTML = r.signals.map((s) => {
         const v = s.value_num ?? s.value_text;
-        return `<div class="insp-sig"><span>${s.signal_name}</span><span class="v">${v}${s.unit ? " " + s.unit : ""}</span></div>`;
+        return `<div class="insp-sig"><span>${esc(s.signal_name)}</span><span class="v">${esc(`${v}${s.unit ? " " + s.unit : ""}`)}</span></div>`;
       }).join("");
     } catch (_) {}
   }
@@ -797,11 +834,9 @@ function renderColDialog() {
     row.dataset.index = i;
     row.innerHTML =
       `<span class="grab">≡</span>` +
-      `<label style="flex:1"><input type="checkbox" ${col.visible ? "checked" : ""}/> ${col.label}</label>` +
-      `<input type="number" value="${col.width}" style="width:60px" title="width px"/>` +
-      (col.key === "timestamp_s"
-        ? `<select><option value="s">s</option><option value="ms">ms</option><option value="hms">h:m:s</option></select>`
-        : "");
+      `<label style="flex:1"><input type="checkbox" ${col.visible ? "checked" : ""}/> ${esc(col.label)}</label>` +
+      `<input type="number" value="${Number(col.width) || 60}" style="width:60px" title="width px"/>` +
+      formatOptions(col);
     row.querySelector('input[type=checkbox]').addEventListener("change", (e) => {
       col.visible = e.target.checked; saveColumns(); renderTable(state.trace.rows);
     });
@@ -820,6 +855,16 @@ function renderColDialog() {
     });
     list.appendChild(row);
   });
+}
+
+function formatOptions(col) {
+  const opts = col.key === "timestamp_s"
+    ? [["s", "s"], ["ms", "ms"], ["hms", "h:m:s"]]
+    : (["id_hex", "dlc", "data_hex"].includes(col.key)
+      ? [["hex", "hex"], ["dec", "dec"], ["bin", "bin"], ["text", "text"]]
+      : []);
+  if (!opts.length) return "";
+  return `<select>${opts.map(([v, label]) => `<option value="${v}">${label}</option>`).join("")}</select>`;
 }
 
 /* ---- formatting --------------------------------------------------------- */
@@ -844,7 +889,9 @@ function populateEventFilter(types) {
   const sel = $("fEvent");
   const current = sel.value;
   sel.innerHTML = `<option value="">Event</option>` +
-    (Array.isArray(types) ? types : Object.keys(types || {})).map((t) => `<option>${t}</option>`).join("");
+    (Array.isArray(types) ? types : Object.keys(types || {}))
+      .map((t) => `<option>${esc(t)}</option>`)
+      .join("");
   sel.value = current;
 }
 
@@ -948,12 +995,12 @@ function armButtons() {
 }
 
 const reloadTrace = () => { persistFilters(); loadTrace(0); };
-for (const id of ["fId", "fMsg", "fStart", "fEnd"]) $(id).addEventListener("input", debounce(reloadTrace, 250));
+for (const id of ["fId", "fMsg", "fSignal", "fStart", "fEnd"]) $(id).addEventListener("input", debounce(reloadTrace, 250));
 for (const id of ["fDir", "fStatus", "fEvent"]) $(id).addEventListener("change", reloadTrace);
 $("showFrames").addEventListener("change", reloadTrace);
 $("showEvents").addEventListener("change", reloadTrace);
 $("clearFilters").addEventListener("click", () => {
-  for (const id of ["fId", "fMsg", "fStart", "fEnd"]) $(id).value = "";
+  for (const id of ["fId", "fMsg", "fSignal", "fStart", "fEnd"]) $(id).value = "";
   for (const id of ["fDir", "fStatus", "fEvent"]) $(id).value = "";
   $("showFrames").checked = true; $("showEvents").checked = true;
   reloadTrace();
@@ -991,6 +1038,7 @@ function restoreFilters() {
   const f = store.get("filters", null);
   if (!f) return;
   $("fId").value = f.id || ""; $("fMsg").value = f.msg || "";
+  $("fSignal").value = f.signal || "";
   $("fDir").value = f.dir || ""; $("fStatus").value = f.status || ""; $("fEvent").value = f.event || "";
   if (typeof f.frames === "boolean") $("showFrames").checked = f.frames;
   if (typeof f.events === "boolean") $("showEvents").checked = f.events;

@@ -1,4 +1,20 @@
-# Roadmap initiale
+# Roadmap
+
+## État actuel - 2026-07-15
+
+- Livré : import ASC, multi-DBC, détection exhaustive des conflits DBC non
+  équivalents, résolution opérateur, index DuckDB local, API FastAPI, graphes
+  empilés, curseurs A/B, synchronisation graphe/trace, vue trace paginée,
+  filtre serveur par signal, recherche signaux élargie, rendu DOM sûr et CI
+  `.[api,dev]`.
+- Partiellement livré : import volumineux avec batches et DuckDB temporaire ;
+  progression exposée via état de job léger mais pas encore import asynchrone
+  durable.
+- Non livré : BLF/MF4 complet, replay temps réel, export CSV/Parquet produit,
+  packaging Windows natif, collaboration/cloud.
+- Budget de validation actuel : `ruff check .` et `pytest` passent localement
+  sur fixtures synthétiques ; le budget 150 Mo réel reste à documenter dans le
+  lot performance.
 
 ## Phase 0 - Cadrage et échantillons
 

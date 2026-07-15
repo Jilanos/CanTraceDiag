@@ -32,6 +32,7 @@ def import_trace(
     store: TraceStore | None = None,
     resolution: dict[int, str] | None = None,
     catalog: DbcCatalog | None = None,
+    unresolved_ambiguous_ids: set[int] | None = None,
 ) -> tuple[TraceStore, ImportResult]:
     """Parse an ASC trace, decode frames, and populate a TraceStore.
 
@@ -47,7 +48,11 @@ def import_trace(
             catalog.load(dbc)
 
     has_db = bool(catalog.databases)
-    decoder = Decoder(catalog.message_index() if has_db else None, resolution)
+    decoder = Decoder(
+        catalog.message_index() if has_db else None,
+        resolution,
+        unresolved_ambiguous_ids,
+    )
 
     store = store or TraceStore(db_path)
 

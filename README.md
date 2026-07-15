@@ -72,6 +72,27 @@ python -m pip install -e ".[dev,api]"
 pytest
 ```
 
+## État livré
+
+CanTraceDiag sait aujourd'hui importer des traces ASC, charger plusieurs DBC,
+détecter les conflits DBC non équivalents, indexer l'analyse dans DuckDB local,
+afficher des graphes empilés et parcourir une vue trace paginée. Les imports
+via l'API web utilisent un fichier DuckDB temporaire hors dépôt ; les fichiers
+ASC/DBC réels et caches restent exclus de Git.
+
+Les limites connues restent : pas de BLF/MF4 complet, pas de replay temps réel,
+pas de collaboration multi-utilisateur, pas de packaging Windows natif et pas
+encore de budget de performance CI représentatif de 150 Mo.
+
+Validation locale actuelle :
+
+```bash
+.venv/bin/ruff check .
+.venv/bin/pytest
+```
+
+Dernière preuve enregistrée : 54 tests passés et 1 warning Starlette connu.
+
 ## Utilisation du MVP
 
 Le MVP fournit une chaîne complète : import ASC, chargement de DBC, décodage,
@@ -105,7 +126,9 @@ système (boutons **Trace .asc…**, **DBC files…** pour une sélection multip
 **Load**. Le navigateur téléverse le contenu des fichiers ; cela fonctionne donc
 même quand le backend tourne sous WSL et le navigateur sous Windows. Ensuite :
 
-- **Panneau signaux** : cocher les signaux à tracer (filtrage par nom).
+- **Panneau signaux** : cocher les signaux à tracer ; la recherche couvre
+  message, signal, ID, unité et DBC, avec distinction des signaux présents dans
+  la trace et des signaux seulement disponibles dans la DBC.
 - **Graphes empilés** : un sous-graphe par signal, axe temporel partagé, tracé
   en escalier (échantillonné-maintenu, sans interpolation). Le curseur affiche
   la valeur de l'échantillon le plus proche.
@@ -119,4 +142,4 @@ même quand le backend tourne sous WSL et le navigateur sous Windows. Ensuite :
 `POST /api/import-files` (téléversement depuis le navigateur),
 `POST /api/import` (chemin serveur, pour le CLI ; accepte les chemins
 Windows/UNC), `GET /api/signals`, `/api/series`, `/api/cursor`, `/api/trace`,
-`/api/frame-signals`, `/api/status`.
+`/api/frame-signals`, `/api/status`, `/api/import-job`, `/api/import-cancel`.

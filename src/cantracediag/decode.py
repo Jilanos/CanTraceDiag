@@ -12,6 +12,7 @@ from dataclasses import replace
 from cantools.database.can import Message
 
 from cantracediag.models import (
+    DECODE_AMBIGUOUS_ID,
     DECODE_ERROR,
     DECODE_NO_DB,
     DECODE_OK,
@@ -28,12 +29,14 @@ class Decoder:
         self,
         message_index: dict[int, list[tuple[str, Message]]] | None,
         resolution: dict[int, str] | None = None,
+        ambiguous_ids: set[int] | None = None,
     ):
         self._index = message_index or {}
         self._has_db = bool(message_index)
         # Per-arbitration-id operator choice of which DBC owns a conflicting id
         # (AC10). Maps arbitration_id -> database name.
         self._resolution = resolution or {}
+        self._ambiguous_ids = ambiguous_ids or set()
 
     def decode_frame(
         self, frame: RawCanFrame
@@ -48,7 +51,10 @@ class Decoder:
         # When several DBCs claim the same id, honour the operator's resolution
         # if one was made; otherwise take the first. Remaining ambiguity is
         # surfaced separately via DbcCatalog.find_ambiguous_ids.
-        db_name, message = self._pick(frame.arbitration_id, entries)
+        picked = self._pick(frame.arbitration_id, entries)
+        if picked is None:
+            return replace(frame, decode_status=DECODE_AMBIGUOUS_ID), []
+        db_name, message = picked
         if frame.is_remote:
             return replace(
                 frame, message_name=message.name, decode_status=DECODE_OK,
@@ -57,7 +63,7 @@ class Decoder:
 
         try:
             decoded = message.decode(
-                frame.data, decode_choices=False, allow_truncated=True
+                frame.data, decode_choices=False, allow_truncated=False
             )
         except Exception:
             return replace(
@@ -74,12 +80,14 @@ class Decoder:
 
     def _pick(
         self, arbitration_id: int, entries: list[tuple[str, Message]]
-    ) -> tuple[str, Message]:
+    ) -> tuple[str, Message] | None:
         chosen = self._resolution.get(arbitration_id)
         if chosen is not None:
             for db_name, message in entries:
                 if db_name == chosen:
                     return db_name, message
+        if arbitration_id in self._ambiguous_ids and len(entries) > 1:
+            return None
         return entries[0]
 
     def _to_samples(

@@ -74,3 +74,12 @@ def test_frame_signals_lookup() -> None:
     names = {s["signal_name"] for s in sigs}
     assert {"EngineSpeed", "EngineTemp"} <= names
     store.close()
+
+
+def test_trace_rows_filter_by_signal() -> None:
+    store, _ = _store()
+    page = store.trace_rows(limit=100, signal="EngineSpeed")
+    assert page["total"] > 0
+    assert all(r["name"] == "EngineData" for r in page["rows"])
+    assert store.trace_rows(limit=100, signal="NoSuchSignal")["total"] == 0
+    store.close()

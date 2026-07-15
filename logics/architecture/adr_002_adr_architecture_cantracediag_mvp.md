@@ -6,6 +6,8 @@
 > Related backlog: (none yet)
 > Related task: (none yet)
 > Reminder: Update status, linked refs, decision rationale, consequences, and follow-up work when you edit this doc.
+> Confidence: 90
+> Non-semantic edit: Align delivered-state wording with the current implementation.
 
 # Overview
 This ADR captures the MVP architecture for CanTraceDiag.
@@ -40,7 +42,9 @@ flowchart TD
 - Use Python for ASC ingestion, DBC parsing, decoding, and local indexing.
 - Use a frontend web UI for plots, signal selection, cursor UX, and virtualized trace table.
 - Normalize source formats into raw frame/event and decoded signal tables.
-- Use a local cache/index layer, expected to be Parquet and/or DuckDB.
+- Use a local DuckDB cache/index layer. API imports use a temporary `.duckdb`
+  file outside the repository; CLI imports may still use in-memory storage for
+  short diagnostic commands.
 - Keep traces, DBC, CANalyzer configs, and generated caches out of Git.
 
 # Consequences
@@ -48,6 +52,10 @@ flowchart TD
 - The UI can query time windows and filters instead of loading complete traces.
 - The project keeps a code/documentation-only public repository.
 - The MVP has two implementation surfaces, backend and frontend, but this is necessary for a CANalyzer-like trace table and graph experience.
+- Multi-DBC conflicts are explicit: non-equivalent duplicate arbitration IDs
+  require an operator decision, while equivalent duplicates can be accepted.
+- The current product does not include BLF/MF4, replay, cloud collaboration or
+  native Windows packaging.
 
 # References
 - Related request: `req_000_mvp_analyse_locale_traces_can_asc`

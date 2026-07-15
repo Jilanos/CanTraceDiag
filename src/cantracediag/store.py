@@ -324,6 +324,7 @@ class TraceStore:
         direction: str | None = None,
         decode_status: str | None = None,
         event_type: str | None = None,
+        signal: str | None = None,
     ) -> dict:
         """Time-ordered, paginated view mixing frames and events (AC4, AC6).
 
@@ -333,7 +334,7 @@ class TraceStore:
         """
         union, params = self._trace_union(
             start_s, end_s, include_frames, include_events,
-            id_hex, message, direction, decode_status, event_type,
+            id_hex, message, direction, decode_status, event_type, signal,
         )
         if union is None:
             return {"total": 0, "offset": offset, "limit": limit, "rows": []}
@@ -368,6 +369,7 @@ class TraceStore:
         direction: str | None = None,
         decode_status: str | None = None,
         event_type: str | None = None,
+        signal: str | None = None,
     ) -> dict:
         """Row index of the trace row nearest to ``at_s`` under active filters.
 
@@ -376,7 +378,7 @@ class TraceStore:
         """
         union, params = self._trace_union(
             start_s, end_s, include_frames, include_events,
-            id_hex, message, direction, decode_status, event_type,
+            id_hex, message, direction, decode_status, event_type, signal,
         )
         if union is None:
             return {"total": 0, "index": None, "timestamp_s": None}
@@ -411,6 +413,7 @@ class TraceStore:
         direction: str | None,
         decode_status: str | None,
         event_type: str | None,
+        signal: str | None,
     ) -> tuple[str | None, list[object]]:
         selects: list[str] = []
         params: list[object] = []
@@ -419,14 +422,14 @@ class TraceStore:
         # direction / decode status); an event-type filter excludes frames.
         # ``message`` matches decoded message names and event types, so it is
         # kept on both sides.
-        if id_hex or direction or decode_status:
+        if id_hex or direction or decode_status or signal:
             include_events = False
         if event_type:
             include_frames = False
 
         if include_frames:
             clauses, fparams = self._frame_filters(
-                start_s, end_s, id_hex, message, direction, decode_status
+                start_s, end_s, id_hex, message, direction, decode_status, signal
             )
             where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
             selects.append(
@@ -466,6 +469,7 @@ class TraceStore:
         message: str | None,
         direction: str | None,
         decode_status: str | None,
+        signal: str | None,
     ) -> tuple[list[str], list[object]]:
         clauses: list[str] = []
         params: list[object] = []
@@ -482,6 +486,18 @@ class TraceStore:
         if decode_status:
             clauses.append("decode_status = ?")
             params.append(decode_status)
+        if signal:
+            clauses.append(
+                """
+                EXISTS (
+                    SELECT 1 FROM samples s
+                    WHERE s.timestamp_s = frames.timestamp_s
+                      AND s.arbitration_id = frames.arbitration_id
+                      AND lower(s.signal_name) LIKE ?
+                )
+                """
+            )
+            params.append(f"%{signal.lower()}%")
         return clauses, params
 
     def _event_filters(
@@ -522,6 +538,16 @@ class TraceStore:
             "SELECT DISTINCT event_type FROM events ORDER BY event_type"
         )
         return [r[0] for r in rows]
+
+    def present_signal_keys(self) -> set[tuple[str, str, int]]:
+        rows = self._all(
+            """
+            SELECT DISTINCT message_name, signal_name, arbitration_id
+            FROM samples
+            ORDER BY message_name, signal_name, arbitration_id
+            """
+        )
+        return {(r[0], r[1], int(r[2])) for r in rows}
 
     def frame_signals(self, timestamp_s: float, arbitration_id: int) -> list[dict]:
         """Decoded signals for one frame, keyed by exact time and id."""

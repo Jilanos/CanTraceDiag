@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <title>CanTraceDiag</title>
 <style>
   :root {
@@ -34,6 +35,9 @@
   button.icon svg { width: 13px; height: 13px; }
   button:disabled { opacity: .45; cursor: default; }
   button.active { background: var(--accent); color: #05121f; }
+  button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: 2px;
+  }
   input[type=text], input[type=number], select {
     background: var(--panel2); border: 1px solid var(--line); color: var(--fg);
     padding: 4px 7px; border-radius: 4px; font-size: 12px;
@@ -76,6 +80,7 @@
   .sig:hover { background: var(--panel2); }
   .sig .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sig .unit { color: var(--muted); font-size: 11px; }
+  .sig.absent { opacity: .62; }
   .sig input { accent-color: var(--accent); }
   .star { cursor: pointer; color: var(--line); font-size: 13px; }
   .star.on { color: var(--warn); }
@@ -130,6 +135,22 @@
   .conflict-row .cid { font-weight: 600; color: var(--accent); }
   code { color: var(--accent); }
   .kbd { color: var(--muted); font-size: 11px; }
+
+  @media (max-width: 700px) {
+    body { height: auto; min-height: 100vh; overflow: auto; }
+    header { align-items: flex-start; }
+    .summary { margin-left: 0; text-align: left; flex-basis: 100%; }
+    main { flex-direction: column; overflow: visible; min-height: auto; }
+    #explorer, #inspector, .panel.collapsed { width: 100% !important; max-height: 220px; border: 0; border-bottom: 1px solid var(--line); }
+    .panel.collapsed .phead { writing-mode: horizontal-tb; height: auto; }
+    .side-resizer, .divider { display: none; }
+    #center { min-height: 620px; overflow: visible; }
+    #plotArea { min-height: 320px; }
+    #traceWrap { height: auto; min-height: 280px; }
+    .tracebar input[type=text], .tracebar input[type=number], .tracebar select { width: 88px; }
+    .pager { margin-left: 0; }
+    #tableScroll { min-height: 220px; }
+  }
 </style>
 </head>
 <body>
@@ -183,7 +204,7 @@
         <span class="hint">wheel: zoom · drag: pan · click: set cursor · drag on cursor: move it</span>
       </div>
       <div id="plotWrap">
-        <canvas id="plot"></canvas>
+        <canvas id="plot" tabindex="0" role="img" aria-label="Signal plot. Use arrow keys to move the armed cursor when data is loaded."></canvas>
         <div id="plotHint">Select signals to plot.</div>
       </div>
       <div id="cursorReadout" class="empty"><table><thead></thead><tbody></tbody></table></div>
@@ -194,8 +215,9 @@
         <strong>Trace</strong>
         <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" />
         <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" />
+        <input type="text" id="fSignal" placeholder="Signal" title="Decoded signal name" />
         <select id="fDir" title="Direction"><option value="">Dir</option><option>Rx</option><option>Tx</option></select>
-        <select id="fStatus" title="Decode status"><option value="">Status</option><option value="ok">ok</option><option value="unknown_id">unknown_id</option><option value="no_database">no_database</option><option value="decode_error">decode_error</option></select>
+        <select id="fStatus" title="Decode status"><option value="">Status</option><option value="ok">ok</option><option value="unknown_id">unknown_id</option><option value="no_database">no_database</option><option value="ambiguous_id">ambiguous_id</option><option value="decode_error">decode_error</option></select>
         <select id="fEvent" title="Event type"><option value="">Event</option></select>
         <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" />
         <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" />

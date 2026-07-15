@@ -2,7 +2,13 @@ from pathlib import Path
 
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
-from cantracediag.models import DECODE_NO_DB, DECODE_OK, DECODE_UNKNOWN_ID, RawCanFrame
+from cantracediag.models import (
+    DECODE_ERROR,
+    DECODE_NO_DB,
+    DECODE_OK,
+    DECODE_UNKNOWN_ID,
+    RawCanFrame,
+)
 
 DBC = Path(__file__).parent / "fixtures" / "sample.dbc"
 
@@ -48,6 +54,15 @@ def test_no_database_marks_status() -> None:
     assert samples == []
 
 
+def test_truncated_payload_is_visible_decode_error() -> None:
+    decoder = Decoder(_catalog().message_index())
+    frame = RawCanFrame(0.0, "1", 0x100, False, 8, b"\x00", direction="Rx")
+    updated, samples = decoder.decode_frame(frame)
+    assert updated.decode_status == DECODE_ERROR
+    assert updated.message_name == "EngineData"
+    assert samples == []
+
+
 def test_ambiguous_ids_detected(tmp_path: Path) -> None:
     # A second DBC that reuses id 0x100 with a different message name.
     other = tmp_path / "other.dbc"
@@ -61,3 +76,28 @@ def test_ambiguous_ids_detected(tmp_path: Path) -> None:
     catalog.load(other)
     ambiguous = catalog.find_ambiguous_ids()
     assert 0x100 in ambiguous
+
+
+def test_same_message_name_with_different_definition_is_ambiguous(tmp_path: Path) -> None:
+    other = tmp_path / "v2.dbc"
+    other.write_text(
+        'VERSION ""\nNS_ :\nBS_:\nBU_: ECU\n'
+        "BO_ 256 EngineData: 8 ECU\n"
+        ' SG_ EngineSpeed : 0|16@1+ (0.5,0) [0|32767.5] "rpm" Vector__XXX\n'
+        ' SG_ EngineTorque : 16|16@1+ (1,0) [0|65535] "Nm" Vector__XXX\n'
+    )
+    catalog = DbcCatalog()
+    catalog.load(DBC)
+    catalog.load(other)
+    ambiguous = catalog.find_ambiguous_ids()
+    assert 0x100 in ambiguous
+    assert any("v2.dbc:EngineData" == choice for choice in ambiguous[0x100])
+
+
+def test_equivalent_duplicate_definition_is_not_ambiguous(tmp_path: Path) -> None:
+    clone = tmp_path / "clone.dbc"
+    clone.write_text(DBC.read_text())
+    catalog = DbcCatalog()
+    catalog.load(DBC)
+    catalog.load(clone)
+    assert 0x100 not in catalog.find_ambiguous_ids()

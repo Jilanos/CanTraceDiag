@@ -10,6 +10,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import Any
 
 import cantools
 from cantools.database import Database
@@ -79,11 +80,11 @@ class DbcCatalog:
         return index
 
     def find_ambiguous_ids(self) -> dict[int, list[str]]:
-        """Arbitration ids defined by more than one DBC, with differing names."""
+        """Arbitration ids defined by several non-equivalent DBC definitions."""
         ambiguous: dict[int, list[str]] = {}
         for frame_id, entries in self.message_index().items():
-            names = {message.name for _, message in entries}
-            if len(entries) > 1 and len(names) > 1:
+            signatures = {_message_signature(message) for _, message in entries}
+            if len(entries) > 1 and len(signatures) > 1:
                 ambiguous[frame_id] = sorted(
                     f"{db_name}:{message.name}" for db_name, message in entries
                 )
@@ -97,3 +98,43 @@ def _as_float(value: object) -> float | None:
         return float(value)  # type: ignore[arg-type]
     except (TypeError, ValueError):
         return None
+
+
+def _message_signature(message: Message) -> tuple[Any, ...]:
+    """Canonical subset used to decide whether duplicate DBC messages match.
+
+    The signature deliberately ignores DBC filename and object identity. It
+    keeps fields that change decoded values or signal meaning.
+    """
+    return (
+        message.name,
+        message.frame_id,
+        bool(message.is_extended_frame),
+        message.length,
+        tuple(_signal_signature(signal) for signal in message.signals),
+    )
+
+
+def _signal_signature(signal: object) -> tuple[Any, ...]:
+    choices = getattr(signal, "choices", None) or {}
+    if isinstance(choices, dict):
+        choices_sig = tuple(sorted((str(k), str(v)) for k, v in choices.items()))
+    else:
+        choices_sig = str(choices)
+
+    return (
+        getattr(signal, "name", None),
+        getattr(signal, "start", None),
+        getattr(signal, "length", None),
+        getattr(signal, "byte_order", None),
+        getattr(signal, "is_signed", None),
+        getattr(signal, "scale", None),
+        getattr(signal, "offset", None),
+        getattr(signal, "minimum", None),
+        getattr(signal, "maximum", None),
+        getattr(signal, "unit", None),
+        getattr(signal, "multiplexer_signal", None),
+        getattr(signal, "multiplexer_ids", None),
+        getattr(signal, "is_multiplexer", None),
+        choices_sig,
+    )

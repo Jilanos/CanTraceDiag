@@ -84,3 +84,39 @@ def test_import_files_rejects_non_asc(client: TestClient) -> None:
         files=[("trace", ("trace.blf", b"\x00", "application/octet-stream"))],
     )
     assert r.status_code == 400
+
+
+def test_import_job_reports_completed_import(client: TestClient) -> None:
+    r = _import(client)
+    assert r.status_code == 200
+    job = client.get("/api/import-job").json()
+    assert job["phase"] == "complete"
+    assert job["progress"] == 1.0
+    assert job["cancellable"] is False
+    assert client.post("/api/import-cancel").json()["cancelled"] is False
+
+
+def test_import_files_rejects_duplicate_dbc_basename(client: TestClient) -> None:
+    asc = (FIX / "sample.asc").read_bytes()
+    dbc = (FIX / "sample.dbc").read_bytes()
+    r = client.post(
+        "/api/import-files",
+        files=[
+            ("trace", ("sample.asc", asc, "application/octet-stream")),
+            ("dbcs", ("same.dbc", dbc, "application/octet-stream")),
+            ("dbcs", ("same.dbc", dbc, "application/octet-stream")),
+        ],
+    )
+    assert r.status_code == 400
+    assert "Duplicate DBC basename" in r.json()["detail"]
+
+
+def test_import_rejects_invalid_dbc(client: TestClient, tmp_path: Path) -> None:
+    bad = tmp_path / "bad.dbc"
+    bad.write_text("not a dbc")
+    r = client.post(
+        "/api/import",
+        json={"trace_path": str(FIX / "sample.asc"), "dbc_paths": [str(bad)]},
+    )
+    assert r.status_code == 400
+    assert "Invalid DBC" in r.json()["detail"]
