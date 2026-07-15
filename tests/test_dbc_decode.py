@@ -101,3 +101,22 @@ def test_equivalent_duplicate_definition_is_not_ambiguous(tmp_path: Path) -> Non
     catalog.load(DBC)
     catalog.load(clone)
     assert 0x100 not in catalog.find_ambiguous_ids()
+
+
+def test_multiplexed_duplicate_definition_is_hashable(tmp_path: Path) -> None:
+    multiplexed = tmp_path / "multiplexed.dbc"
+    multiplexed.write_text(
+        'VERSION ""\nNS_ :\nBS_:\nBU_: ECU\n'
+        "BO_ 1024 MultiplexedData: 8 ECU\n"
+        ' SG_ Mode M : 0|8@1+ (1,0) [0|255] "" Vector__XXX\n'
+        ' SG_ ValueA m1 : 8|8@1+ (1,0) [0|255] "" Vector__XXX\n'
+        ' SG_ ValueB m2 : 8|8@1+ (1,0) [0|255] "" Vector__XXX\n'
+    )
+    clone = tmp_path / "multiplexed_clone.dbc"
+    clone.write_text(multiplexed.read_text())
+
+    catalog = DbcCatalog()
+    catalog.load(multiplexed)
+    catalog.load(clone)
+
+    assert 0x400 not in catalog.find_ambiguous_ids()

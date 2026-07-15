@@ -122,6 +122,10 @@ def _signal_signature(signal: object) -> tuple[Any, ...]:
     else:
         choices_sig = str(choices)
 
+    multiplexer_ids = getattr(signal, "multiplexer_ids", None)
+    if multiplexer_ids is not None:
+        multiplexer_ids = tuple(multiplexer_ids)
+
     return (
         getattr(signal, "name", None),
         getattr(signal, "start", None),
@@ -134,7 +138,7 @@ def _signal_signature(signal: object) -> tuple[Any, ...]:
         getattr(signal, "maximum", None),
         getattr(signal, "unit", None),
         getattr(signal, "multiplexer_signal", None),
-        getattr(signal, "multiplexer_ids", None),
+        multiplexer_ids,
         getattr(signal, "is_multiplexer", None),
         choices_sig,
     )
