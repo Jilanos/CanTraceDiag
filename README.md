@@ -43,11 +43,22 @@ Voir [docs/besoin-et-choix.md](docs/besoin-et-choix.md) pour l'analyse complète
 │   └── request/
 ├── src/cantracediag/
 │   ├── __init__.py
-│   ├── models.py
-│   └── formats/
-│       └── __init__.py
+│   ├── models.py        # frames, événements, échantillons, catalogue signaux
+│   ├── dbc.py           # chargement multi-DBC + détection d'IDs ambigus
+│   ├── decode.py        # décodage trames -> signaux physiques
+│   ├── store.py         # index DuckDB local + requêtes fenêtrées
+│   ├── pipeline.py      # orchestration import ASC -> décodage -> index
+│   ├── api.py           # API de requêtes + hôte de l'UI (FastAPI)
+│   ├── cli.py           # CLI (info, signals, serve)
+│   ├── formats/
+│   │   └── asc.py       # lecteur CANalyzer ASCII
+│   └── web/             # interface web locale (index.html, app.js)
 ├── tests/
-│   └── test_imports.py
+│   ├── fixtures/        # ASC + DBC synthétiques (anonymisés)
+│   ├── test_asc.py
+│   ├── test_dbc_decode.py
+│   ├── test_store_pipeline.py
+│   └── test_api.py
 ├── pyproject.toml
 └── README.md
 ```
@@ -57,15 +68,50 @@ Voir [docs/besoin-et-choix.md](docs/besoin-et-choix.md) pour l'analyse complète
 ```bash
 python -m venv .venv
 source .venv/bin/activate
-python -m pip install -e ".[dev]"
+python -m pip install -e ".[dev,api]"
 pytest
 ```
 
-## Prochaines entrées attendues
+## Utilisation du MVP
 
-Pour implémenter le premier import réel, il faudra fournir :
+Le MVP fournit une chaîne complète : import ASC, chargement de DBC, décodage,
+indexation locale (DuckDB) et une interface web locale (graphes empilés + vue
+trace configurable). Les traces et DBC réelles restent hors du dépôt.
 
-- Un ou plusieurs extraits courts anonymisables de trace ASCII CANalyzer pour tests unitaires.
-- Une sélection de DBC de test, conservées hors dépôt si elles ne doivent pas être publiées.
-- La liste des signaux prioritaires à valider dans les premiers graphes.
-- Les colonnes CANalyzer indispensables pour la première vue trace.
+### Ligne de commande
+
+```bash
+# Résumé d'un import (frames, décodage, événements, ambiguïtés d'ID)
+cantracediag info /chemin/trace.asc --dbc systeme.dbc --dbc annexe.dbc
+
+# Lister messages et signaux d'une ou plusieurs DBC
+cantracediag signals systeme.dbc
+
+# Lancer l'interface web locale (localhost par défaut)
+cantracediag serve --port 8000
+```
+
+Depuis les sources sans installation :
+
+```bash
+PYTHONPATH=src python -m cantracediag.cli serve
+```
+
+### Interface web
+
+Ouvrir `http://127.0.0.1:8000`, renseigner le chemin de la trace `.asc` et les
+DBC (séparées par des virgules), puis **Load** :
+
+- **Panneau signaux** : cocher les signaux à tracer (filtrage par nom).
+- **Graphes empilés** : un sous-graphe par signal, axe temporel partagé, tracé
+  en escalier (échantillonné-maintenu, sans interpolation). Le curseur affiche
+  la valeur de l'échantillon le plus proche.
+- **Vue trace** : trames brutes + messages/signaux décodés + événements non-data
+  (`ErrorFrame`, `Status`), paginée. Clic sur une trame pour voir ses signaux.
+  Bouton **Columns…** pour la visibilité, l'ordre, la largeur et le format des
+  colonnes (persistés localement).
+
+### API locale
+
+`POST /api/import`, `GET /api/signals`, `/api/series`, `/api/cursor`,
+`/api/trace`, `/api/frame-signals`, `/api/status`.

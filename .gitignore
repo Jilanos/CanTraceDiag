@@ -27,3 +27,10 @@ traces/
 *.swp
 AGENTS.md
 LOGICS.md
+
+# Locally bootstrapped Python deps (Python packaging is broken system-wide)
+.pydeps/
+
+# Synthetic, anonymized test fixtures are safe to commit (override *.asc/*.dbc above).
+!tests/fixtures/*.asc
+!tests/fixtures/*.dbc

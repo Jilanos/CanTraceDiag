@@ -1,7 +1,7 @@
 ## req_000_mvp_analyse_locale_traces_can_asc - Créer le MVP d'analyse locale de traces CAN ASC
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: Construire un MVP local permettant de charger une trace CANalyzer ASC et des DBC locales, décoder les signaux, afficher des subplots temporels avec curseur valeur la plus proche, et fournir une vue trace configurable inspirée CANalyzer.
 > Confidence: high
 > Complexity: medium

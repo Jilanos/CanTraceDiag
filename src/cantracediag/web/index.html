@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CanTraceDiag</title>
+<style>
+  :root {
+    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
+    --fg: #e6e9ef; --muted: #9aa3b2; --accent: #5aa9ff; --ok: #4ec9a5;
+    --warn: #e0a44e; --err: #e06c75;
+    --s0:#5aa9ff; --s1:#4ec9a5; --s2:#e0a44e; --s3:#c678dd;
+    --s4:#e06c75; --s5:#56b6c2; --s6:#d19a66; --s7:#98c379;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; }
+  body {
+    background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif;
+    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
+  }
+  header {
+    background: var(--panel); border-bottom: 1px solid var(--line);
+    padding: 8px 12px; display: flex; gap: 12px; align-items: flex-start; flex-wrap: wrap;
+  }
+  header h1 { font-size: 15px; margin: 0 12px 0 0; color: var(--accent); align-self: center; }
+  .import { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  input[type=text] {
+    background: var(--panel2); border: 1px solid var(--line); color: var(--fg);
+    padding: 4px 7px; border-radius: 4px; min-width: 260px;
+  }
+  button {
+    background: var(--accent); color: #05121f; border: 0; padding: 5px 12px;
+    border-radius: 4px; cursor: pointer; font-weight: 600;
+  }
+  button.ghost { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
+  button:disabled { opacity: .5; cursor: default; }
+  .summary { color: var(--muted); align-self: center; }
+  .summary b { color: var(--fg); }
+  .warn { color: var(--warn); }
+  main { flex: 1; display: flex; min-height: 0; }
+  #sidebar {
+    width: 260px; background: var(--panel); border-right: 1px solid var(--line);
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  #sidebar .head { padding: 8px 10px; border-bottom: 1px solid var(--line); font-weight: 600; }
+  #signalList { overflow: auto; flex: 1; padding: 4px 0; }
+  .sig { display: flex; align-items: baseline; gap: 6px; padding: 3px 10px; cursor: pointer; }
+  .sig:hover { background: var(--panel2); }
+  .sig .name { flex: 1; }
+  .sig .unit { color: var(--muted); font-size: 11px; }
+  .sig input { accent-color: var(--accent); }
+  #filter { margin: 6px 8px; }
+  #content { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+  #plotWrap { flex: 1; min-height: 120px; position: relative; }
+  #plot { width: 100%; height: 100%; display: block; }
+  #plotHint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); }
+  .divider { height: 6px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+  #traceWrap { height: 44%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
+  .tracebar { display: flex; gap: 10px; align-items: center; padding: 6px 10px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .tracebar label { color: var(--muted); display: flex; gap: 4px; align-items: center; }
+  #tableScroll { overflow: auto; flex: 1; }
+  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
+  th, td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { position: sticky; top: 0; background: var(--panel2); z-index: 1; user-select: none; }
+  tr.event td { color: var(--warn); }
+  tr.frame.err td .st { color: var(--err); }
+  tr.expandable { cursor: pointer; }
+  tr.detail td { background: var(--panel2); color: var(--muted); white-space: normal; }
+  .st.ok { color: var(--ok); } .st.unknown_id, .st.no_database { color: var(--muted); } .st.decode_error { color: var(--err); }
+  .pager { display: flex; gap: 6px; align-items: center; margin-left: auto; }
+  dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; max-width: 420px; }
+  dialog h3 { margin-top: 0; }
+  .col-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
+  .col-row .grab { cursor: grab; color: var(--muted); }
+  code { color: var(--accent); }
+</style>
+</head>
+<body>
+<header>
+  <h1>CanTraceDiag</h1>
+  <div class="import">
+    <input id="tracePath" type="text" placeholder="/path/to/trace.asc" />
+    <input id="dbcPaths" type="text" placeholder="dbc1.dbc, dbc2.dbc (comma separated)" />
+    <button id="loadBtn">Load</button>
+  </div>
+  <div class="summary" id="summary">No trace loaded.</div>
+</header>
+<main>
+  <aside id="sidebar">
+    <div class="head">Signals</div>
+    <input id="filter" type="text" placeholder="filter…" />
+    <div id="signalList"></div>
+  </aside>
+  <section id="content">
+    <div id="plotWrap">
+      <canvas id="plot"></canvas>
+      <div id="plotHint">Select signals to plot.</div>
+    </div>
+    <div class="divider" id="divider"></div>
+    <div id="traceWrap">
+      <div class="tracebar">
+        <strong>Trace</strong>
+        <label><input type="checkbox" id="showFrames" checked /> frames</label>
+        <label><input type="checkbox" id="showEvents" checked /> events</label>
+        <button class="ghost" id="colBtn">Columns…</button>
+        <div class="pager">
+          <button class="ghost" id="prevBtn">‹ Prev</button>
+          <span id="pageInfo">—</span>
+          <button class="ghost" id="nextBtn">Next ›</button>
+        </div>
+      </div>
+      <div id="tableScroll"><table id="traceTable"><thead></thead><tbody></tbody></table></div>
+    </div>
+  </section>
+</main>
+
+<dialog id="colDialog">
+  <h3>Trace columns</h3>
+  <p class="summary">Toggle visibility and drag to reorder. Width and format are per-column and persist for this session.</p>
+  <div id="colList"></div>
+  <div style="text-align:right; margin-top:10px;">
+    <button class="ghost" id="colClose">Done</button>
+  </div>
+</dialog>
+
+<script src="/static/app.js"></script>
+</body>
+</html>

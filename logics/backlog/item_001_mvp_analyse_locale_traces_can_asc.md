@@ -1,10 +1,10 @@
 ## item_001_mvp_analyse_locale_traces_can_asc - Créer le MVP d'analyse locale de traces CAN ASC
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -68,6 +68,7 @@ Keep real traces, DBC files, CANalyzer configs, and generated caches outside Git
 - Hybrid rationale: Derived from request `req_000_mvp_analyse_locale_traces_can_asc` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_000_mvp_analyse_locale_traces_can_asc.md`.
 - Generated locally by logics-manager.
+- Task `task_001_mvp_analyse_locale_traces_can_asc` was finished via `logics-manager flow finish task` on 2026-07-15.
 
 # Tasks
 - `task_001_mvp_analyse_locale_traces_can_asc`

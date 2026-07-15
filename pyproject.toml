@@ -17,6 +17,9 @@ dependencies = [
   "typer>=0.12",
 ]
 
+[project.scripts]
+cantracediag = "cantracediag.cli:main"
+
 [project.optional-dependencies]
 api = [
   "fastapi>=0.115",
@@ -30,6 +33,9 @@ dev = [
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+cantracediag = ["web/*.html", "web/*.js", "web/*.css"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
@@ -39,3 +45,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B"]
+
+[tool.ruff.lint.per-file-ignores]
+# Typer's public API requires calls (Argument/Option) in argument defaults.
+"src/cantracediag/cli.py" = ["B008"]
