@@ -2,16 +2,19 @@
 
 The API holds a single in-process acquisition (one CAN bus, MVP scope) and
 serves bounded queries so the browser never loads the whole trace (AC4-AC6,
-AC8). It is local-first: it binds to localhost by default and reads trace/DBC
-files from local disk paths supplied by the operator.
+AC8). It is local-first: it binds to localhost by default. Traces and DBCs are
+supplied either as uploads from the browser's native file picker
+(``/api/import-files``) or as server-side paths (``/api/import``, for the CLI).
 """
 
 from __future__ import annotations
 
 import re
+import shutil
+import tempfile
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -49,28 +52,20 @@ def create_app() -> FastAPI:
     app = FastAPI(title="CanTraceDiag", version="0.1.0")
     session = Session()
 
-    @app.post("/api/import")
-    def api_import(req: ImportRequest) -> dict:
-        trace = Path(normalize_local_path(req.trace_path)).expanduser()
-        if not trace.is_file():
-            raise HTTPException(404, f"Trace not found: {trace}")
-        dbc_paths = [Path(normalize_local_path(d)).expanduser() for d in req.dbc_paths]
-        for dbc in dbc_paths:
-            if not dbc.is_file():
-                raise HTTPException(404, f"DBC not found: {dbc}")
-
+    def _load(trace: Path, dbcs: list[Path], display_trace: str, display_dbcs: list[str]) -> dict:
         if session.store is not None:
             session.store.close()
+            session.store = None
 
         catalog = DbcCatalog()
-        for dbc in dbc_paths:
+        for dbc in dbcs:
             catalog.load(dbc)
 
-        store, result = import_trace(trace, dbc_paths)
+        store, result = import_trace(trace, dbcs)
         session.store = store
         session.catalog = catalog
-        session.trace_path = str(trace)
-        session.dbc_paths = [str(p) for p in dbc_paths]
+        session.trace_path = display_trace
+        session.dbc_paths = display_dbcs
         session.ambiguous_ids = result.ambiguous_ids
         session.asc_base = result.asc_base
 
@@ -81,6 +76,53 @@ def create_app() -> FastAPI:
             "asc_base": result.asc_base,
             "ambiguous_ids": {hex(k): v for k, v in result.ambiguous_ids.items()},
         }
+
+    @app.post("/api/import")
+    def api_import(req: ImportRequest) -> dict:
+        """Import by server-side path (CLI/power users; accepts Windows/UNC paths)."""
+        trace = Path(normalize_local_path(req.trace_path)).expanduser()
+        if not trace.is_file():
+            raise HTTPException(404, f"Trace not found: {trace}")
+        dbc_paths = [Path(normalize_local_path(d)).expanduser() for d in req.dbc_paths]
+        for dbc in dbc_paths:
+            if not dbc.is_file():
+                raise HTTPException(404, f"DBC not found: {dbc}")
+        return _load(trace, dbc_paths, str(trace), [str(p) for p in dbc_paths])
+
+    @app.post("/api/import-files")
+    async def api_import_files(
+        trace: UploadFile = File(...),
+        dbcs: list[UploadFile] = File(default=[]),
+    ) -> dict:
+        """Import from files uploaded via the browser's native picker.
+
+        The browser sends file *contents* (it never exposes real paths), so the
+        UI works regardless of where the backend runs (e.g. WSL). Uploads land
+        in a temporary directory that is removed once the acquisition is indexed
+        in memory; nothing is written into the repository (AC1, AC8).
+        """
+        if not (trace.filename or "").lower().endswith(".asc"):
+            raise HTTPException(400, "Trace file must be a .asc file.")
+
+        tmpdir = Path(tempfile.mkdtemp(prefix="ctd_"))
+        try:
+            trace_path = tmpdir / _safe_name(trace.filename)
+            await _spool(trace, trace_path)
+
+            dbc_paths: list[Path] = []
+            display_dbcs: list[str] = []
+            for upload in dbcs:
+                name = upload.filename or ""
+                if not name.lower().endswith(".dbc"):
+                    continue  # ignore non-DBC entries (e.g. from a folder pick)
+                dest = tmpdir / _safe_name(name)
+                await _spool(upload, dest)
+                dbc_paths.append(dest)
+                display_dbcs.append(Path(name).name)
+
+            return _load(trace_path, dbc_paths, Path(trace.filename).name, display_dbcs)
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
 
     @app.get("/api/status")
     def api_status() -> dict:
@@ -184,6 +226,19 @@ def normalize_local_path(raw: str) -> str:
         return f"/mnt/{drive.group(1).lower()}/{drive.group(2).replace(chr(92), '/')}"
 
     return s
+
+
+async def _spool(upload: UploadFile, dest: Path) -> None:
+    """Stream an uploaded file to disk in chunks (handles large traces)."""
+    with open(dest, "wb") as handle:
+        while chunk := await upload.read(1 << 20):
+            handle.write(chunk)
+    await upload.close()
+
+
+def _safe_name(name: str) -> str:
+    """Basename only, so uploaded/relative paths cannot escape the temp dir."""
+    return Path(name.replace("\\", "/")).name or "upload"
 
 
 def _id_hex(arbitration_id: int, is_extended: bool) -> str:

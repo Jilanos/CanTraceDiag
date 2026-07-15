@@ -56,3 +56,31 @@ def test_index_page_served(client: TestClient) -> None:
     r = client.get("/")
     assert r.status_code == 200
     assert "CanTraceDiag" in r.text
+
+
+def test_import_files_upload_flow(client: TestClient) -> None:
+    asc = (FIX / "sample.asc").read_bytes()
+    dbc = (FIX / "sample.dbc").read_bytes()
+    r = client.post(
+        "/api/import-files",
+        files=[
+            ("trace", ("sample.asc", asc, "application/octet-stream")),
+            ("dbcs", ("sample.dbc", dbc, "application/octet-stream")),
+            # A non-DBC file (e.g. picked from a folder) must be ignored.
+            ("dbcs", ("notes.txt", b"ignore me", "text/plain")),
+        ],
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["summary"]["frames"] == 6
+    assert body["dbc_paths"] == ["sample.dbc"]
+    # The query surface works after an upload-based import.
+    assert client.get("/api/trace", params={"limit": 100}).json()["total"] == 8
+
+
+def test_import_files_rejects_non_asc(client: TestClient) -> None:
+    r = client.post(
+        "/api/import-files",
+        files=[("trace", ("trace.blf", b"\x00", "application/octet-stream"))],
+    )
+    assert r.status_code == 400

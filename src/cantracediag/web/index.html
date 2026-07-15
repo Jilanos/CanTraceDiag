@@ -35,6 +35,8 @@
   button.ghost { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
   button:disabled { opacity: .5; cursor: default; }
   .summary { color: var(--muted); align-self: center; }
+  .picked { color: var(--muted); align-self: center; font-size: 12px; max-width: 340px; }
+  .picked b { color: var(--fg); }
   .summary b { color: var(--fg); }
   .warn { color: var(--warn); }
   main { flex: 1; display: flex; min-height: 0; }
@@ -79,9 +81,15 @@
 <header>
   <h1>CanTraceDiag</h1>
   <div class="import">
-    <input id="tracePath" type="text" placeholder="/path/to/trace.asc" />
-    <input id="dbcPaths" type="text" placeholder="dbc1.dbc, dbc2.dbc (comma separated)" />
-    <button id="loadBtn">Load</button>
+    <button class="ghost" id="pickTraceBtn">📄 Trace .asc…</button>
+    <button class="ghost" id="pickDbcBtn">🗂 DBC files…</button>
+    <button class="ghost" id="pickDbcDirBtn">📁 DBC folder…</button>
+    <button id="loadBtn" disabled>Load</button>
+    <span class="picked" id="picked"></span>
+    <!-- Native OS file pickers; the browser uploads file contents. -->
+    <input id="traceFile" type="file" accept=".asc" hidden />
+    <input id="dbcFiles" type="file" accept=".dbc" multiple hidden />
+    <input id="dbcDir" type="file" webkitdirectory hidden />
   </div>
   <div class="summary" id="summary">No trace loaded.</div>
 </header>

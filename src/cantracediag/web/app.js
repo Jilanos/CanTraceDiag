@@ -47,18 +47,27 @@ async function api(path, opts) {
 /* ---- import ------------------------------------------------------------- */
 const $ = (id) => document.getElementById(id);
 
+// Files chosen through the native picker, awaiting upload.
+const picked = { trace: null, dbcs: [] };
+
+function refreshPicked() {
+  const parts = [];
+  if (picked.trace) parts.push(`<b>${picked.trace.name}</b>`);
+  if (picked.dbcs.length) parts.push(`${picked.dbcs.length} DBC`);
+  $("picked").innerHTML = parts.join(" · ") || "no files selected";
+  $("loadBtn").disabled = !picked.trace;
+}
+
 async function doLoad() {
-  const trace_path = $("tracePath").value.trim();
-  if (!trace_path) return;
-  const dbc_paths = $("dbcPaths").value.split(",").map((s) => s.trim()).filter(Boolean);
+  if (!picked.trace) return;
+  const fd = new FormData();
+  fd.append("trace", picked.trace, picked.trace.name);
+  for (const f of picked.dbcs) fd.append("dbcs", f, f.name);
+
   $("loadBtn").disabled = true;
-  $("summary").textContent = "Loading…";
+  $("summary").textContent = "Uploading & indexing…";
   try {
-    const r = await api("/api/import", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ trace_path, dbc_paths }),
-    });
+    const r = await api("/api/import-files", { method: "POST", body: fd });
     renderSummary(r);
     state.selected = [];
     await loadSignals();
@@ -67,7 +76,7 @@ async function doLoad() {
   } catch (e) {
     $("summary").innerHTML = `<span class="warn">${e.message}</span>`;
   } finally {
-    $("loadBtn").disabled = false;
+    $("loadBtn").disabled = !picked.trace;
   }
 }
 
@@ -376,6 +385,22 @@ function fmtNum(v) {
 }
 
 /* ---- events / bootstrap ------------------------------------------------- */
+// Native file pickers: buttons open the OS dialog, change events collect files.
+$("pickTraceBtn").addEventListener("click", () => $("traceFile").click());
+$("pickDbcBtn").addEventListener("click", () => $("dbcFiles").click());
+$("pickDbcDirBtn").addEventListener("click", () => $("dbcDir").click());
+$("traceFile").addEventListener("change", (e) => {
+  picked.trace = e.target.files[0] || null; refreshPicked();
+});
+$("dbcFiles").addEventListener("change", (e) => {
+  picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc"));
+  refreshPicked();
+});
+$("dbcDir").addEventListener("change", (e) => {
+  // A whole folder: keep only the .dbc files inside it.
+  picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc"));
+  refreshPicked();
+});
 $("loadBtn").addEventListener("click", doLoad);
 $("filter").addEventListener("input", renderSignalList);
 $("showFrames").addEventListener("change", () => loadTrace(0));
@@ -404,11 +429,10 @@ window.addEventListener("resize", renderPlot);
 
 // restore last state if the server already has a trace loaded
 (async function init() {
+  refreshPicked();
   try {
     const st = await api("/api/status");
     if (st.loaded) {
-      $("tracePath").value = st.trace_path || "";
-      $("dbcPaths").value = (st.dbc_paths || []).join(", ");
       renderSummary(st);
       await loadSignals();
       await loadTrace(0);

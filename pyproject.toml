@@ -24,6 +24,7 @@ cantracediag = "cantracediag.cli:main"
 api = [
   "fastapi>=0.115",
   "uvicorn[standard]>=0.30",
+  "python-multipart>=0.0.9",
 ]
 dev = [
   "pytest>=8.3",
@@ -48,5 +49,6 @@ target-version = "py311"
 select = ["E", "F", "I", "UP", "B"]
 
 [tool.ruff.lint.per-file-ignores]
-# Typer's public API requires calls (Argument/Option) in argument defaults.
+# Typer and FastAPI require calls (Argument/Option/File) in argument defaults.
 "src/cantracediag/cli.py" = ["B008"]
+"src/cantracediag/api.py" = ["B008"]

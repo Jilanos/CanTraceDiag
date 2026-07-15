@@ -99,8 +99,11 @@ PYTHONPATH=src python -m cantracediag.cli serve
 
 ### Interface web
 
-Ouvrir `http://127.0.0.1:8000`, renseigner le chemin de la trace `.asc` et les
-DBC (séparées par des virgules), puis **Load** :
+Ouvrir `http://127.0.0.1:8000`, choisir les fichiers via l'explorateur natif du
+système (boutons **Trace .asc…**, **DBC files…** pour une sélection multiple, ou
+**DBC folder…** pour tout un dossier — seuls les `.dbc` sont retenus), puis
+**Load**. Le navigateur téléverse le contenu des fichiers ; cela fonctionne donc
+même quand le backend tourne sous WSL et le navigateur sous Windows. Ensuite :
 
 - **Panneau signaux** : cocher les signaux à tracer (filtrage par nom).
 - **Graphes empilés** : un sous-graphe par signal, axe temporel partagé, tracé
@@ -113,5 +116,7 @@ DBC (séparées par des virgules), puis **Load** :
 
 ### API locale
 
-`POST /api/import`, `GET /api/signals`, `/api/series`, `/api/cursor`,
-`/api/trace`, `/api/frame-signals`, `/api/status`.
+`POST /api/import-files` (téléversement depuis le navigateur),
+`POST /api/import` (chemin serveur, pour le CLI ; accepte les chemins
+Windows/UNC), `GET /api/signals`, `/api/series`, `/api/cursor`, `/api/trace`,
+`/api/frame-signals`, `/api/status`.
