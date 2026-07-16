@@ -7,6 +7,7 @@
 > Complexity: high
 > Theme: quality-hardening
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Non-semantic edit: Linked backlog item_008 for the P0 execution-robustness slice; no scope change.
 
 # Needs
 - Rendre l'import réellement asynchrone : il ne doit plus geler l'API, doit exposer une
@@ -207,4 +208,4 @@
 - Skip when: Work targets BLF/MF4, replay, cloud, collaboration or native packaging.
 
 # Backlog
-- none
+- `item_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui`
