@@ -1,6 +1,10 @@
 from pathlib import Path
 
-from cantracediag.pipeline import import_trace
+import pytest
+
+import cantracediag.pipeline as pipeline
+from cantracediag.pipeline import ImportCancelled, import_trace
+from cantracediag.store import TraceStore
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -82,4 +86,48 @@ def test_trace_rows_filter_by_signal() -> None:
     assert page["total"] > 0
     assert all(r["name"] == "EngineData" for r in page["rows"])
     assert store.trace_rows(limit=100, signal="NoSuchSignal")["total"] == 0
+    store.close()
+
+
+def test_import_reports_progress() -> None:
+    progress: list[float] = []
+    store, _ = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"], on_progress=progress.append)
+
+    assert progress
+    assert progress[-1] == 1.0
+    assert all(0.0 <= value <= 1.0 for value in progress)
+    store.close()
+
+
+def test_import_cancellation_stops_pipeline() -> None:
+    calls = 0
+
+    def cancel_after_first_item() -> bool:
+        nonlocal calls
+        calls += 1
+        return calls > 1
+
+    with pytest.raises(ImportCancelled):
+        import_trace(FIX / "sample.asc", [FIX / "sample.dbc"], cancel_check=cancel_after_first_item)
+
+
+def test_sample_batch_flush_is_bounded_for_multi_signal_frames(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    batch_sizes: list[int] = []
+    original = TraceStore.ingest_samples
+
+    def record_ingest(self: TraceStore, samples):
+        materialized = list(samples)
+        batch_sizes.append(len(materialized))
+        return original(self, materialized)
+
+    monkeypatch.setattr(pipeline, "_BATCH", 3)
+    monkeypatch.setattr(TraceStore, "ingest_samples", record_ingest)
+
+    store, _ = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"])
+
+    assert sum(batch_sizes) == 9
+    assert batch_sizes
+    assert max(batch_sizes) <= 3
     store.close()

@@ -1,13 +1,14 @@
 ## req_003_robustesse_execution_et_completude_post_audit_2026_07_16 - Robustifier et compléter CanTraceDiag après audit du 16 juillet 2026
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: In progress
 > Understanding: Corriger la robustesse d'exécution (import asynchrone réel, concurrence de session, erreurs UI), optimiser les endpoints chauds, livrer l'export et les compléments diagnostic, durcir la sécurité locale, puis traiter design, accessibilité et dette.
 > Confidence: high
 > Complexity: high
 > Theme: quality-hardening
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
 > Non-semantic edit: Linked backlog item_008 for the P0 execution-robustness slice; no scope change.
+> Owner: codex-worka
 
 # Needs
 - Rendre l'import réellement asynchrone : il ne doit plus geler l'API, doit exposer une
@@ -209,3 +210,8 @@
 
 # Backlog
 - `item_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui`
+- `item_009_p1_optimiser_endpoints_chauds`
+- `item_010_p1_livrer_export_et_completude_diagnostic`
+- `item_011_p1_durcir_securite_locale`
+- `item_012_p2_ameliorer_ui_accessibilite_responsive`
+- `item_013_p2_reduire_dette_parsing_maintenance_ci`

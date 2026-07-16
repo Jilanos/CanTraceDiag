@@ -9,7 +9,7 @@ The database file lives outside Git (see ``.gitignore``).
 from __future__ import annotations
 
 import threading
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 
 import duckdb
@@ -69,11 +69,68 @@ class TraceStore:
         # KeyError/NoneType/tuple-index/int('Nm') crashes in signal_series).
         # RLock because some query methods call others (e.g. summary→time_bounds).
         self._lock = threading.RLock()
+        # Reference-counted lifecycle: a store swapped out by a new import
+        # must not be closed under an in-flight request (AC3), so close()
+        # only takes effect once every acquire() has a matching release().
+        self._active_lock = threading.Lock()
+        self._active = 0
+        self._closing = False
+        self._closed = False
+        self._on_closed: Callable[[], None] | None = None
         self.con.execute(_SCHEMA)
 
-    def close(self) -> None:
+    def acquire(self) -> bool:
+        """Mark the store as in use by one more concurrent request.
+
+        Returns ``False`` if the store is already closing/closed, in which
+        case the caller must treat it as unavailable rather than use it.
+        """
+        with self._active_lock:
+            if self._closing or self._closed:
+                return False
+            self._active += 1
+            return True
+
+    def release(self) -> None:
+        """Release a hold taken by :meth:`acquire`."""
+        with self._active_lock:
+            self._active = max(0, self._active - 1)
+            should_close = self._closing and self._active == 0 and not self._closed
+        if should_close:
+            self._finish_close()
+
+    def close(self, on_closed: Callable[[], None] | None = None) -> None:
+        """Close the store once no request is using it (AC3).
+
+        Marks the store as closing immediately so no *new* request can
+        acquire it, but defers the actual DuckDB close (and ``on_closed``)
+        until every in-flight request has released it.
+        """
+        with self._active_lock:
+            if self._closed:
+                already_closed = True
+                close_now = False
+            else:
+                already_closed = False
+                self._closing = True
+                self._on_closed = on_closed
+                close_now = self._active == 0
+        if already_closed and on_closed is not None:
+            on_closed()
+        elif close_now:
+            self._finish_close()
+
+    def _finish_close(self) -> None:
+        with self._active_lock:
+            if self._closed:
+                return
+            self._closed = True
+            callback = self._on_closed
+            self._on_closed = None
         with self._lock:
             self.con.close()
+        if callback is not None:
+            callback()
 
     # -- thread-safe query helpers ----------------------------------------
     # The lazy window between execute() and fetch is where concurrent threads

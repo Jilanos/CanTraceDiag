@@ -12,7 +12,9 @@ from __future__ import annotations
 import re
 import shutil
 import tempfile
+import threading
 import uuid
+from contextlib import contextmanager
 from pathlib import Path
 
 import cantools
@@ -20,9 +22,10 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
+from starlette.concurrency import run_in_threadpool
 
 from cantracediag.dbc import DbcCatalog
-from cantracediag.pipeline import import_trace
+from cantracediag.pipeline import ImportCancelled, import_trace
 from cantracediag.store import TraceStore
 
 _WEB_DIR = Path(__file__).parent / "web"
@@ -55,8 +58,20 @@ class Pending:
             self.tmpdir = None
 
 
+_TERMINAL_JOB_PHASES = {"complete", "failed", "cancelling", "cancelled"}
+
+
 class Session:
-    """Holds the currently loaded acquisition."""
+    """Holds the currently loaded acquisition.
+
+    Session-level mutations (swapping the store, taking/clearing a pending
+    conflict resolution) go through ``_lock`` so a request reading session
+    state never observes a half-updated session (R-01). The store itself is
+    reference-counted (see :class:`TraceStore`) so replacing it never closes
+    the connection under an in-flight query (AC3): the old store is only
+    actually closed, and its temp directory removed, once every request that
+    had already acquired it has released it.
+    """
 
     def __init__(self) -> None:
         self.store: TraceStore | None = None
@@ -69,11 +84,24 @@ class Session:
         self.pending: Pending | None = None
         self.db_tmpdir: Path | None = None
         self.last_job: dict | None = None
+        self.cancel_event: threading.Event | None = None
+        self._lock = threading.Lock()
 
-    def require_store(self) -> TraceStore:
-        if self.store is None:
+    @contextmanager
+    def use_store(self):
+        """Borrow the active store for the duration of one request (AC3).
+
+        Raises 409 if no trace is loaded, or if the store was just swapped
+        out (acquire() failing) rather than crashing on a closed connection.
+        """
+        with self._lock:
+            store = self.store
+        if store is None or not store.acquire():
             raise HTTPException(status_code=409, detail="No trace loaded. POST /api/import first.")
-        return self.store
+        try:
+            yield store
+        finally:
+            store.release()
 
     def clear_pending(self) -> None:
         if self.pending is not None:
@@ -81,17 +109,28 @@ class Session:
             self.pending = None
 
     def replace_store(self, store: TraceStore, tmpdir: Path | None) -> None:
-        self.clear_store()
-        self.store = store
-        self.db_tmpdir = tmpdir
+        """Swap in a newly built store, deferring the old one's teardown
+        until no in-flight request still holds it (AC3)."""
+        with self._lock:
+            old_store, old_tmpdir = self.store, self.db_tmpdir
+            self.store = store
+            self.db_tmpdir = tmpdir
+        if old_store is not None:
+            def _cleanup_old() -> None:
+                if old_tmpdir is not None:
+                    shutil.rmtree(old_tmpdir, ignore_errors=True)
+            old_store.close(on_closed=_cleanup_old)
 
     def clear_store(self) -> None:
-        if self.store is not None:
-            self.store.close()
+        with self._lock:
+            store, tmpdir = self.store, self.db_tmpdir
             self.store = None
-        if self.db_tmpdir is not None:
-            shutil.rmtree(self.db_tmpdir, ignore_errors=True)
             self.db_tmpdir = None
+        if store is not None:
+            def _cleanup() -> None:
+                if tmpdir is not None:
+                    shutil.rmtree(tmpdir, ignore_errors=True)
+            store.close(on_closed=_cleanup)
 
     def job(self, phase: str, progress: float, detail: str | None = None) -> None:
         self.last_job = {
@@ -99,7 +138,7 @@ class Session:
             "phase": phase,
             "progress": progress,
             "detail": detail,
-            "cancellable": phase not in {"complete", "failed"},
+            "cancellable": phase not in _TERMINAL_JOB_PHASES,
         }
 
 
@@ -129,9 +168,14 @@ def create_app() -> FastAPI:
 
         Conflict resolution happens *before* the (potentially long) decode so
         the operator picks which DBC owns each conflicting id first (AC10).
+        Runs on a worker thread (see callers): decoding a large trace must
+        never block the event loop, so ``/api/import-job`` and
+        ``/api/import-cancel`` stay responsive while this runs (AC1).
         """
         session.clear_pending()
-        session.last_job = {"id": uuid.uuid4().hex, "phase": "loading_dbc", "progress": 0.05}
+        cancel_event = threading.Event()
+        session.cancel_event = cancel_event
+        session.last_job = {"id": uuid.uuid4().hex, "phase": "loading_dbc", "progress": 0.02}
         _ensure_unique_basenames(dbcs)
 
         catalog = DbcCatalog()
@@ -150,7 +194,8 @@ def create_app() -> FastAPI:
                 trace, catalog, dbcs, display_trace, display_dbcs, ambiguous, tmpdir
             )
             preview = _preview_unresolved(
-                trace, catalog, dbcs, display_trace, display_dbcs, ambiguous, unresolved
+                trace, catalog, dbcs, display_trace, display_dbcs, ambiguous, unresolved,
+                cancel_event,
             )
             return {
                 **preview,
@@ -159,7 +204,8 @@ def create_app() -> FastAPI:
             }
 
         return _finalize(
-            trace, catalog, dbcs, display_trace, display_dbcs, ambiguous, resolution
+            trace, catalog, dbcs, display_trace, display_dbcs, ambiguous, resolution,
+            cancel_event,
         )
 
     def _preview_unresolved(
@@ -170,19 +216,37 @@ def create_app() -> FastAPI:
         display_dbcs: list[str],
         ambiguous: dict[int, list[str]],
         unresolved: list[int],
+        cancel_event: threading.Event,
     ) -> dict:
-        session.clear_store()
-
-        session.job("indexing_unambiguous", 0.35)
+        # The previous session's store stays untouched until this new store
+        # has actually finished importing (AC3): only replace_store() at the
+        # end swaps it in, and only after import_trace() has succeeded.
         db_path, db_tmpdir = _new_store_path()
-        store, result = import_trace(
-            trace,
-            dbcs,
-            db_path=db_path,
-            resolution={},
-            catalog=catalog,
-            unresolved_ambiguous_ids=set(unresolved),
-        )
+
+        def _progress(frac: float) -> None:
+            session.job("indexing_unambiguous", 0.05 + 0.85 * frac)
+
+        session.job("indexing_unambiguous", 0.05)
+        try:
+            store, result = import_trace(
+                trace,
+                dbcs,
+                db_path=db_path,
+                resolution={},
+                catalog=catalog,
+                unresolved_ambiguous_ids=set(unresolved),
+                on_progress=_progress,
+                cancel_check=cancel_event.is_set,
+            )
+        except ImportCancelled:
+            _discard_store(db_tmpdir)
+            session.job("cancelled", 1.0, "Import cancelled by operator.")
+            raise
+        except Exception as exc:
+            _discard_store(db_tmpdir)
+            session.job("failed", 1.0, str(exc))
+            raise
+
         session.replace_store(store, db_tmpdir)
         session.catalog = catalog
         session.trace_path = display_trace
@@ -190,7 +254,7 @@ def create_app() -> FastAPI:
         session.ambiguous_ids = ambiguous
         session.resolution = {}
         session.asc_base = result.asc_base
-        session.job("awaiting_resolution", 0.75)
+        session.job("awaiting_resolution", 0.95)
 
         return {
             "trace_path": session.trace_path,
@@ -209,12 +273,28 @@ def create_app() -> FastAPI:
         display_dbcs: list[str],
         ambiguous: dict[int, list[str]],
         resolution: dict[int, str],
+        cancel_event: threading.Event,
     ) -> dict:
-        session.job("indexing", 0.35)
         db_path, db_tmpdir = _new_store_path()
-        store, result = import_trace(
-            trace, dbcs, db_path=db_path, resolution=resolution, catalog=catalog
-        )
+
+        def _progress(frac: float) -> None:
+            session.job("indexing", 0.05 + 0.9 * frac)
+
+        session.job("indexing", 0.05)
+        try:
+            store, result = import_trace(
+                trace, dbcs, db_path=db_path, resolution=resolution, catalog=catalog,
+                on_progress=_progress, cancel_check=cancel_event.is_set,
+            )
+        except ImportCancelled:
+            _discard_store(db_tmpdir)
+            session.job("cancelled", 1.0, "Import cancelled by operator.")
+            raise
+        except Exception as exc:
+            _discard_store(db_tmpdir)
+            session.job("failed", 1.0, str(exc))
+            raise
+
         session.replace_store(store, db_tmpdir)
         session.catalog = catalog
         session.trace_path = display_trace
@@ -244,10 +324,13 @@ def create_app() -> FastAPI:
         for dbc in dbc_paths:
             if not dbc.is_file():
                 raise HTTPException(404, f"DBC not found: {dbc}")
-        return _prepare(
-            trace, dbc_paths, str(trace), [str(p) for p in dbc_paths],
-            _parse_resolution(req.resolution), tmpdir=None,
-        )
+        try:
+            return _prepare(
+                trace, dbc_paths, str(trace), [str(p) for p in dbc_paths],
+                _parse_resolution(req.resolution), tmpdir=None,
+            )
+        except ImportCancelled as exc:
+            raise HTTPException(409, str(exc)) from exc
 
     @app.post("/api/import-files")
     async def api_import_files(
@@ -261,6 +344,12 @@ def create_app() -> FastAPI:
         in a temporary directory that is removed once the acquisition is indexed
         in memory, or once conflict resolution finalizes the load; nothing is
         written into the repository (AC1, AC8).
+
+        Decoding runs on a worker thread via ``run_in_threadpool`` instead of
+        directly in this coroutine: without it, a large trace would freeze the
+        whole event loop for the duration of the import, and no other request
+        (including ``/api/import-job`` polling and ``/api/import-cancel``)
+        could be served in the meantime (AC1).
         """
         if not (trace.filename or "").lower().endswith(".asc"):
             raise HTTPException(400, "Trace file must be a .asc file.")
@@ -287,10 +376,13 @@ def create_app() -> FastAPI:
                 dbc_paths.append(dest)
                 display_dbcs.append(Path(name).name)
 
-            result = _prepare(
-                trace_path, dbc_paths, Path(trace.filename).name, display_dbcs,
-                resolution={}, tmpdir=tmpdir,
-            )
+            try:
+                result = await run_in_threadpool(
+                    _prepare, trace_path, dbc_paths, Path(trace.filename).name,
+                    display_dbcs, {}, tmpdir,
+                )
+            except ImportCancelled as exc:
+                raise HTTPException(409, str(exc)) from exc
             # When resolution is required the temp files must survive until
             # /api/resolve finalizes the load; Pending owns cleanup then.
             keep_tmpdir = result.get("needs_resolution", False)
@@ -310,34 +402,45 @@ def create_app() -> FastAPI:
             pending.catalog, pending.ambiguous_ids, resolution, require_complete=True
         )
         session.pending = None  # take ownership; _finalize / cleanup below
+        cancel_event = threading.Event()
+        session.cancel_event = cancel_event
         try:
             return _finalize(
                 pending.trace, pending.catalog, pending.dbc_paths,
                 pending.display_trace, pending.display_dbcs,
-                pending.ambiguous_ids, resolution,
+                pending.ambiguous_ids, resolution, cancel_event,
             )
+        except ImportCancelled as exc:
+            raise HTTPException(409, str(exc)) from exc
         finally:
             pending.cleanup()
 
     @app.get("/api/status")
     def api_status() -> dict:
-        if session.store is None:
+        try:
+            with session.use_store() as store:
+                return {
+                    "loaded": True,
+                    "trace_path": session.trace_path,
+                    "dbc_paths": session.dbc_paths,
+                    "summary": store.summary(),
+                    "ambiguous_ids": {hex(k): v for k, v in session.ambiguous_ids.items()},
+                    "resolution": {hex(k): v for k, v in session.resolution.items()},
+                    "event_types": store.event_types(),
+                }
+        except HTTPException:
             return {"loaded": False}
-        return {
-            "loaded": True,
-            "trace_path": session.trace_path,
-            "dbc_paths": session.dbc_paths,
-            "summary": session.store.summary(),
-            "ambiguous_ids": {hex(k): v for k, v in session.ambiguous_ids.items()},
-            "resolution": {hex(k): v for k, v in session.resolution.items()},
-            "event_types": session.store.event_types(),
-        }
 
     @app.get("/api/signals")
     def api_signals() -> dict:
         if session.catalog is None:
             return {"signals": []}
-        present = session.store.present_signal_keys() if session.store is not None else set()
+        present: set = set()
+        try:
+            with session.use_store() as store:
+                present = store.present_signal_keys()
+        except HTTPException:
+            pass
         return {
             "signals": [
                 {
@@ -362,14 +465,14 @@ def create_app() -> FastAPI:
         end: float | None = None,
         max_points: int = 4000,
     ) -> dict:
-        store = session.require_store()
         max_points = max(2, min(max_points, 50_000))
-        return store.signal_series(message, signal, start, end, max_points)
+        with session.use_store() as store:
+            return store.signal_series(message, signal, start, end, max_points)
 
     @app.get("/api/cursor")
     def api_cursor(message: str, signal: str, at: float) -> dict:
-        store = session.require_store()
-        sample = store.nearest_sample(message, signal, at)
+        with session.use_store() as store:
+            sample = store.nearest_sample(message, signal, at)
         if sample is None:
             raise HTTPException(404, "No sample for that signal.")
         return sample
@@ -389,13 +492,13 @@ def create_app() -> FastAPI:
         event_type: str | None = None,
         signal: str | None = None,
     ) -> dict:
-        store = session.require_store()
         limit = max(1, min(limit, 2000))
-        return store.trace_rows(
-            offset, limit, start, end, frames, events,
-            id_hex=id, message=message, direction=direction,
-            decode_status=status, event_type=event_type, signal=signal,
-        )
+        with session.use_store() as store:
+            return store.trace_rows(
+                offset, limit, start, end, frames, events,
+                id_hex=id, message=message, direction=direction,
+                decode_status=status, event_type=event_type, signal=signal,
+            )
 
     @app.get("/api/trace-locate")
     def api_trace_locate(
@@ -411,17 +514,17 @@ def create_app() -> FastAPI:
         event_type: str | None = None,
         signal: str | None = None,
     ) -> dict:
-        store = session.require_store()
-        return store.locate_row(
-            at, frames, events, start, end,
-            id_hex=id, message=message, direction=direction,
-            decode_status=status, event_type=event_type, signal=signal,
-        )
+        with session.use_store() as store:
+            return store.locate_row(
+                at, frames, events, start, end,
+                id_hex=id, message=message, direction=direction,
+                decode_status=status, event_type=event_type, signal=signal,
+            )
 
     @app.get("/api/frame-signals")
     def api_frame_signals(at: float, id: int) -> dict:
-        store = session.require_store()
-        return {"signals": store.frame_signals(at, id)}
+        with session.use_store() as store:
+            return {"signals": store.frame_signals(at, id)}
 
     @app.get("/api/import-job")
     def api_import_job() -> dict:
@@ -437,7 +540,10 @@ def create_app() -> FastAPI:
     def api_import_cancel() -> dict:
         if not session.last_job or not session.last_job.get("cancellable"):
             return {"cancelled": False, "reason": "No cancellable import job."}
-        session.job("cancelled", 1.0, "Import cancellation requested.")
+        if session.cancel_event is not None:
+            session.cancel_event.set()
+        session.job("cancelling", session.last_job.get("progress", 0.0),
+                    "Import cancellation requested.")
         return {"cancelled": True}
 
     @app.get("/")
@@ -501,6 +607,17 @@ def _ensure_unique_basenames(paths: list[Path]) -> None:
 def _new_store_path() -> tuple[str, Path]:
     tmpdir = Path(tempfile.mkdtemp(prefix="ctd_db_"))
     return str(tmpdir / "analysis.duckdb"), tmpdir
+
+
+def _discard_store(tmpdir: Path) -> None:
+    """Remove a store's temp directory after a failed/cancelled import.
+
+    The store itself is already closed by ``import_trace`` (it owns any store
+    it created internally); this only clears the on-disk leftovers so a
+    cancelled or failed import never touches the still-active session store
+    (AC3).
+    """
+    shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 def _id_hex(arbitration_id: int, is_extended: bool) -> str:

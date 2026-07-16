@@ -317,6 +317,31 @@ def test_imported_text_does_not_execute_html(browser, live_url, tmp_path):
     ctx.close()
 
 
+def test_dbc_conflict_dialog_can_be_reopened_after_escape(browser, live_url):
+    ctx = browser.new_context(viewport={"width": 1280, "height": 720})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.evaluate("() => localStorage.clear()")
+    pg.set_input_files("#traceFile", str(REPO / "tests" / "fixtures" / "sample.asc"))
+    pg.set_input_files(
+        "#dbcFiles",
+        [
+            str(REPO / "tests" / "fixtures" / "sample.dbc"),
+            str(REPO / "tests" / "fixtures" / "sample_conflict.dbc"),
+        ],
+    )
+    pg.click("#loadBtn")
+    pg.wait_for_selector("#conflictDialog[open]")
+
+    pg.keyboard.press("Escape")
+    pg.wait_for_function("() => !document.getElementById('conflictDialog').open")
+    assert pg.locator("#resolveConflictsBtn").is_visible()
+
+    pg.click("#resolveConflictsBtn")
+    pg.wait_for_selector("#conflictDialog[open]")
+    ctx.close()
+
+
 def test_narrow_viewport_keeps_critical_actions_reachable(browser, live_url):
     ctx = browser.new_context(viewport={"width": 390, "height": 844})
     pg = ctx.new_page()

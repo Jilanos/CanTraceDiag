@@ -1,10 +1,10 @@
 ## item_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui - P0 Rendre l'exécution robuste import asynchrone session et erreurs UI
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -96,5 +96,6 @@ aucune issue de secours.
 
 # Notes
 - Références audit : P-01, P-02, P-05, R-01, R-05, R-06, U-01 à U-05 dans
+- Task `task_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui` was finished via `logics-manager flow finish task` on 2026-07-16.
   `docs/audit-complet-2026-07-16.md`.
 - Les traces et DBC réelles restent hors dépôt ; tests sur traces synthétiques.

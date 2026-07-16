@@ -18,7 +18,7 @@ const esc = (v) => String(v ?? "")
 const store = {
   get(key, fallback) {
     try { const v = JSON.parse(localStorage.getItem("ctd." + key)); return v === null ? fallback : v; }
-    catch (_) { return fallback; }
+    catch (err) { console.debug("Ignoring invalid local preference", key, err); return fallback; }
   },
   set(key, value) { localStorage.setItem("ctd." + key, JSON.stringify(value)); },
 };
@@ -33,6 +33,7 @@ const state = {
   trace: { offset: 0, limit: 200, total: 0, rows: [], selectedTs: null },
   seriesToken: 0,
   grid: store.get("grid", true),
+  pendingConflicts: null,
 };
 
 /* ---- column model for the trace view ----------------------------------- */
@@ -67,20 +68,28 @@ async function api(path, opts) {
   const res = await fetch(path, opts);
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
-    throw new Error(body.detail || `${res.status} ${res.statusText}`);
+    const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
+    throw new Error(detail || `${res.status} ${res.statusText}`);
   }
   return res.json();
 }
 
+function reportError(err, context) {
+  console.error(context, err);
+  $("summary").innerHTML = `<span class="err">${esc(err.message || String(err))}</span>`;
+}
+
 // Upload with progress (AC8): XHR exposes upload.onprogress; fetch does not.
-function uploadWithProgress(url, formData, onProgress) {
+function uploadWithProgress(url, formData, onProgress, onUploadComplete) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url);
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
+    xhr.upload.onload = () => { onProgress(1); if (onUploadComplete) onUploadComplete(); };
     xhr.onload = () => {
       let body = {};
-      try { body = JSON.parse(xhr.responseText); } catch (_) {}
+      try { body = JSON.parse(xhr.responseText); }
+      catch (err) { console.debug("Import response was not JSON", err); }
       if (xhr.status >= 200 && xhr.status < 300) resolve(body);
       else reject(new Error(body.detail || `${xhr.status} ${xhr.statusText}`));
     };
@@ -107,6 +116,34 @@ function setProgress(frac) {
   $("progressBar").style.width = Math.round(frac * 100) + "%";
 }
 
+let importPollTimer = null;
+
+function stopImportPolling() {
+  if (importPollTimer !== null) clearInterval(importPollTimer);
+  importPollTimer = null;
+}
+
+async function pollImportJob() {
+  try {
+    const job = await api("/api/import-job");
+    if (typeof job.progress === "number") setProgress(job.progress);
+    if (job.phase && job.phase !== "idle") {
+      $("summary").innerHTML = esc(job.detail || job.phase.replaceAll("_", " "));
+    }
+    $("cancelImportBtn").disabled = !job.cancellable;
+    if (!job.cancellable) stopImportPolling();
+  } catch (err) {
+    reportError(err, "Import job polling failed");
+    stopImportPolling();
+  }
+}
+
+function startImportPolling() {
+  if (importPollTimer !== null) return;
+  pollImportJob();
+  importPollTimer = setInterval(pollImportJob, 500);
+}
+
 async function doLoad() {
   if (!picked.trace) return;
   const fd = new FormData();
@@ -114,13 +151,17 @@ async function doLoad() {
   for (const f of picked.dbcs) fd.append("dbcs", f, f.name);
 
   $("loadBtn").disabled = true;
+  $("cancelImportBtn").hidden = false;
+  $("cancelImportBtn").disabled = false;
   $("summary").innerHTML = "Uploading…";
   setProgress(0);
   try {
     const r = await uploadWithProgress("/api/import-files", fd, (frac) => {
       setProgress(frac);
       $("summary").innerHTML = frac >= 1 ? "Indexing…" : `Uploading ${Math.round(frac * 100)}%`;
-    });
+      if (frac >= 1) startImportPolling();
+    }, startImportPolling);
+    stopImportPolling();
     setProgress(null);
     if (r.needs_resolution) {
       await onLoaded(r);
@@ -129,10 +170,12 @@ async function doLoad() {
     }
     await onLoaded(r);
   } catch (e) {
+    stopImportPolling();
     setProgress(null);
-    $("summary").innerHTML = `<span class="err">${esc(e.message)}</span>`;
+    reportError(e, "Import failed");
   } finally {
     $("loadBtn").disabled = !picked.trace;
+    $("cancelImportBtn").hidden = true;
   }
 }
 
@@ -168,6 +211,8 @@ function renderSummary(r) {
 
 /* ---- DBC conflict modal (AC10) ----------------------------------------- */
 function openConflictDialog(conflicts) {
+  state.pendingConflicts = conflicts;
+  $("resolveConflictsBtn").hidden = false;
   const list = $("conflictList");
   list.innerHTML = "";
   for (const c of conflicts) {
@@ -196,17 +241,25 @@ async function applyConflictResolution() {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ resolution }),
     });
+    state.pendingConflicts = null;
+    $("resolveConflictsBtn").hidden = true;
     await onLoaded(r);
   } catch (e) {
-    $("summary").innerHTML = `<span class="err">${esc(e.message)}</span>`;
+    reportError(e, "DBC conflict resolution failed");
   }
 }
 
 /* ---- signal explorer (AC5) --------------------------------------------- */
 async function loadSignals() {
-  const r = await api("/api/signals");
-  state.signals = r.signals;
-  renderSignalList();
+  try {
+    const r = await api("/api/signals");
+    state.signals = r.signals;
+    renderSignalList();
+  } catch (err) {
+    state.signals = [];
+    renderSignalList();
+    reportError(err, "Signal list failed to load");
+  }
 }
 
 function favKey(sig) { return `${sig.message_name}.${sig.signal_name}`; }
@@ -281,7 +334,12 @@ async function toggleSignal(sig, on) {
     const color = css(SERIES_COLORS[state.selected.length % SERIES_COLORS.length]);
     const entry = { message: sig.message_name, signal: sig.signal_name, unit: sig.unit, color, t: [], v: [] };
     state.selected.push(entry);
-    await fetchSeries(entry);
+    try {
+      await fetchSeries(entry);
+    } catch (err) {
+      state.selected = state.selected.filter((s) => s !== entry);
+      reportError(err, `Series failed to load: ${entry.message}.${entry.signal}`);
+    }
   } else {
     state.selected = state.selected.filter((s) => !(s.message === sig.message_name && s.signal === sig.signal_name));
     // Reassign colors so bands stay stable and distinct.
@@ -303,7 +361,12 @@ async function restoreSelected() {
     const entry = { message: sig.message_name, signal: sig.signal_name, unit: sig.unit, color, t: [], v: [] };
     state.selected.push(entry);
   }
-  await fetchAllSeries();
+  const results = await Promise.allSettled(state.selected.map((s) => fetchSeries(s)));
+  state.selected = state.selected.filter((_, i) => {
+    if (results[i].status === "fulfilled") return true;
+    reportError(results[i].reason, "Persisted series failed to restore");
+    return false;
+  });
   renderSignalList();
 }
 
@@ -320,9 +383,12 @@ async function fetchSeries(entry) {
 
 async function fetchAllSeries() {
   const token = ++state.seriesToken;
-  await Promise.all(state.selected.map((s) => fetchSeries(s)));
+  const results = await Promise.allSettled(state.selected.map((s) => fetchSeries(s)));
+  results.forEach((result) => {
+    if (result.status === "rejected") reportError(result.reason, "Series refresh failed");
+  });
   if (token !== state.seriesToken) return false;   // a newer request superseded us
-  return true;
+  return results.every((result) => result.status === "fulfilled");
 }
 
 /* ---- stacked plots (canvas) with zoom/pan (AC1) ------------------------ */
@@ -642,7 +708,10 @@ async function refreshCursorReadout() {
       try {
         const r = await api(`/api/cursor?message=${encodeURIComponent(s.message)}&signal=${encodeURIComponent(s.signal)}&at=${t}`);
         out[favSig(s)] = r;
-      } catch (_) { out[favSig(s)] = null; }
+      } catch (err) {
+        console.warn("Cursor sample lookup failed", err);
+        out[favSig(s)] = null;
+      }
     }));
     return out;
   };
@@ -688,7 +757,9 @@ async function locateInTrace(t) {
     if (loc.index == null) return;
     const page = Math.floor(loc.index / state.trace.limit) * state.trace.limit;
     await loadTrace(page, loc.timestamp_s);
-  } catch (_) {}
+  } catch (err) {
+    reportError(err, "Trace locate failed");
+  }
 }
 
 /* ---- trace table (AC4, AC6) -------------------------------------------- */
@@ -719,15 +790,26 @@ async function loadTrace(offset, highlightTs) {
   const params = traceFilterParams();
   params.set("offset", offset);
   params.set("limit", state.trace.limit);
-  const r = await api(`/api/trace?${params}`);
-  state.trace.offset = r.offset; state.trace.total = r.total; state.trace.rows = r.rows;
-  if (highlightTs !== undefined) state.trace.selectedTs = highlightTs;
-  renderTable(r.rows);
-  const from = r.total ? r.offset + 1 : 0;
-  const to = Math.min(r.offset + state.trace.limit, r.total);
-  $("pageInfo").textContent = `${from}–${to} of ${r.total}`;
-  $("prevBtn").disabled = r.offset <= 0;
-  $("nextBtn").disabled = to >= r.total;
+  try {
+    const r = await api(`/api/trace?${params}`);
+    state.trace.offset = r.offset; state.trace.total = r.total; state.trace.rows = r.rows;
+    if (highlightTs !== undefined) state.trace.selectedTs = highlightTs;
+    renderTable(r.rows);
+    const from = r.total ? r.offset + 1 : 0;
+    const to = Math.min(r.offset + state.trace.limit, r.total);
+    $("pageInfo").textContent = `${from}–${to} of ${r.total}`;
+    $("prevBtn").disabled = r.offset <= 0;
+    $("nextBtn").disabled = to >= r.total;
+    return true;
+  } catch (err) {
+    state.trace.rows = [];
+    renderTable([]);
+    $("pageInfo").textContent = "0-0 of 0";
+    $("prevBtn").disabled = true;
+    $("nextBtn").disabled = true;
+    reportError(err, "Trace table failed to load");
+    return false;
+  }
 }
 
 function renderTable(rows) {
@@ -819,7 +901,11 @@ async function showInspector(row) {
         const v = s.value_num ?? s.value_text;
         return `<div class="insp-sig"><span>${esc(s.signal_name)}</span><span class="v">${esc(`${v}${s.unit ? " " + s.unit : ""}`)}</span></div>`;
       }).join("");
-    } catch (_) {}
+    } catch (err) {
+      console.warn("Inspector signal lookup failed", err);
+      const box = $("inspSignals");
+      if (box) box.textContent = "decoded signals unavailable";
+    }
   }
 }
 
@@ -973,7 +1059,22 @@ $("dbcDir").addEventListener("change", (e) => {
   picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc")); refreshPicked();
 });
 $("loadBtn").addEventListener("click", doLoad);
+$("cancelImportBtn").addEventListener("click", async () => {
+  $("cancelImportBtn").disabled = true;
+  try {
+    await api("/api/import-cancel", { method: "POST" });
+    startImportPolling();
+  } catch (err) {
+    reportError(err, "Import cancellation failed");
+  }
+});
 $("conflictApply").addEventListener("click", applyConflictResolution);
+$("conflictDialog").addEventListener("cancel", () => {
+  if (state.pendingConflicts) $("resolveConflictsBtn").hidden = false;
+});
+$("resolveConflictsBtn").addEventListener("click", () => {
+  if (state.pendingConflicts) openConflictDialog(state.pendingConflicts);
+});
 
 $("sigFilter").addEventListener("input", renderSignalList);
 $("favOnly").addEventListener("change", () => { store.set("favOnly", $("favOnly").checked); renderSignalList(); });
@@ -1060,5 +1161,7 @@ wireSideResize("inspectorResizer", "inspector", "inspectorToggle", "right", "ins
   try {
     const st = await api("/api/status");
     if (st.loaded) await onLoaded(st);
-  } catch (_) {}
+  } catch (err) {
+    console.debug("No active trace restored at startup", err);
+  }
 })();

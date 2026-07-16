@@ -1,13 +1,14 @@
 ## task_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui - P0 Rendre l'exécution robuste import asynchrone session et erreurs UI
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Owner: codex-worka
 
 # Context
 - Livrer le bloc P0 de req_003 : import asynchrone réel avec progression et annulation
@@ -17,40 +18,40 @@
   `docs/audit-complet-2026-07-16.md`.
 
 # Plan
-- [ ] 1. Backend — import hors event loop : exécuter `_prepare`/`import_trace` dans un
+- [x] 1. Backend — import hors event loop : exécuter `_prepare`/`import_trace` dans un
   thread (ou `run_in_threadpool`), passer un callback de progression (octets/trames
   traités par phase) et un `threading.Event` d'annulation vérifié à chaque flush de
   lot ; renouveler l'id de job à chaque import ; rendre `cancelled` terminal.
-- [ ] 2. Backend — borner `sample_batch` dans la condition de flush du pipeline
+- [x] 2. Backend — borner `sample_batch` dans la condition de flush du pipeline
   (`pipeline.py:87`) avec test d'ingestion multi-signaux.
-- [ ] 3. Backend — verrou de cycle de vie de session : mutations de `Session` sous
+- [x] 3. Backend — verrou de cycle de vie de session : mutations de `Session` sous
   lock, remplacement de store atomique avec fermeture différée (compteur de requêtes en
   cours ou close-quand-idle) ; ne détruire l'ancienne session qu'après succès validé du
   nouvel import (déplacer le `clear_store` de `_preview_unresolved`).
-- [ ] 4. Frontend — polling de `/api/import-job` (~500 ms) pendant l'indexation :
+- [x] 4. Frontend — polling de `/api/import-job` (~500 ms) pendant l'indexation :
   alimenter `#progressBar` par phase et afficher un bouton Annuler appelant
   `/api/import-cancel`.
-- [ ] 5. Frontend — helper d'erreurs central (journalisation console + zone de statut
+- [x] 5. Frontend — helper d'erreurs central (journalisation console + zone de statut
   UI) : remplacer tous les `catch (_) {}`, passer `restoreSelected` en
   `Promise.allSettled` avec marquage par entrée, protéger `loadTrace`/`toggleSignal`
   (checkbox et table cohérentes), normaliser `detail` non textuel des 422.
-- [ ] 6. Frontend — dialog de conflit DBC : gérer l'événement `cancel` et afficher un
+- [x] 6. Frontend — dialog de conflit DBC : gérer l'événement `cancel` et afficher un
   contrôle « Résoudre les conflits » persistant tant que la session est en attente ;
   état vide de la table quand aucun résultat.
-- [ ] 7. Tests : progression pendant import synthétique (AC1), annulation effective
+- [x] 7. Tests : progression pendant import synthétique (AC1), annulation effective
   (AC2), rafales concurrentes pendant remplacement de store + survie de session (AC3),
   flush borné (AC4), échec de série non bloquant (AC5), E2E dialog rouvrable (AC6).
-- [ ] GATE: do not close a wave or step until the relevant automated tests and quality
+- [x] GATE: do not close a wave or step until the relevant automated tests and quality
   checks have been run successfully.
 
 # Backlog
 - `item_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui`
 
 # Definition of Done (DoD)
-- [ ] Code is implemented and reviewed.
-- [ ] Validation passes.
-- [ ] Linked docs are synchronized.
-- [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
+- [x] Code is implemented and reviewed.
+- [x] Validation passes.
+- [x] Linked docs are synchronized.
+- [x] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
 
 # Acceptance criteria
 - AC1: Pendant l'import d'une trace volumineuse, `/api/import-job` répond en moins de
@@ -85,9 +86,26 @@
 - Run `python3 -m logics_manager flow finish task task_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui.md` after implementation.
 - `.venv/bin/ruff check .` must pass.
 - `.venv/bin/pytest` must pass, including the new AC1-AC6 tests and existing E2E.
+- Finish workflow executed on 2026-07-16.
+- Linked backlog/request close verification passed.
 
 # Report
-- (pending implementation)
+- Implemented worker-thread upload import, byte-based import progress,
+- Finished on 2026-07-16.
+- Linked backlog item(s): `item_008_p0_rendre_execution_robuste_import_asynchrone_session_et_erreurs_ui`
+- Related request(s): `req_003_robustesse_execution_et_completude_post_audit_2026_07_16`
+  cancellation polling, terminal cancelled/cancelling job states, and a
+  polling/cancel UI during server-side indexing.
+- Added a session lifecycle lock and reference-counted `TraceStore` close so a
+  replacement import cannot close the active DuckDB connection under in-flight
+  requests, and failed/cancelled imports keep the previous session queryable.
+- Bounded sample ingestion batches, including multi-signal frame coverage.
+- Centralized UI API error reporting, removed empty `catch` blocks, made
+  persisted series restore non-blocking with `Promise.allSettled`, and made
+  trace/table/inspector failures visible while preserving UI consistency.
+- Added persistent DBC conflict reopening after Escape/cancel.
+- Validation passed on 2026-07-16: `.venv/bin/ruff check .` and
+  `.venv/bin/pytest` (69 passed, 1 existing Starlette/httpx warning).
 
 # AI Context
 - Summary: Implement the req_003 P0 block: real async import with progress and

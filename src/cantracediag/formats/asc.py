@@ -9,7 +9,7 @@ the trace view can still surface them (AC6).
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -103,20 +103,35 @@ def iter_asc(path: str | Path) -> Iterator[RawCanFrame | NonDataEvent]:
                 yield event
 
 
-def stream_asc(path: str | Path) -> tuple[_Scanner, Iterator[RawCanFrame | NonDataEvent]]:
+def stream_asc(
+    path: str | Path,
+    on_progress: Callable[[int], None] | None = None,
+    progress_every: int = 5000,
+) -> tuple[_Scanner, Iterator[RawCanFrame | NonDataEvent]]:
     """Stream frames/events and expose the scanner so the caller can read the
-    detected numeric ``base`` after iteration completes."""
+    detected numeric ``base`` after iteration completes.
+
+    ``on_progress``, when given, is called with the current byte offset in
+    the file every ``progress_every`` lines (and once more at end of file) so
+    a caller can report import progress without pre-scanning the file.
+    """
 
     scanner = _Scanner()
 
     def _gen() -> Iterator[RawCanFrame | NonDataEvent]:
         with open(path, encoding="utf-8", errors="replace") as handle:
-            for line in handle:
+            line_no = 0
+            while line := handle.readline():
+                line_no += 1
                 frame, event = scanner.feed(line)
                 if frame is not None:
                     yield frame
                 if event is not None:
                     yield event
+                if on_progress is not None and line_no % progress_every == 0:
+                    on_progress(handle.tell())
+            if on_progress is not None:
+                on_progress(handle.tell())
 
     return scanner, _gen()
 
