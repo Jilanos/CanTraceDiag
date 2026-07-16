@@ -7,6 +7,8 @@ from starlette.testclient import TestClient
 
 import cantracediag.api as api_module
 from cantracediag.api import create_app
+from cantracediag.decode import Decoder
+from cantracediag.pipeline import import_trace
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -44,6 +46,55 @@ def test_import_and_query_flow(client: TestClient) -> None:
 
     trace = client.get("/api/trace", params={"limit": 100}).json()
     assert trace["total"] == 8
+
+
+def test_series_is_decoded_on_demand_and_reuses_cache(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls = 0
+    original = Decoder.decode_signal
+
+    def counted_decode(self, frame, message_name, signal_name):
+        nonlocal calls
+        calls += 1
+        return original(self, frame, message_name, signal_name)
+
+    monkeypatch.setattr(Decoder, "decode_signal", counted_decode)
+    assert _import(client).status_code == 200
+
+    params = {"message": "EngineData", "signal": "EngineSpeed"}
+    first = client.get("/api/series", params=params)
+    assert first.status_code == 200
+    first_calls = calls
+    assert first_calls > 0
+
+    second = client.get("/api/series", params=params)
+    assert second.status_code == 200
+    assert calls == first_calls
+    assert second.json()["v"] == first.json()["v"]
+
+
+def test_lazy_series_matches_eager_decode_values(client: TestClient) -> None:
+    assert _import(client).status_code == 200
+    params = {
+        "message": "EngineData",
+        "signal": "EngineSpeed",
+        "start": 0.010,
+        "end": 0.020,
+    }
+
+    lazy = client.get("/api/series", params=params).json()
+    eager_store, _ = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"], decode_samples=True)
+    try:
+        eager = eager_store.signal_series(
+            "EngineData", "EngineSpeed", start_s=0.010, end_s=0.020
+        )
+    finally:
+        eager_store.close()
+
+    assert lazy["t"] == eager["t"]
+    assert lazy["v"] == eager["v"]
 
 
 def test_query_without_trace_returns_409(client: TestClient) -> None:

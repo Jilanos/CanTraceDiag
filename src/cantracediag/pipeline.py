@@ -40,6 +40,7 @@ def import_trace(
     unresolved_ambiguous_ids: set[int] | None = None,
     on_progress: Callable[[float], None] | None = None,
     cancel_check: Callable[[], bool] | None = None,
+    decode_samples: bool = False,
 ) -> tuple[TraceStore, ImportResult]:
     """Parse an ASC trace, decode frames, and populate a TraceStore.
 
@@ -109,7 +110,11 @@ def import_trace(
             if cancel_check is not None and cancel_check():
                 raise ImportCancelled("Import cancelled by operator.")
             if isinstance(item, RawCanFrame):
-                updated, samples = decoder.decode_frame(item)
+                if decode_samples:
+                    updated, samples = decoder.decode_frame(item)
+                else:
+                    updated, _ = decoder.describe_frame(item)
+                    samples = []
                 frame_batch.append(updated)
                 sample_batch.extend(samples)
             else:

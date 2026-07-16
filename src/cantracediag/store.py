@@ -50,6 +50,14 @@ CREATE TABLE IF NOT EXISTS samples (
     value_text     VARCHAR,
     unit           VARCHAR
 );
+CREATE TABLE IF NOT EXISTS series_cache (
+    message_name VARCHAR,
+    signal_name  VARCHAR,
+    start_s      DOUBLE,
+    end_s        DOUBLE,
+    frame_count  BIGINT,
+    sample_count BIGINT
+);
 """
 
 
@@ -199,6 +207,84 @@ class TraceStore:
         ]
         return self._append("samples", rows)
 
+    def replace_signal_samples(
+        self,
+        message_name: str,
+        signal_name: str,
+        samples: Iterable[DecodedSignalSample],
+        start_s: float | None = None,
+        end_s: float | None = None,
+    ) -> int:
+        clauses = ["message_name = ?", "signal_name = ?"]
+        params: list[object] = [message_name, signal_name]
+        if start_s is not None:
+            clauses.append("timestamp_s >= ?")
+            params.append(start_s)
+        if end_s is not None:
+            clauses.append("timestamp_s <= ?")
+            params.append(end_s)
+        with self._lock:
+            self.con.execute(f"DELETE FROM samples WHERE {' AND '.join(clauses)}", params)
+        return self.ingest_samples(samples)
+
+    def mark_series_cached(
+        self,
+        message_name: str,
+        signal_name: str,
+        start_s: float | None,
+        end_s: float | None,
+        frame_count: int,
+        sample_count: int,
+    ) -> None:
+        rows = [{
+            "message_name": message_name,
+            "signal_name": signal_name,
+            "start_s": start_s,
+            "end_s": end_s,
+            "frame_count": frame_count,
+            "sample_count": sample_count,
+        }]
+        self._append("series_cache", rows)
+
+    def has_series_cache(
+        self,
+        message_name: str,
+        signal_name: str,
+        start_s: float | None,
+        end_s: float | None,
+    ) -> bool:
+        row = self._one(
+            """
+            SELECT 1
+            FROM series_cache
+            WHERE message_name = ? AND signal_name = ?
+              AND (start_s IS NULL OR start_s <= ?)
+              AND (end_s IS NULL OR end_s >= ?)
+            LIMIT 1
+            """,
+            [
+                message_name,
+                signal_name,
+                start_s if start_s is not None else -float("inf"),
+                end_s if end_s is not None else float("inf"),
+            ],
+        )
+        return row is not None
+
+    def cache_stats(self) -> dict:
+        row = self._one(
+            """
+            SELECT count(*), coalesce(sum(frame_count), 0), coalesce(sum(sample_count), 0)
+            FROM series_cache
+            """
+        )
+        samples = self._one("SELECT count(*) FROM samples")[0]
+        return {
+            "series": int(row[0] or 0),
+            "decoded_frames": int(row[1] or 0),
+            "samples": int(samples or 0),
+        }
+
     def _append(self, table: str, rows: list[dict]) -> int:
         if not rows:
             return 0
@@ -246,6 +332,96 @@ class TraceStore:
             "decode_status": {r[0]: r[1] for r in status_rows},
             "event_types": {r[0]: r[1] for r in event_rows},
         }
+
+    def sample_count(self) -> int:
+        return int(self._one("SELECT count(*) FROM samples")[0] or 0)
+
+    def present_arbitration_ids(self) -> set[int]:
+        rows = self._all("SELECT DISTINCT arbitration_id FROM frames")
+        return {int(r[0]) for r in rows}
+
+    def frames_for_signal(
+        self,
+        arbitration_id: int,
+        start_s: float | None = None,
+        end_s: float | None = None,
+    ) -> list[RawCanFrame]:
+        clauses = ["arbitration_id = ?"]
+        params: list[object] = [arbitration_id]
+        if start_s is not None:
+            clauses.append("timestamp_s >= ?")
+            params.append(start_s)
+        if end_s is not None:
+            clauses.append("timestamp_s <= ?")
+            params.append(end_s)
+        df = self._df(
+            f"""
+            SELECT timestamp_s, channel, arbitration_id, is_extended_id, dlc,
+                   data_hex, direction, is_remote, message_name, decode_status, dbc_source
+            FROM frames
+            WHERE {' AND '.join(clauses)}
+            ORDER BY timestamp_s
+            """,
+            params,
+        )
+        return [_frame_from_record(row) for row in _records(df)]
+
+    def frame_at(self, timestamp_s: float, arbitration_id: int) -> RawCanFrame | None:
+        row = self._one(
+            """
+            SELECT timestamp_s, channel, arbitration_id, is_extended_id, dlc,
+                   data_hex, direction, is_remote, message_name, decode_status, dbc_source
+            FROM frames
+            WHERE timestamp_s = ? AND arbitration_id = ?
+            LIMIT 1
+            """,
+            [timestamp_s, arbitration_id],
+        )
+        if row is None:
+            return None
+        return _frame_from_record({
+            "timestamp_s": row[0],
+            "channel": row[1],
+            "arbitration_id": row[2],
+            "is_extended_id": row[3],
+            "dlc": row[4],
+            "data_hex": row[5],
+            "direction": row[6],
+            "is_remote": row[7],
+            "message_name": row[8],
+            "decode_status": row[9],
+            "dbc_source": row[10],
+        })
+
+    def nearest_frame_for_signal(
+        self, arbitration_id: int, at_s: float
+    ) -> RawCanFrame | None:
+        row = self._one(
+            """
+            SELECT timestamp_s, channel, arbitration_id, is_extended_id, dlc,
+                   data_hex, direction, is_remote, message_name, decode_status, dbc_source
+            FROM frames
+            WHERE arbitration_id = ?
+            ORDER BY abs(timestamp_s - ?)
+            LIMIT 1
+            """,
+            [arbitration_id, at_s],
+        )
+        if row is None:
+            return None
+        return _frame_from_record({
+            "timestamp_s": row[0],
+            "channel": row[1],
+            "arbitration_id": row[2],
+            "is_extended_id": row[3],
+            "dlc": row[4],
+            "data_hex": row[5],
+            "direction": row[6],
+            "is_remote": row[7],
+            "message_name": row[8],
+            "decode_status": row[9],
+            "dbc_source": row[10],
+        })
 
     def signal_series(
         self,
@@ -382,6 +558,7 @@ class TraceStore:
         decode_status: str | None = None,
         event_type: str | None = None,
         signal: str | None = None,
+        signal_ids: list[int] | None = None,
     ) -> dict:
         """Time-ordered, paginated view mixing frames and events (AC4, AC6).
 
@@ -391,7 +568,7 @@ class TraceStore:
         """
         union, params = self._trace_union(
             start_s, end_s, include_frames, include_events,
-            id_hex, message, direction, decode_status, event_type, signal,
+            id_hex, message, direction, decode_status, event_type, signal, signal_ids,
         )
         if union is None:
             return {"total": 0, "offset": offset, "limit": limit, "rows": []}
@@ -427,6 +604,7 @@ class TraceStore:
         decode_status: str | None = None,
         event_type: str | None = None,
         signal: str | None = None,
+        signal_ids: list[int] | None = None,
     ) -> dict:
         """Row index of the trace row nearest to ``at_s`` under active filters.
 
@@ -435,7 +613,7 @@ class TraceStore:
         """
         union, params = self._trace_union(
             start_s, end_s, include_frames, include_events,
-            id_hex, message, direction, decode_status, event_type, signal,
+            id_hex, message, direction, decode_status, event_type, signal, signal_ids,
         )
         if union is None:
             return {"total": 0, "index": None, "timestamp_s": None}
@@ -471,6 +649,7 @@ class TraceStore:
         decode_status: str | None,
         event_type: str | None,
         signal: str | None,
+        signal_ids: list[int] | None,
     ) -> tuple[str | None, list[object]]:
         selects: list[str] = []
         params: list[object] = []
@@ -479,14 +658,15 @@ class TraceStore:
         # direction / decode status); an event-type filter excludes frames.
         # ``message`` matches decoded message names and event types, so it is
         # kept on both sides.
-        if id_hex or direction or decode_status or signal:
+        if id_hex or direction or decode_status or signal or signal_ids:
             include_events = False
         if event_type:
             include_frames = False
 
         if include_frames:
             clauses, fparams = self._frame_filters(
-                start_s, end_s, id_hex, message, direction, decode_status, signal
+                start_s, end_s, id_hex, message, direction, decode_status, signal,
+                signal_ids,
             )
             where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
             selects.append(
@@ -527,6 +707,7 @@ class TraceStore:
         direction: str | None,
         decode_status: str | None,
         signal: str | None,
+        signal_ids: list[int] | None,
     ) -> tuple[list[str], list[object]]:
         clauses: list[str] = []
         params: list[object] = []
@@ -543,7 +724,7 @@ class TraceStore:
         if decode_status:
             clauses.append("decode_status = ?")
             params.append(decode_status)
-        if signal:
+        if signal and not signal_ids:
             clauses.append(
                 """
                 EXISTS (
@@ -555,6 +736,10 @@ class TraceStore:
                 """
             )
             params.append(f"%{signal.lower()}%")
+        if signal_ids:
+            placeholders = ", ".join("?" for _ in signal_ids)
+            clauses.append(f"arbitration_id IN ({placeholders})")
+            params.extend(signal_ids)
         return clauses, params
 
     def _event_filters(
@@ -641,3 +826,20 @@ def _records(df: pd.DataFrame) -> list[dict]:
     """Convert a DataFrame to JSON-safe dict rows (NaN/NaT -> None)."""
     clean = df.astype(object).where(pd.notnull(df), None)
     return clean.to_dict(orient="records")
+
+
+def _frame_from_record(row: dict) -> RawCanFrame:
+    data_hex = row.get("data_hex") or ""
+    return RawCanFrame(
+        timestamp_s=float(row["timestamp_s"]),
+        channel=row.get("channel"),
+        arbitration_id=int(row["arbitration_id"]),
+        is_extended_id=bool(row["is_extended_id"]),
+        dlc=int(row["dlc"]),
+        data=bytes.fromhex(data_hex),
+        direction=row.get("direction"),
+        is_remote=bool(row["is_remote"]),
+        message_name=row.get("message_name"),
+        decode_status=row.get("decode_status"),
+        dbc_source=row.get("dbc_source"),
+    )

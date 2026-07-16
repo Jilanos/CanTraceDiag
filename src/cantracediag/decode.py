@@ -41,42 +41,73 @@ class Decoder:
     def decode_frame(
         self, frame: RawCanFrame
     ) -> tuple[RawCanFrame, list[DecodedSignalSample]]:
-        if not self._has_db:
-            return replace(frame, decode_status=DECODE_NO_DB), []
-
-        entries = self._index.get(frame.arbitration_id)
-        if not entries:
-            return replace(frame, decode_status=DECODE_UNKNOWN_ID), []
-
-        # When several DBCs claim the same id, honour the operator's resolution
-        # if one was made; otherwise take the first. Remaining ambiguity is
-        # surfaced separately via DbcCatalog.find_ambiguous_ids.
-        picked = self._pick(frame.arbitration_id, entries)
-        if picked is None:
-            return replace(frame, decode_status=DECODE_AMBIGUOUS_ID), []
-        db_name, message = picked
-        if frame.is_remote:
-            return replace(
-                frame, message_name=message.name, decode_status=DECODE_OK,
-                dbc_source=db_name,
-            ), []
+        updated, message = self.describe_frame(frame)
+        if message is None or updated.is_remote or updated.decode_status != DECODE_OK:
+            return updated, []
 
         try:
             decoded = message.decode(
                 frame.data, decode_choices=False, allow_truncated=False
             )
         except Exception:
-            return replace(
-                frame, message_name=message.name, decode_status=DECODE_ERROR,
-                dbc_source=db_name,
-            ), []
+            return replace(updated, decode_status=DECODE_ERROR), []
 
-        samples = self._to_samples(frame, message, decoded)
+        return updated, self._to_samples(updated, message, decoded)
+
+    def describe_frame(self, frame: RawCanFrame) -> tuple[RawCanFrame, Message | None]:
+        """Resolve message metadata without materializing every signal sample."""
+        if not self._has_db:
+            return replace(frame, decode_status=DECODE_NO_DB), None
+
+        entries = self._index.get(frame.arbitration_id)
+        if not entries:
+            return replace(frame, decode_status=DECODE_UNKNOWN_ID), None
+
+        # When several DBCs claim the same id, honour the operator's resolution
+        # if one was made; otherwise take the first. Remaining ambiguity is
+        # surfaced separately via DbcCatalog.find_ambiguous_ids.
+        picked = self._pick(frame.arbitration_id, entries)
+        if picked is None:
+            return replace(frame, decode_status=DECODE_AMBIGUOUS_ID), None
+        db_name, message = picked
         updated = replace(
             frame, message_name=message.name, decode_status=DECODE_OK,
             dbc_source=db_name,
         )
-        return updated, samples
+        return updated, message
+
+    def decode_signal(
+        self, frame: RawCanFrame, message_name: str, signal_name: str
+    ) -> DecodedSignalSample | None:
+        """Decode one signal from one frame, preserving no-interpolation semantics."""
+        updated, message = self.describe_frame(frame)
+        if (
+            message is None
+            or updated.is_remote
+            or updated.decode_status != DECODE_OK
+            or message.name != message_name
+        ):
+            return None
+        try:
+            decoded = message.decode(
+                updated.data, decode_choices=False, allow_truncated=False
+            )
+        except Exception:
+            return None
+        if signal_name not in decoded:
+            return None
+        units = {sig.name: sig.unit for sig in message.signals}
+        value = decoded[signal_name]
+        numeric = _numeric(value)
+        return DecodedSignalSample(
+            timestamp_s=updated.timestamp_s,
+            channel=updated.channel,
+            arbitration_id=updated.arbitration_id,
+            message_name=message.name,
+            signal_name=signal_name,
+            value=numeric if numeric is not None else _as_text(value),
+            unit=units.get(signal_name),
+        )
 
     def _pick(
         self, arbitration_id: int, entries: list[tuple[str, Message]]

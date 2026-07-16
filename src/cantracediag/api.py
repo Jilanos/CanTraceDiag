@@ -25,6 +25,8 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
 from cantracediag.dbc import DbcCatalog
+from cantracediag.decode import Decoder
+from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
 from cantracediag.store import TraceStore
 
@@ -314,6 +316,64 @@ def create_app() -> FastAPI:
             "resolution": {hex(k): v for k, v in resolution.items()},
         }
 
+    def _decoder() -> Decoder:
+        if session.catalog is None:
+            raise HTTPException(status_code=409, detail="No DBC loaded.")
+        unresolved = set(session.ambiguous_ids) - set(session.resolution)
+        return Decoder(
+            session.catalog.message_index(),
+            session.resolution,
+            unresolved,
+        )
+
+    def _signal_info(message: str, signal: str):
+        if session.catalog is None:
+            raise HTTPException(status_code=409, detail="No DBC loaded.")
+        for info in session.catalog.signals():
+            if info.message_name == message and info.signal_name == signal:
+                return info
+        raise HTTPException(404, "No such signal in loaded DBC.")
+
+    def _signal_ids_matching(term: str | None) -> list[int] | None:
+        if not term or session.catalog is None:
+            return None
+        needle = term.lower()
+        ids = {
+            info.arbitration_id
+            for info in session.catalog.signals()
+            if needle in info.signal_name.lower()
+        }
+        return sorted(ids)
+
+    def _sample_payload(sample: DecodedSignalSample) -> dict:
+        value = sample.value
+        return {
+            "signal_name": sample.signal_name,
+            "value_num": value if isinstance(value, (int, float)) else None,
+            "value_text": value if isinstance(value, str) else None,
+            "unit": sample.unit,
+        }
+
+    def _ensure_series_cached(
+        store: TraceStore,
+        message: str,
+        signal: str,
+        start: float | None,
+        end: float | None,
+    ) -> None:
+        if store.has_series_cache(message, signal, start, end):
+            return
+        info = _signal_info(message, signal)
+        decoder = _decoder()
+        samples: list[DecodedSignalSample] = []
+        frames = store.frames_for_signal(info.arbitration_id, start, end)
+        for frame in frames:
+            sample = decoder.decode_signal(frame, message, signal)
+            if sample is not None:
+                samples.append(sample)
+        store.replace_signal_samples(message, signal, samples, start, end)
+        store.mark_series_cached(message, signal, start, end, len(frames), len(samples))
+
     @app.post("/api/import")
     def api_import(req: ImportRequest) -> dict:
         """Import by server-side path (CLI/power users; accepts Windows/UNC paths)."""
@@ -436,9 +496,11 @@ def create_app() -> FastAPI:
         if session.catalog is None:
             return {"signals": []}
         present: set = set()
+        present_ids: set[int] = set()
         try:
             with session.use_store() as store:
                 present = store.present_signal_keys()
+                present_ids = store.present_arbitration_ids()
         except HTTPException:
             pass
         return {
@@ -451,7 +513,10 @@ def create_app() -> FastAPI:
                     "minimum": s.minimum,
                     "maximum": s.maximum,
                     "databases": list(s.databases),
-                    "present": (s.message_name, s.signal_name, s.arbitration_id) in present,
+                    "present": (
+                        (s.message_name, s.signal_name, s.arbitration_id) in present
+                        or s.arbitration_id in present_ids
+                    ),
                 }
                 for s in session.catalog.signals()
             ]
@@ -467,12 +532,23 @@ def create_app() -> FastAPI:
     ) -> dict:
         max_points = max(2, min(max_points, 50_000))
         with session.use_store() as store:
+            _ensure_series_cached(store, message, signal, start, end)
             return store.signal_series(message, signal, start, end, max_points)
 
     @app.get("/api/cursor")
     def api_cursor(message: str, signal: str, at: float) -> dict:
         with session.use_store() as store:
             sample = store.nearest_sample(message, signal, at)
+            if sample is None:
+                info = _signal_info(message, signal)
+                frame = store.nearest_frame_for_signal(info.arbitration_id, at)
+                decoded = _decoder().decode_signal(frame, message, signal) if frame else None
+                if decoded is not None:
+                    sample = {
+                        "timestamp_s": decoded.timestamp_s,
+                        "value": decoded.value,
+                        "unit": decoded.unit,
+                    }
         if sample is None:
             raise HTTPException(404, "No sample for that signal.")
         return sample
@@ -498,6 +574,7 @@ def create_app() -> FastAPI:
                 offset, limit, start, end, frames, events,
                 id_hex=id, message=message, direction=direction,
                 decode_status=status, event_type=event_type, signal=signal,
+                signal_ids=_signal_ids_matching(signal),
             )
 
     @app.get("/api/trace-locate")
@@ -519,12 +596,20 @@ def create_app() -> FastAPI:
                 at, frames, events, start, end,
                 id_hex=id, message=message, direction=direction,
                 decode_status=status, event_type=event_type, signal=signal,
+                signal_ids=_signal_ids_matching(signal),
             )
 
     @app.get("/api/frame-signals")
     def api_frame_signals(at: float, id: int) -> dict:
         with session.use_store() as store:
-            return {"signals": store.frame_signals(at, id)}
+            signals = store.frame_signals(at, id)
+            if signals:
+                return {"signals": signals}
+            frame = store.frame_at(at, id)
+            if frame is None:
+                return {"signals": []}
+            _, samples = _decoder().decode_frame(frame)
+            return {"signals": [_sample_payload(sample) for sample in samples]}
 
     @app.get("/api/import-job")
     def api_import_job() -> dict:

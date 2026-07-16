@@ -10,7 +10,7 @@ FIX = Path(__file__).parent / "fixtures"
 
 
 def _store():
-    store, result = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"])
+    store, result = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"], decode_samples=True)
     return store, result
 
 
@@ -99,6 +99,18 @@ def test_import_reports_progress() -> None:
     store.close()
 
 
+def test_import_defaults_to_lazy_decode_without_materialized_samples() -> None:
+    store, result = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"])
+
+    assert result.summary["frames"] == 6
+    assert result.summary["decoded_frames"] == 5
+    assert store.sample_count() == 0
+    page = store.trace_rows(limit=100)
+    assert page["total"] == 8
+    assert any(row["name"] == "EngineData" for row in page["rows"])
+    store.close()
+
+
 def test_import_cancellation_stops_pipeline() -> None:
     calls = 0
 
@@ -125,7 +137,7 @@ def test_sample_batch_flush_is_bounded_for_multi_signal_frames(
     monkeypatch.setattr(pipeline, "_BATCH", 3)
     monkeypatch.setattr(TraceStore, "ingest_samples", record_ingest)
 
-    store, _ = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"])
+    store, _ = import_trace(FIX / "sample.asc", [FIX / "sample.dbc"], decode_samples=True)
 
     assert sum(batch_sizes) == 9
     assert batch_sizes
