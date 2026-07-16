@@ -240,6 +240,11 @@
   dialog h3 { margin-top: 0; font: 600 14px var(--sans); }
   .col-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
   .col-row .grab { cursor: grab; color: var(--muted); }
+  .lib-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line-soft); font: 11.5px var(--mono); }
+  .lib-row input { accent-color: var(--accent); }
+  .lib-row .lname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lib-row .lmeta { color: var(--muted); font-size: 10px; }
+  .lib-empty { color: var(--muted); padding: 8px 0; }
   .conflict-row { padding: 6px 0; border-top: 1px solid var(--line); }
   .conflict-row .cid { font: 600 12px var(--mono); color: var(--ch2); }
   code { color: var(--accent); font-family: var(--mono); }
@@ -278,6 +283,8 @@
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12"/></svg>DBC files</button>
     <button class="ghost icon" id="pickDbcDirBtn" title="Choose a folder of DBC files">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h4l1.5 2H14v7H2z"/></svg>DBC folder</button>
+    <button class="ghost icon" id="pickLibBtn" title="Reuse DBC files kept in the library">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M3 2v12M6 2v12M9.5 2.5l3.5 11"/></svg>Library</button>
     <button id="loadBtn" disabled>Load</button>
     <button class="ghost" id="cancelImportBtn" hidden>Cancel</button>
     <button class="ghost" id="resolveConflictsBtn" hidden>Resolve conflicts</button>
@@ -372,6 +379,16 @@
     <div class="pbody" id="inspBody"><div class="insp-empty">Select a trace row to inspect it.</div></div>
   </aside>
 </main>
+
+<dialog id="libDialog">
+  <h3>DBC library</h3>
+  <p class="summary" style="text-align:left; margin:0 0 8px">Reuse previously imported DBC files without re-uploading. Checked files load with the next trace; those from the last session are pre-selected.</p>
+  <div id="libList"></div>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+    <button class="ghost" id="libPurge" title="Delete cached DBC files and the last analysis">Clear cache</button>
+    <button id="libDone">Done</button>
+  </div>
+</dialog>
 
 <dialog id="colDialog">
   <h3>Trace columns</h3>

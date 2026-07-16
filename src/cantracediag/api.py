@@ -18,7 +18,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import cantools
-from fastapi import FastAPI, File, HTTPException, UploadFile
+from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -29,6 +29,7 @@ from cantracediag.decode import Decoder
 from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
 from cantracediag.store import TraceStore
+from cantracediag.workspace import Workspace
 
 _WEB_DIR = Path(__file__).parent / "web"
 
@@ -87,6 +88,7 @@ class Session:
         self.db_tmpdir: Path | None = None
         self.last_job: dict | None = None
         self.cancel_event: threading.Event | None = None
+        self.workspace: Workspace | None = None
         self._lock = threading.Lock()
 
     @contextmanager
@@ -154,9 +156,13 @@ class ResolveRequest(BaseModel):
     resolution: dict[str, str] = {}
 
 
-def create_app() -> FastAPI:
+def create_app(workspace: Workspace | None = None) -> FastAPI:
     app = FastAPI(title="CanTraceDiag", version="0.1.0")
     session = Session()
+    session.workspace = workspace or Workspace.from_env()
+    # Exposed so a test (or an embedding process) can reach the live session,
+    # e.g. to close the store connection when simulating a server restart.
+    app.state.ctd_session = session
 
     def _prepare(
         trace: Path,
@@ -223,7 +229,7 @@ def create_app() -> FastAPI:
         # The previous session's store stays untouched until this new store
         # has actually finished importing (AC3): only replace_store() at the
         # end swaps it in, and only after import_trace() has succeeded.
-        db_path, db_tmpdir = _new_store_path()
+        db_path, db_tmpdir = session.workspace.new_analysis_holder()
 
         def _progress(frac: float) -> None:
             session.job("indexing_unambiguous", 0.05 + 0.85 * frac)
@@ -277,7 +283,7 @@ def create_app() -> FastAPI:
         resolution: dict[int, str],
         cancel_event: threading.Event,
     ) -> dict:
-        db_path, db_tmpdir = _new_store_path()
+        db_path, db_tmpdir = session.workspace.new_analysis_holder()
 
         def _progress(frac: float) -> None:
             session.job("indexing", 0.05 + 0.9 * frac)
@@ -304,6 +310,23 @@ def create_app() -> FastAPI:
         session.ambiguous_ids = ambiguous
         session.resolution = resolution
         session.asc_base = result.asc_base
+        # Persist to the workspace so a later restart restores this analysis
+        # without re-parsing the ASC (best-effort: a failed workspace write must
+        # not discard the already-successful in-session import).
+        try:
+            entries = [
+                session.workspace.store_dbc(path, disp)
+                for path, disp in zip(dbcs, display_dbcs, strict=False)
+            ]
+            session.workspace.commit_analysis(
+                db_tmpdir,
+                trace_display=display_trace,
+                asc_base=result.asc_base,
+                dbcs=entries,
+                resolution=resolution,
+            )
+        except Exception as exc:  # noqa: BLE001 - persistence is best-effort
+            print(f"[cantracediag] workspace persist failed: {exc}")
         session.job("complete", 1.0)
 
         return {
@@ -396,6 +419,7 @@ def create_app() -> FastAPI:
     async def api_import_files(
         trace: UploadFile = File(...),
         dbcs: list[UploadFile] = File(default=[]),
+        library: list[str] = Form(default=[]),
     ) -> dict:
         """Import from files uploaded via the browser's native picker.
 
@@ -435,6 +459,20 @@ def create_app() -> FastAPI:
                 await _spool(upload, dest)
                 dbc_paths.append(dest)
                 display_dbcs.append(Path(name).name)
+
+            # DBCs picked from the persistent library (AC5): no re-upload; the
+            # library file lives outside tmpdir, so tmpdir cleanup never touches
+            # it. Skip any whose basename a fresh upload already provided.
+            for digest in library:
+                lib_path = session.workspace.library_path(digest)
+                if lib_path is None:
+                    raise HTTPException(400, f"Unknown library DBC: {digest}")
+                safe = _safe_name(lib_path.name)
+                if safe in seen_names:
+                    continue
+                seen_names.add(safe)
+                dbc_paths.append(lib_path)
+                display_dbcs.append(lib_path.name)
 
             try:
                 result = await run_in_threadpool(
@@ -490,6 +528,34 @@ def create_app() -> FastAPI:
                 }
         except HTTPException:
             return {"loaded": False}
+
+    @app.get("/api/dbc-library")
+    def api_dbc_library() -> dict:
+        """List DBC files kept in the persistent library (AC4)."""
+        return {
+            "dbcs": [
+                {"digest": e.digest, "name": e.name, "last_used": e.last_used}
+                for e in session.workspace.library()
+            ],
+            # Basenames so the UI can pre-select last-session DBCs regardless of
+            # whether they were uploaded (basename) or imported by path (full).
+            "last_session": [Path(p).name for p in session.dbc_paths],
+        }
+
+    @app.post("/api/workspace-purge")
+    def api_workspace_purge() -> dict:
+        """Clear the DBC library and the last analysis, and drop the session (AC8)."""
+        session.clear_store()
+        session.clear_pending()
+        session.catalog = None
+        session.trace_path = None
+        session.dbc_paths = []
+        session.ambiguous_ids = {}
+        session.resolution = {}
+        session.asc_base = None
+        session.last_job = None
+        session.workspace.purge()
+        return {"purged": True}
 
     @app.get("/api/signals")
     def api_signals() -> dict:
@@ -638,7 +704,48 @@ def create_app() -> FastAPI:
     if _WEB_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=_WEB_DIR), name="static")
 
+    # Restore the last persisted analysis so a relaunch lands straight on it,
+    # without re-parsing the ASC (AC6). Best-effort and defensive: any missing,
+    # corrupt or incompatible state starts empty rather than crashing (AC7).
+    if not session.workspace.ephemeral:
+        _restore_last_analysis(session)
+
     return app
+
+
+def _restore_last_analysis(session: Session) -> None:
+    ws = session.workspace
+    try:
+        manifest = ws.load_manifest()
+        if not manifest:
+            return
+        db_path = ws.analysis_db_path(manifest)
+        if db_path is None:
+            return
+        catalog = DbcCatalog()
+        dbc_display: list[str] = []
+        for entry in manifest.get("dbcs", []):
+            lib_path = ws.library_path(entry.get("digest", ""))
+            if lib_path is None:
+                return  # a referenced library DBC is gone -> incoherent (AC7)
+            catalog.load(lib_path)
+            dbc_display.append(entry.get("name") or lib_path.name)
+        store = TraceStore(str(db_path))
+    except Exception as exc:  # noqa: BLE001 - never crash startup on bad state
+        print(f"[cantracediag] could not restore last analysis: {exc}")
+        return
+
+    session.replace_store(store, db_path.parent)
+    session.catalog = catalog
+    session.trace_path = manifest.get("trace_display")
+    session.dbc_paths = dbc_display
+    session.ambiguous_ids = catalog.find_ambiguous_ids()
+    session.resolution = _parse_resolution(manifest.get("resolution", {}))
+    session.asc_base = manifest.get("asc_base")
+    session.last_job = {
+        "id": uuid.uuid4().hex, "phase": "complete", "progress": 1.0,
+        "detail": "Restored last analysis.", "cancellable": False,
+    }
 
 
 def normalize_local_path(raw: str) -> str:
@@ -687,11 +794,6 @@ def _ensure_unique_basenames(paths: list[Path]) -> None:
         if name in seen:
             raise HTTPException(400, f"Duplicate DBC basename: {name}")
         seen.add(name)
-
-
-def _new_store_path() -> tuple[str, Path]:
-    tmpdir = Path(tempfile.mkdtemp(prefix="ctd_db_"))
-    return str(tmpdir / "analysis.duckdb"), tmpdir
 
 
 def _discard_store(tmpdir: Path) -> None:

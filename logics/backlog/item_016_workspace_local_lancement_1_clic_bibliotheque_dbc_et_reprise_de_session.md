@@ -1,10 +1,10 @@
 ## item_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session - Workspace local: lancement 1-clic, bibliotheque DBC et reprise de session
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -153,6 +153,7 @@ manifest, sans re-parse de l'ASC), le tout hors dépôt conformément à l'ADR 0
 - Hybrid rationale: Derived from request `req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session.md`.
 - Generated locally by logics-manager.
+- Task `task_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session` was finished via `logics-manager flow finish task` on 2026-07-16.
 
 # Tasks
 - `task_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session`

@@ -76,9 +76,11 @@ pytest
 
 CanTraceDiag sait aujourd'hui importer des traces ASC, charger plusieurs DBC,
 détecter les conflits DBC non équivalents, indexer l'analyse dans DuckDB local,
-afficher des graphes empilés et parcourir une vue trace paginée. Les imports
-via l'API web utilisent un fichier DuckDB temporaire hors dépôt ; les fichiers
-ASC/DBC réels et caches restent exclus de Git.
+afficher des graphes empilés et parcourir une vue trace paginée. L'analyse est
+persistée dans un workspace local hors dépôt (index DuckDB + bibliothèque DBC),
+restauré au démarrage ; les fichiers ASC/DBC réels et caches restent exclus de
+Git. Le mode éphémère (`CANTRACEDIAG_EPHEMERAL=1`) conserve le comportement en
+répertoire temporaire.
 
 Les limites connues restent : pas de BLF/MF4 complet, pas de replay temps réel,
 pas de collaboration multi-utilisateur, pas de packaging Windows natif et pas
@@ -91,7 +93,8 @@ Validation locale actuelle :
 .venv/bin/pytest
 ```
 
-Dernière preuve enregistrée : 54 tests passés et 1 warning Starlette connu.
+Dernière preuve enregistrée : 82 tests passés (dont 11 E2E Playwright) et
+1 warning Starlette connu.
 
 ## Utilisation du MVP
 
@@ -110,7 +113,14 @@ cantracediag signals systeme.dbc
 
 # Lancer l'interface web locale (localhost par défaut)
 cantracediag serve --port 8000
+
+# Lancer et ouvrir le navigateur automatiquement (Windows depuis WSL)
+cantracediag serve --open
 ```
+
+`serve` choisit un port libre si celui demandé est occupé, et si une instance
+CanTraceDiag tourne déjà, il rouvre simplement le navigateur dessus au lieu d'en
+démarrer une seconde.
 
 Depuis les sources sans installation :
 
@@ -118,12 +128,45 @@ Depuis les sources sans installation :
 PYTHONPATH=src python -m cantracediag.cli serve
 ```
 
+### Lancement en un clic (Windows + WSL)
+
+Pour éviter d'ouvrir un terminal WSL à chaque session, un lanceur double-clic est
+fourni. Une seule installation par poste :
+
+```powershell
+# Depuis PowerShell, dans le dossier scripts du dépôt
+powershell -ExecutionPolicy Bypass -File .\install-shortcut.ps1
+```
+
+Le script détecte le chemin WSL du dépôt, génère un lanceur `CanTraceDiag.local.cmd`
+avec ce chemin, et crée un raccourci **CanTraceDiag** sur le Bureau. Un double-clic
+démarre alors le serveur dans WSL et ouvre l'UI dans le navigateur Windows, sans
+aucune commande. Relancer le script après un déplacement du dépôt.
+
+### Workspace local (bibliothèque DBC et reprise de session)
+
+En usage normal, CanTraceDiag conserve un workspace local (hors dépôt) sous
+`~/.local/share/cantracediag/` (surchargeable par `CANTRACEDIAG_DATA_DIR`) :
+
+- **Bibliothèque DBC** : chaque DBC importé y est conservé (dédoublonné par
+  contenu). Le bouton **Library** de l'UI permet de réutiliser un DBC sans le
+  re-téléverser ; ceux de la dernière session sont pré-sélectionnés.
+- **Reprise de session** : la dernière analyse (index DuckDB + manifest) est
+  restaurée au démarrage — rouvrir l'UI retrouve la trace, ses DBC et la
+  résolution de conflits sans ré-import.
+- **Purge** : le bouton **Clear cache** (dans le dialogue Library) vide la
+  bibliothèque et la dernière analyse. La bibliothèque est bornée par un cap LRU
+  (`CANTRACEDIAG_DBC_CAP`, défaut 20).
+- **Mode éphémère** : `CANTRACEDIAG_EPHEMERAL=1` désactive toute persistance
+  (comportement d'origine en répertoire temporaire) ; c'est le mode utilisé par
+  la suite de tests, qui n'écrit donc jamais dans le profil réel.
+
 ### Interface web
 
 Ouvrir `http://127.0.0.1:8000`, choisir les fichiers via l'explorateur natif du
 système (boutons **Trace .asc…**, **DBC files…** pour une sélection multiple, ou
-**DBC folder…** pour tout un dossier — seuls les `.dbc` sont retenus), puis
-**Load**. Le navigateur téléverse le contenu des fichiers ; cela fonctionne donc
+**DBC folder…** pour tout un dossier — seuls les `.dbc` sont retenus), ou réutiliser
+des DBC déjà connus via **Library**, puis **Load**. Le navigateur téléverse le contenu des fichiers ; cela fonctionne donc
 même quand le backend tourne sous WSL et le navigateur sous Windows. Ensuite :
 
 - **Panneau signaux** : cocher les signaux à tracer ; la recherche couvre
@@ -139,7 +182,9 @@ même quand le backend tourne sous WSL et le navigateur sous Windows. Ensuite :
 
 ### API locale
 
-`POST /api/import-files` (téléversement depuis le navigateur),
-`POST /api/import` (chemin serveur, pour le CLI ; accepte les chemins
-Windows/UNC), `GET /api/signals`, `/api/series`, `/api/cursor`, `/api/trace`,
-`/api/frame-signals`, `/api/status`, `/api/import-job`, `/api/import-cancel`.
+`POST /api/import-files` (téléversement depuis le navigateur ; champ `library`
+optionnel pour réutiliser des DBC en cache), `POST /api/import` (chemin serveur,
+pour le CLI ; accepte les chemins Windows/UNC), `GET /api/signals`, `/api/series`,
+`/api/cursor`, `/api/trace`, `/api/frame-signals`, `/api/status`,
+`/api/import-job`, `/api/import-cancel`, `GET /api/dbc-library`,
+`POST /api/workspace-purge`.

@@ -113,14 +113,72 @@ function uploadWithProgress(url, formData, onProgress, onUploadComplete) {
 }
 
 /* ---- import ------------------------------------------------------------- */
-const picked = { trace: null, dbcs: [] };
+const picked = { trace: null, dbcs: [], library: new Set() };
+let libraryEntries = [];   // [{digest, name, last_used}] from the server
+let lastSessionDbcs = [];  // DBC display names from the restored/last analysis
 
 function refreshPicked() {
   const parts = [];
   if (picked.trace) parts.push(`<b>${esc(picked.trace.name)}</b>`);
-  if (picked.dbcs.length) parts.push(`${picked.dbcs.length} DBC`);
+  const dbcCount = picked.dbcs.length + picked.library.size;
+  if (dbcCount) parts.push(`${dbcCount} DBC${picked.library.size ? ` (${picked.library.size} from library)` : ""}`);
   $("picked").innerHTML = parts.join(" · ") || "no files selected";
   $("loadBtn").disabled = !picked.trace;
+}
+
+/* ---- DBC library (workspace reuse) -------------------------------------- */
+async function loadLibrary() {
+  try {
+    const r = await api("/api/dbc-library");
+    libraryEntries = r.dbcs || [];
+    lastSessionDbcs = r.last_session || [];
+    // Pre-select library files that belong to the last session, so reusing
+    // them needs no extra click (the trace is the only thing to pick again).
+    const lastNames = new Set(lastSessionDbcs);
+    if (picked.library.size === 0) {
+      for (const e of libraryEntries) if (lastNames.has(e.name)) picked.library.add(e.digest);
+    }
+    refreshPicked();
+  } catch (err) {
+    console.debug("DBC library unavailable", err);
+  }
+}
+
+function renderLibrary() {
+  const list = $("libList");
+  list.innerHTML = "";
+  if (!libraryEntries.length) {
+    list.innerHTML = `<div class="lib-empty">No DBC files cached yet. Import some and they will appear here.</div>`;
+    return;
+  }
+  for (const e of libraryEntries) {
+    const row = document.createElement("label");
+    row.className = "lib-row";
+    const when = (e.last_used || "").replace("T", " ").replace(/(\+.*|Z)$/, "");
+    row.innerHTML =
+      `<input type="checkbox" ${picked.library.has(e.digest) ? "checked" : ""}/>` +
+      `<span class="lname">${esc(e.name)}</span>` +
+      `<span class="lmeta">${esc(when)}</span>`;
+    row.querySelector("input").addEventListener("change", (ev) => {
+      if (ev.target.checked) picked.library.add(e.digest); else picked.library.delete(e.digest);
+      refreshPicked();
+    });
+    list.appendChild(row);
+  }
+}
+
+async function purgeWorkspace() {
+  try {
+    await api("/api/workspace-purge", { method: "POST" });
+    picked.library.clear();
+    libraryEntries = [];
+    lastSessionDbcs = [];
+    renderLibrary();
+    refreshPicked();
+    $("summary").innerHTML = `<span class="ok">Workspace cache cleared.</span>`;
+  } catch (err) {
+    reportError(err, "Clearing the workspace cache failed");
+  }
 }
 
 // Instrument status LED. "idle" (no analysis), "importing" (during an import),
@@ -173,6 +231,7 @@ async function doLoad() {
   const fd = new FormData();
   fd.append("trace", picked.trace, picked.trace.name);
   for (const f of picked.dbcs) fd.append("dbcs", f, f.name);
+  for (const digest of picked.library) fd.append("library", digest);
 
   $("loadBtn").disabled = true;
   $("cancelImportBtn").hidden = false;
@@ -217,6 +276,7 @@ async function onLoaded(r) {
   renderPlot();
   await loadTrace(0);
   clearInspector();
+  loadLibrary();   // a fresh import may have added DBCs to the library
 }
 
 function renderSummary(r) {
@@ -1105,6 +1165,12 @@ function wireSideResize(resizerId, panelId, btnId, side, key, collapsedKey, open
 $("pickTraceBtn").addEventListener("click", () => $("traceFile").click());
 $("pickDbcBtn").addEventListener("click", () => $("dbcFiles").click());
 $("pickDbcDirBtn").addEventListener("click", () => $("dbcDir").click());
+$("pickLibBtn").addEventListener("click", () => { renderLibrary(); $("libDialog").showModal(); });
+$("libDone").addEventListener("click", () => { $("libDialog").close(); refreshPicked(); });
+$("libPurge").addEventListener("click", async () => {
+  await purgeWorkspace();
+  $("libDialog").close();
+});
 $("traceFile").addEventListener("change", (e) => { picked.trace = e.target.files[0] || null; refreshPicked(); });
 $("dbcFiles").addEventListener("change", (e) => {
   picked.dbcs = [...e.target.files].filter((f) => f.name.toLowerCase().endsWith(".dbc")); refreshPicked();
@@ -1220,4 +1286,5 @@ wireSideResize("inspectorResizer", "inspector", "inspectorToggle", "right", "ins
   } catch (err) {
     console.debug("No active trace restored at startup", err);
   }
+  loadLibrary();
 })();

@@ -1,7 +1,7 @@
 ## req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session - Workspace local: lancement 1-clic, bibliotheque DBC et reprise de session
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: Supprimer la friction quotidienne d'usage sur poste Windows+WSL : démarrer CanTraceDiag par un double-clic (raccourci Windows + serve intelligent) et retrouver au lancement la dernière analyse (bibliothèque DBC côté serveur, session persistante hors tempdir) sans re-sélectionner ni re-uploader les fichiers.
 > Confidence: high
 > Complexity: medium

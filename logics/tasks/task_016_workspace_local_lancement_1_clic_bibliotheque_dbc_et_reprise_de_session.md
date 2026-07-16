@@ -1,19 +1,20 @@
 ## task_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session - Workspace local: lancement 1-clic, bibliotheque DBC et reprise de session
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 95%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Owner: claude
 
 # Definition of Done (DoD)
-- [ ] The backlog scope is implemented.
-- [ ] Acceptance criteria are covered.
-- [ ] Validation passes.
-- [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
+- [x] The backlog scope is implemented.
+- [x] Acceptance criteria are covered.
+- [x] Validation passes.
+- [x] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
 
 # Backlog
 - `item_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session`
@@ -94,6 +95,8 @@
 - Run `python3 -m logics_manager flow finish task task_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session.md` after implementation.
 - `.venv/bin/ruff check .` et `.venv/bin/pytest` verts, E2E Playwright inclus.
 - Test de reprise : lancer l'API sur un workspace de test, importer une fixture,
+- Finish workflow executed on 2026-07-16.
+- Linked backlog/request close verification passed.
   détruire l'instance, en créer une nouvelle sur le même workspace, vérifier que
   `/api/status` restaure l'analyse sans ré-import.
 - Vérification AC9 : lancer la suite de tests puis contrôler qu'aucun fichier
@@ -103,7 +106,48 @@
   redémarrage machine puis relance (reprise de session).
 
 # Report
-- (pending)
+- Workspace local persistant livré ; structure et comportements existants
+- Finished on 2026-07-16.
+- Linked backlog item(s): `item_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session`
+- Related request(s): `req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session`
+  préservés (mode éphémère par défaut en test).
+- `src/cantracediag/workspace.py` (nouveau) : résolution du répertoire XDG avec
+  surcharge `CANTRACEDIAG_DATA_DIR`, mode éphémère (`CANTRACEDIAG_EPHEMERAL`),
+  bibliothèque DBC dédupliquée par hash (`dbc/<digest>/<nom>` + `index.json`),
+  éviction LRU (`CANTRACEDIAG_DBC_CAP`, défaut 20) + prune des orphelins, purge,
+  holders d'analyse (`analysis/<uuid>/analysis.duckdb`), manifest versionné
+  (`SCHEMA_VERSION`) avec écriture atomique.
+- `src/cantracediag/api.py` : `create_app(workspace=None)` ; holders via le
+  workspace ; `_finalize` alimente la bibliothèque et commit le manifest
+  (best-effort) ; `_restore_last_analysis()` au démarrage (réouverture DuckDB +
+  rechargement des DBC de bibliothèque, repli propre si absent/corrompu/incohérent) ;
+  `/api/import-files` accepte un champ `library` (digests) ; nouveaux endpoints
+  `GET /api/dbc-library` et `POST /api/workspace-purge` ; session exposée sur
+  `app.state.ctd_session`.
+- `src/cantracediag/cli.py` : `serve --open` (ouverture navigateur Windows depuis
+  WSL via `explorer.exe`/`wslview`, best-effort), auto-port si occupé, détection
+  d'instance (`resolve_serve_target`, probe `/api/status`).
+- `scripts/CanTraceDiag.cmd` + `scripts/install-shortcut.ps1` : lanceur
+  double-clic Windows/WSL, raccourci Bureau généré avec le chemin réel du dépôt.
+- UI (`web/index.html`, `web/app.js`) : bouton **Library** + dialogue (liste,
+  pré-sélection des DBC de la dernière session, action **Clear cache**),
+  digests joints au FormData de load, chargement de la bibliothèque à l'init et
+  après import ; conforme à la charte design-ui.
+- `docs/adr/0006-workspace-local-persistant.md` + section README (lanceur 1-clic,
+  workspace, purge, mode éphémère, nouveaux endpoints).
+- Tests : `tests/conftest.py` force le mode éphémère (AC9) ;
+  `tests/test_workspace.py` (dédup, LRU, purge, éphémère, reprise après
+  redémarrage, manifest corrompu, DBC manquant, réutilisation bibliothèque) ;
+  `tests/test_cli.py` (auto-port).
+- Validation :
+  - `.venv/bin/ruff check .` -> All checks passed.
+  - `.venv/bin/pytest -q` -> 82 passed, 1 warning (dont 11 E2E Playwright avec
+    Chromium ; l'UI Library n'a rien cassé, y compris le test viewport 390 px).
+  - AC9 vérifié : aucun fichier créé sous le vrai `~/.local/share/cantracediag/`.
+  - Smoke test live : import -> bibliothèque alimentée + manifest écrit ->
+    reprise après « redémarrage » (nouvelle app même workspace) -> purge.
+- Limite : le smoke test manuel double-clic reste à faire par l'opérateur sur un
+  poste Windows (non automatisable dans cet environnement).
 
 # AI Context
 - Summary: Implement the persistent local workspace: XDG data dir with env
