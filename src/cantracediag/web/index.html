@@ -6,140 +6,252 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'" />
 <title>CanTraceDiag</title>
 <style>
+  /* ====================================================================
+     CanTraceDiag — identité "instrument de mesure" (docs/design-ui.md,
+     ADR 0005). Thème sombre unique, assumé. Toutes les couleurs vivent en
+     tokens ; le rendu canvas les lit via getComputedStyle (app.js).
+     ==================================================================== */
   :root {
-    --bg: #0f1115; --panel: #171a21; --panel2: #1e222b; --line: #2a2f3a;
-    --fg: #e6e9ef; --muted: #9aa3b2; --accent: #5aa9ff; --ok: #4ec9a5;
-    --warn: #e0a44e; --err: #e06c75; --sel: #274060;
-    --s0:#5aa9ff; --s1:#4ec9a5; --s2:#e0a44e; --s3:#c678dd;
-    --s4:#e06c75; --s5:#56b6c2; --s6:#d19a66; --s7:#98c379;
+    /* fonds et structure */
+    --bg: #090d12; --bg-deep: #05080c; --panel: #0e141b; --panel2: #131b24;
+    --line: #1c2733; --line-soft: #141d27; --grid: #0f1822;
+    /* texte */
+    --fg: #d7e0e8; --muted: #7a8ba1; --faint: #4a5a6e;
+    /* accent + sémantique */
+    --accent: #f0a63c; --accent-dim: #8a5f22;
+    --ok: #57c99a; --warn: #e0a44e; --err: #e05c6b;
+    --sel: #16233270;
+    /* canaux de tracé (code oscilloscope) */
+    --ch1: #f5c542; --ch2: #3fc1e8; --ch3: #e86fc5; --ch4: #7bd88f;
+    --ch5: #e0a44e; --ch6: #9a8cf5; --ch7: #5fd4c4; --ch8: #e08baa;
+    /* typographie */
+    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
+    --sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   }
   * { box-sizing: border-box; }
   html, body { height: 100%; margin: 0; }
   body {
-    background: var(--bg); color: var(--fg); font: 13px/1.4 system-ui, sans-serif;
+    background: var(--bg); color: var(--fg); font: 12.5px/1.45 var(--sans);
     display: flex; flex-direction: column; height: 100vh; overflow: hidden;
   }
-  header {
-    background: var(--panel); border-bottom: 1px solid var(--line);
-    padding: 6px 10px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+  ::selection { background: #2a3c52; }
+
+  /* micro-label d'instrument */
+  .lbl {
+    font: 600 9.5px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase;
+    color: var(--muted);
   }
-  header h1 { font-size: 14px; margin: 0 6px 0 0; color: var(--accent); letter-spacing: .3px; }
-  .import { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
+
+  /* ---- boutons -------------------------------------------------------- */
   button {
-    background: var(--accent); color: #05121f; border: 0; padding: 5px 11px;
-    border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 12px;
+    background: var(--accent); color: #14100a; border: 1px solid var(--accent);
+    padding: 5px 11px; border-radius: 2px; cursor: pointer; font: 700 12px var(--sans);
+    transition: background .12s, border-color .12s, color .12s;
   }
-  button.ghost { background: var(--panel2); color: var(--fg); border: 1px solid var(--line); font-weight: 500; }
-  button.ghost:hover { border-color: var(--accent); }
-  button.icon { padding: 4px 8px; display: inline-flex; align-items: center; gap: 5px; }
+  button:hover { background: #f7b658; }
+  button.ghost {
+    background: var(--panel2); color: var(--fg); border: 1px solid var(--line); font-weight: 500;
+  }
+  button.ghost:hover { background: var(--panel2); border-color: var(--accent-dim); }
+  button.icon { display: inline-flex; align-items: center; gap: 6px; }
   button.icon svg { width: 13px; height: 13px; }
-  button:disabled { opacity: .45; cursor: default; }
-  button.active { background: var(--accent); color: #05121f; }
+  button:disabled { opacity: .4; cursor: default; }
+  button.active, button.ghost.active { background: var(--accent); color: #14100a; border-color: var(--accent); font-weight: 700; }
   button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
   input[type=text], input[type=number], select {
-    background: var(--panel2); border: 1px solid var(--line); color: var(--fg);
-    padding: 4px 7px; border-radius: 4px; font-size: 12px;
+    background: var(--bg-deep); border: 1px solid var(--line); color: var(--fg);
+    padding: 4px 7px; border-radius: 2px; font: 11.5px var(--mono);
   }
-  .picked { color: var(--muted); font-size: 12px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .picked b { color: var(--fg); }
-  .summary { color: var(--muted); margin-left: auto; text-align: right; }
-  .summary b { color: var(--fg); }
+  input::placeholder { color: var(--faint); }
+
+  /* ================= HEADER : bandeau d'instrument ================= */
+  header {
+    background: linear-gradient(180deg, #101823, #0c1219);
+    border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 0; flex-wrap: wrap;
+    min-height: 46px; flex: 0 0 auto;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 10px; padding: 0 14px; align-self: stretch;
+    border-right: 1px solid var(--line);
+  }
+  .brand .mark {
+    width: 22px; height: 22px; border: 1.5px solid var(--accent); border-radius: 3px;
+    display: grid; place-items: center; flex: 0 0 auto;
+  }
+  header h1 { font: 600 13px var(--mono); letter-spacing: .04em; margin: 0; color: var(--fg); }
+  header h1 em { font-style: normal; color: var(--accent); }
+
+  .import { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; padding: 5px 12px; }
+  .picked {
+    color: var(--muted); font: 11px var(--mono); max-width: 260px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .picked b { color: var(--fg); font-weight: 500; }
+
+  .hstatus { margin-left: auto; display: flex; align-items: center; gap: 14px; padding: 5px 14px; }
+  .summary { color: var(--muted); font: 11px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
+  .summary b { color: var(--fg); font-weight: 500; }
   .warn { color: var(--warn); } .err { color: var(--err); } .ok { color: var(--ok); }
 
-  #progressWrap { flex-basis: 100%; height: 3px; background: var(--panel2); border-radius: 2px; display: none; }
+  /* LED d'état */
+  .led { display: inline-flex; align-items: center; gap: 6px; font: 600 10px var(--mono); letter-spacing: .1em; color: var(--muted); flex: 0 0 auto; }
+  .led i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
+  .led.indexed i { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+  .led.indexed { color: var(--ok); }
+  .led.importing i { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
+  .led.importing { color: var(--accent); }
+
+  #progressWrap { flex-basis: 100%; height: 3px; background: var(--panel2); display: none; }
   #progressWrap.on { display: block; }
-  #progressBar { height: 100%; width: 0%; background: var(--accent); border-radius: 2px; transition: width .1s linear; }
+  #progressBar { height: 100%; width: 0%; background: var(--accent); transition: width .1s linear; }
 
   main { flex: 1; display: flex; min-height: 0; }
 
-  /* -- collapsible side panels -- */
+  /* ================= PANELS ================= */
   .panel { background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
-  #explorer { width: 270px; border-right: 1px solid var(--line); }
-  #inspector { width: 300px; border-left: 1px solid var(--line); }
+  #explorer { width: 264px; border-right: 1px solid var(--line); }
+  #inspector { width: 288px; border-left: 1px solid var(--line); }
   .panel.collapsed { width: 30px; }
   .panel .phead {
-    padding: 7px 9px; border-bottom: 1px solid var(--line); font-weight: 600;
-    display: flex; align-items: center; gap: 6px; user-select: none;
+    height: 32px; padding: 0 10px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 6px; user-select: none; flex: 0 0 auto;
   }
-  .panel .phead .title { flex: 1; }
+  .panel .phead .title { flex: 1; font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
   .panel.collapsed .phead { writing-mode: vertical-rl; height: 100%; border-bottom: 0; }
   .panel.collapsed .pbody { display: none; }
   .collapse-btn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 2px; font-weight: 700; }
-  .collapse-btn:hover { color: var(--fg); }
-  .side-resizer { width: 5px; cursor: col-resize; background: transparent; }
+  .collapse-btn:hover { background: none; color: var(--fg); }
+  .kbd { color: var(--muted); font: 10px var(--mono); }
+  .side-resizer { width: 5px; cursor: col-resize; background: transparent; flex: 0 0 auto; }
   .side-resizer:hover { background: var(--line); }
 
-  /* -- signal explorer -- */
+  /* ---- explorateur signaux ---- */
   #explorer .pbody { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #sigFilter { margin: 6px 8px; }
+  #sigFilter { margin: 8px; }
   #signalList { overflow: auto; flex: 1; padding: 2px 0; }
-  .grp { padding: 4px 9px 2px; color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: .4px; position: sticky; top: 0; background: var(--panel); }
-  .sig { display: flex; align-items: center; gap: 6px; padding: 2px 9px 2px 16px; cursor: pointer; }
+  .grp {
+    position: sticky; top: 0; z-index: 1; background: var(--panel);
+    padding: 6px 10px 3px; border-bottom: 1px solid var(--line-soft);
+    font: 600 10px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  }
+  .sig {
+    display: flex; align-items: center; gap: 7px; padding: 3px 10px 3px 13px; cursor: pointer;
+    border-left: 2px solid transparent;
+  }
   .sig:hover { background: var(--panel2); }
-  .sig .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sig .unit { color: var(--muted); font-size: 11px; }
-  .sig.absent { opacity: .62; }
+  .sig.on { border-left-color: var(--sw, var(--accent)); background: #0f1720; }
+  .sig .name { flex: 1; font: 11.5px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .sig .unit { font: 10px var(--mono); color: var(--muted); }
+  .sig.absent { opacity: .45; }
   .sig input { accent-color: var(--accent); }
+  .sig .swatch { width: 8px; height: 8px; border-radius: 1px; flex: 0 0 auto; background: var(--faint); }
+  .sig.on .swatch { box-shadow: 0 0 5px var(--sw); }
   .star { cursor: pointer; color: var(--line); font-size: 13px; }
   .star.on { color: var(--warn); }
-  .sig .swatch { width: 9px; height: 9px; border-radius: 2px; flex: 0 0 auto; }
 
-  /* -- center: plot + trace -- */
+  /* ================= CENTRE : plot + trace ================= */
   #center { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   #plotArea { flex: 1; display: flex; flex-direction: column; min-height: 120px; }
-  .plotbar { display: flex; gap: 6px; align-items: center; padding: 5px 8px; border-bottom: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  .plotbar {
+    display: flex; gap: 8px; align-items: center; padding: 5px 10px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); background: var(--panel); min-height: 34px;
+  }
   .plotbar .spacer { flex: 1; }
-  .plotbar .hint { color: var(--muted); font-size: 11px; }
-  #plotWrap { flex: 1; min-height: 80px; position: relative; }
+  .plotbar .hint { color: var(--faint); font: 10.5px var(--sans); }
+  .seg { display: flex; border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
+  .seg button { border: 0; border-radius: 0; padding: 4px 10px; background: var(--panel2); color: var(--muted); font-weight: 500; }
+  .seg button + button { border-left: 1px solid var(--line); }
+  .seg button:hover { background: var(--panel2); color: var(--fg); }
+  .seg button.active { background: var(--accent); color: #14100a; font-weight: 700; }
+
+  /* readouts de mesure façon scope */
+  .measure { display: flex; gap: 6px; flex-wrap: wrap; }
+  .measure.empty { display: none; }
+  .mbadge {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    background: var(--bg-deep); border: 1px solid var(--line); border-radius: 2px;
+    padding: 3px 9px; font: 11px var(--mono);
+  }
+  .mbadge .k { font: 600 9.5px var(--mono); letter-spacing: .08em; color: var(--muted); }
+  .mbadge .v { color: var(--fg); font-variant-numeric: tabular-nums; }
+  .mbadge.a .k { color: var(--ch4); } .mbadge.a { border-color: #2f4a37; }
+  .mbadge.b .k { color: var(--accent); } .mbadge.b { border-color: #4f3a2a; }
+  .mbadge.d .k { color: var(--ch2); }
+
+  #plotWrap { flex: 1; min-height: 80px; position: relative; background: var(--bg-deep); }
   #plot { width: 100%; height: 100%; display: block; cursor: crosshair; }
   #plotHint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; }
   #cursorReadout { border-top: 1px solid var(--line); background: var(--panel); max-height: 130px; overflow: auto; }
   #cursorReadout table { width: 100%; }
   #cursorReadout.empty { display: none; }
 
-  .divider { height: 6px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-  #traceWrap { height: 42%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
-  .tracebar { display: flex; gap: 8px; align-items: center; padding: 5px 8px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
-  .tracebar label { color: var(--muted); display: flex; gap: 4px; align-items: center; }
+  .divider { height: 5px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
+
+  /* ---- vue trace ---- */
+  #traceWrap { height: 40%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
+  .tracebar {
+    display: flex; gap: 8px; align-items: center; padding: 5px 10px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--line); min-height: 36px;
+  }
+  .tracebar strong { font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
+  .tracebar label { color: var(--muted); display: flex; gap: 4px; align-items: center; font-size: 11px; }
   .tracebar input[type=text], .tracebar input[type=number] { width: 90px; }
-  .tracebar .tw { width: 74px; }
+  .tracebar .tw { width: 68px; }
   #tableScroll { overflow: auto; flex: 1; }
-  table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; }
-  th, td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
-  th { position: sticky; top: 0; background: var(--panel2); z-index: 1; user-select: none; }
-  tr.event td { color: var(--warn); }
-  tr.frame.err td .st { color: var(--err); }
+  table { border-collapse: collapse; width: 100%; font: 11.5px var(--mono); font-variant-numeric: tabular-nums; }
+  th {
+    position: sticky; top: 0; z-index: 1; background: var(--panel2);
+    font: 600 9.5px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+    text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; user-select: none;
+  }
+  td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
+  tbody tr { border-left: 2px solid transparent; }
   tr.expandable { cursor: pointer; }
-  tr.selected td { background: var(--sel); }
+  tr:hover td { background: #0f1720; }
+  tr.event td { color: var(--warn); }
+  tr.selected td { background: var(--sel); box-shadow: inset 2px 0 0 var(--accent); }
   tr.detail td { background: var(--panel2); color: var(--muted); white-space: normal; }
-  .st.ok { color: var(--ok); } .st.unknown_id, .st.no_database { color: var(--muted); } .st.decode_error { color: var(--err); }
-  .pager { display: flex; gap: 6px; align-items: center; margin-left: auto; color: var(--muted); }
+  .pager { display: flex; gap: 6px; align-items: center; margin-left: auto; color: var(--muted); font: 11px var(--mono); }
 
-  /* -- inspector -- */
-  #inspector .pbody { flex: 1; overflow: auto; padding: 8px 10px; }
+  /* statuts de décodage : pills libellées */
+  .st { display: inline-block; font: 600 9.5px var(--mono); letter-spacing: .04em; padding: 1px 7px; border-radius: 2px; border: 1px solid var(--line); color: var(--muted); }
+  .st.ok { color: var(--ok); border-color: #1e4436; background: #0d1f18; }
+  .st.decode_error { color: var(--err); border-color: #4a2028; background: #200b10; }
+  .st.ambiguous_id { color: var(--warn); border-color: #4a3820; background: #201808; }
+  .st.unknown_id, .st.no_database { color: var(--muted); border-color: var(--line); background: transparent; }
+
+  /* ---- inspecteur ---- */
+  #inspector .pbody { flex: 1; overflow: auto; padding: 12px 12px; }
   .insp-empty { color: var(--muted); }
-  .insp-grid { display: grid; grid-template-columns: auto 1fr; gap: 3px 10px; margin-bottom: 10px; }
-  .insp-grid dt { color: var(--muted); }
-  .insp-grid dd { margin: 0; word-break: break-all; }
-  .insp-sec { font-weight: 600; margin: 6px 0 4px; border-top: 1px solid var(--line); padding-top: 6px; }
-  .insp-sig { display: flex; justify-content: space-between; gap: 8px; padding: 1px 0; }
-  .insp-sig .v { color: var(--accent); }
+  .insp-id { font: 600 15px var(--mono); color: var(--ch2); margin-bottom: 2px; }
+  .insp-msg { font: 12px var(--sans); color: var(--fg); margin-bottom: 12px; }
+  .insp-raw { font: 11px var(--mono); background: var(--bg-deep); border: 1px solid var(--line); border-radius: 2px; padding: 8px 10px; color: var(--muted); letter-spacing: .06em; margin-bottom: 12px; word-break: break-all; }
+  .insp-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin-bottom: 12px; }
+  .insp-grid dt { font: 10px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 1px; }
+  .insp-grid dd { margin: 0; font: 11.5px var(--mono); word-break: break-all; }
+  .insp-sec { font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 8px 0 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+  .insp-sig { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font: 11.5px var(--mono); }
+  .insp-sig .v { color: var(--accent); font-variant-numeric: tabular-nums; }
 
-  dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 8px; max-width: 460px; padding: 16px 18px; }
-  dialog h3 { margin-top: 0; }
+  dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; max-width: 460px; padding: 16px 18px; }
+  dialog h3 { margin-top: 0; font: 600 14px var(--sans); }
   .col-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
   .col-row .grab { cursor: grab; color: var(--muted); }
   .conflict-row { padding: 6px 0; border-top: 1px solid var(--line); }
-  .conflict-row .cid { font-weight: 600; color: var(--accent); }
-  code { color: var(--accent); }
-  .kbd { color: var(--muted); font-size: 11px; }
+  .conflict-row .cid { font: 600 12px var(--mono); color: var(--ch2); }
+  code { color: var(--accent); font-family: var(--mono); }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; }
+  }
 
   @media (max-width: 700px) {
     body { height: auto; min-height: 100vh; overflow: auto; }
     header { align-items: flex-start; }
-    .summary { margin-left: 0; text-align: left; flex-basis: 100%; }
+    .hstatus { margin-left: 0; text-align: left; flex-basis: 100%; justify-content: flex-start; }
     main { flex-direction: column; overflow: visible; min-height: auto; }
     #explorer, #inspector, .panel.collapsed { width: 100% !important; max-height: 220px; border: 0; border-bottom: 1px solid var(--line); }
     .panel.collapsed .phead { writing-mode: horizontal-tb; height: auto; }
@@ -147,7 +259,7 @@
     #center { min-height: 620px; overflow: visible; }
     #plotArea { min-height: 320px; }
     #traceWrap { height: auto; min-height: 280px; }
-    .tracebar input[type=text], .tracebar input[type=number], .tracebar select { width: 88px; }
+    .tracebar input[type=text], .tracebar input[type=number], .tracebar select { width: 84px; }
     .pager { margin-left: 0; }
     #tableScroll { min-height: 220px; }
   }
@@ -155,7 +267,10 @@
 </head>
 <body>
 <header>
-  <h1>CanTraceDiag</h1>
+  <div class="brand">
+    <span class="mark"><svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="#f0a63c" stroke-width="1.6" stroke-linejoin="round"><path d="M1 8 L4 8 L5.5 3 L8.5 11 L10 8 L13 8"/></svg></span>
+    <h1>CanTrace<em>Diag</em></h1>
+  </div>
   <div class="import">
     <button class="ghost icon" id="pickTraceBtn" title="Choose a CANalyzer .asc trace">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1.5h5l3 3v10h-8z"/><path d="M9 1.5v3h3"/></svg>Trace</button>
@@ -171,7 +286,10 @@
     <input id="dbcFiles" type="file" accept=".dbc" multiple hidden />
     <input id="dbcDir" type="file" webkitdirectory hidden />
   </div>
-  <div class="summary" id="summary">No trace loaded.</div>
+  <div class="hstatus">
+    <div class="summary" id="summary">No trace loaded.</div>
+    <span class="led" id="statusLed"><i></i><span id="statusLedText">IDLE</span></span>
+  </div>
   <div id="progressWrap"><div id="progressBar"></div></div>
 </header>
 
@@ -184,7 +302,7 @@
       <label class="kbd" title="Show favorites only"><input type="checkbox" id="favOnly" /> fav</label>
     </div>
     <div class="pbody">
-      <input id="sigFilter" type="text" placeholder="Search signals…" />
+      <input id="sigFilter" type="text" placeholder="signal, message, ID, unit…" />
       <div id="signalList"></div>
     </div>
   </aside>
@@ -194,12 +312,19 @@
   <section id="center">
     <div id="plotArea">
       <div class="plotbar">
-        <button class="ghost" id="fitBtn" title="Fit all data (double-click plot)">Fit</button>
-        <button class="ghost" id="zoomInBtn" title="Zoom in">+</button>
-        <button class="ghost" id="zoomOutBtn" title="Zoom out">−</button>
-        <button class="ghost" id="gridBtn" title="Toggle grid">Grid</button>
+        <div class="seg">
+          <button id="fitBtn" title="Fit all data (double-click plot)">Fit</button>
+          <button id="zoomInBtn" title="Zoom in">+</button>
+          <button id="zoomOutBtn" title="Zoom out">−</button>
+          <button id="gridBtn" title="Toggle grid">Grid</button>
+        </div>
         <span class="hint" id="viewHint"></span>
         <div class="spacer"></div>
+        <div class="measure empty" id="measure">
+          <div class="mbadge a"><span class="k">A</span><span class="v" id="mA">—</span></div>
+          <div class="mbadge b"><span class="k">B</span><span class="v" id="mB">—</span></div>
+          <div class="mbadge d"><span class="k">Δt</span><span class="v" id="mD">—</span></div>
+        </div>
         <button class="ghost" id="curABtn" title="Click plot to place cursor A">Cursor A</button>
         <button class="ghost" id="curBBtn" title="Click plot to place cursor B">Cursor B</button>
         <button class="ghost" id="curClearBtn" title="Clear cursors">Clear</button>
@@ -250,7 +375,7 @@
 
 <dialog id="colDialog">
   <h3>Trace columns</h3>
-  <p class="summary" style="margin:0 0 8px">Toggle visibility and drag to reorder. Width and time format persist locally.</p>
+  <p class="summary" style="text-align:left; margin:0 0 8px">Toggle visibility and drag to reorder. Width and time format persist locally.</p>
   <div id="colList"></div>
   <div style="text-align:right; margin-top:10px;">
     <button class="ghost" id="colClose">Done</button>
@@ -259,7 +384,7 @@
 
 <dialog id="conflictDialog">
   <h3>DBC conflict: which database should be used?</h3>
-  <p class="summary" style="margin:0 0 8px">Several DBC files define the same arbitration id. Choose which database decodes each one before the analysis is finalized.</p>
+  <p class="summary" style="text-align:left; margin:0 0 8px">Several DBC files define the same arbitration id. Choose which database decodes each one before the analysis is finalized.</p>
   <div id="conflictList"></div>
   <div style="text-align:right; margin-top:12px;">
     <button id="conflictApply">Apply and load</button>

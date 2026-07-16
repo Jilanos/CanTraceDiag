@@ -4,8 +4,22 @@
  * All heavy queries stay server-side (windowed/downsampled) so the browser
  * never loads a whole acquisition. */
 
-const SERIES_COLORS = ["--s0","--s1","--s2","--s3","--s4","--s5","--s6","--s7"];
+const SERIES_COLORS = ["--ch1","--ch2","--ch3","--ch4","--ch5","--ch6","--ch7","--ch8"];
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* Resolved palette read once from the CSS custom properties so the canvas
+ * render loop never calls getComputedStyle per frame (design charter: tokens
+ * are the single source of truth; the loop reads this snapshot). */
+const theme = {};
+function refreshTheme() {
+  for (const k of ["bg-deep", "line", "line-soft", "grid", "muted", "faint", "fg",
+                   "accent", "ch2", "ch4"]) {
+    theme[k] = css("--" + k);
+  }
+  theme.curA = theme.ch4;      // cursor A — green
+  theme.curB = theme.accent;   // cursor B — amber
+}
+refreshTheme();
 const $ = (id) => document.getElementById(id);
 const esc = (v) => String(v ?? "")
   .replaceAll("&", "&amp;")
@@ -109,6 +123,16 @@ function refreshPicked() {
   $("loadBtn").disabled = !picked.trace;
 }
 
+// Instrument status LED. "idle" (no analysis), "importing" (during an import),
+// "indexed" (a trace is loaded and queryable).
+const LED_TEXT = { idle: "IDLE", importing: "IMPORTING", indexed: "INDEXED" };
+function setLed(kind) {
+  const led = $("statusLed");
+  led.classList.remove("idle", "importing", "indexed");
+  led.classList.add(kind);
+  $("statusLedText").textContent = LED_TEXT[kind] || "IDLE";
+}
+
 function setProgress(frac) {
   const wrap = $("progressWrap");
   if (frac === null) { wrap.classList.remove("on"); return; }
@@ -154,6 +178,7 @@ async function doLoad() {
   $("cancelImportBtn").hidden = false;
   $("cancelImportBtn").disabled = false;
   $("summary").innerHTML = "Uploading…";
+  setLed("importing");
   setProgress(0);
   try {
     const r = await uploadWithProgress("/api/import-files", fd, (frac) => {
@@ -172,6 +197,7 @@ async function doLoad() {
   } catch (e) {
     stopImportPolling();
     setProgress(null);
+    setLed(state.bounds ? "indexed" : "idle");
     reportError(e, "Import failed");
   } finally {
     $("loadBtn").disabled = !picked.trace;
@@ -181,6 +207,7 @@ async function doLoad() {
 
 async function onLoaded(r) {
   renderSummary(r);
+  setLed("indexed");
   populateEventFilter(r.summary && r.summary.event_types);
   state.bounds = r.summary ? [r.summary.start_s, r.summary.end_s] : null;
   state.view = state.bounds ? [...state.bounds] : null;
@@ -307,6 +334,7 @@ function signalRow(sig) {
   const row = document.createElement("label");
   row.className = "sig";
   if (sig.present === false) row.classList.add("absent");
+  if (sel) { row.classList.add("on"); row.style.setProperty("--sw", sel.color); }
   const swatch = sel ? `<span class="swatch" style="background:${sel.color}"></span>` : `<span class="swatch"></span>`;
   row.innerHTML =
     `<span class="star ${state.favorites.has(key) ? "on" : ""}" title="Favorite">★</span>` +
@@ -423,14 +451,27 @@ function renderPlot() {
   if (!state.selected.length) return;
   const n = state.selected.length;
   const bandH = (g.H - PAD_T - PAD_B) / n;
-  ctx.font = "11px system-ui, sans-serif";
+  ctx.font = "11px " + css("--mono");
   if (state.grid) drawXGrid(g, PAD_T, PAD_T + n * bandH);
   state.selected.forEach((s, i) => {
     const top = PAD_T + i * bandH;
-    drawBand(s, top, top + bandH - 6, g);
+    drawBand(s, top, top + bandH - 6, g, i);
   });
   drawTimeAxis(g);
   drawCursors(g, bandH, n);
+  updateMeasureBadges();
+}
+
+// Scope-style A/B/Δt readouts in the plotbar. Per-signal deltas live in the
+// detailed #cursorReadout table below the plot.
+function updateMeasureBadges() {
+  const box = $("measure");
+  const { a, b } = state.cursor;
+  if (a == null && b == null) { box.classList.add("empty"); return; }
+  box.classList.remove("empty");
+  $("mA").textContent = a == null ? "—" : fmtTime(a);
+  $("mB").textContent = b == null ? "—" : fmtTime(b);
+  $("mD").textContent = (a == null || b == null) ? "—" : fmtDelta(b - a) + " s";
 }
 
 const X_TICKS = () => (state.grid ? 10 : 6);
@@ -439,8 +480,7 @@ const Y_SUBLINES = 4;
 function drawXGrid(g, yTop, yBot) {
   const ticks = X_TICKS();
   ctx.save();
-  ctx.strokeStyle = css("--line");
-  ctx.globalAlpha = 0.5;
+  ctx.strokeStyle = theme.grid;
   ctx.beginPath();
   for (let i = 0; i <= ticks; i++) {
     const x = PAD_L + (i / ticks) * g.plotW;
@@ -450,25 +490,24 @@ function drawXGrid(g, yTop, yBot) {
   ctx.restore();
 }
 
-function drawBand(s, top, bot, g) {
+function drawBand(s, top, bot, g, idx) {
   let lo = Infinity, hi = -Infinity;
   for (const v of s.v) { if (v < lo) lo = v; if (v > hi) hi = v; }
   if (!isFinite(lo)) { lo = 0; hi = 1; }
   if (lo === hi) { lo -= 1; hi += 1; }
   const yOf = (v) => bot - ((v - lo) / (hi - lo)) * (bot - top);
 
-  ctx.strokeStyle = css("--line");
+  // Track separator (hairline) and phosphor value graduations.
+  ctx.strokeStyle = theme.line;
   ctx.strokeRect(PAD_L, top, g.plotW, bot - top);
-  ctx.fillStyle = css("--muted");
+  ctx.fillStyle = theme.faint;
   ctx.textAlign = "right";
   ctx.fillText(fmtNum(hi), PAD_L - 5, top + 9);
   ctx.fillText(fmtNum(lo), PAD_L - 5, bot - 1);
 
-  // Horizontal grid + intermediate value graduations.
   if (state.grid) {
     ctx.save();
-    ctx.strokeStyle = css("--line");
-    ctx.globalAlpha = 0.4;
+    ctx.strokeStyle = theme.grid;
     ctx.beginPath();
     for (let j = 1; j < Y_SUBLINES; j++) {
       const y = bot - (bot - top) * (j / Y_SUBLINES);
@@ -476,7 +515,7 @@ function drawBand(s, top, bot, g) {
     }
     ctx.stroke();
     ctx.restore();
-    ctx.fillStyle = css("--muted");
+    ctx.fillStyle = theme.faint;
     ctx.textAlign = "right";
     for (let j = 1; j < Y_SUBLINES; j++) {
       const y = bot - (bot - top) * (j / Y_SUBLINES);
@@ -484,18 +523,22 @@ function drawBand(s, top, bot, g) {
     }
   }
 
+  // Channel label: "CHn message.signal [unit]" in the channel colour.
   ctx.textAlign = "left";
   ctx.fillStyle = s.color;
   const unit = s.unit ? ` [${s.unit}]` : "";
-  ctx.fillText(`${s.message}.${s.signal}${unit}${s.downsampled ? " (downsampled)" : ""}`, PAD_L + 4, top + 11);
+  const ch = `CH${(idx % SERIES_COLORS.length) + 1} `;
+  ctx.fillText(`${ch}${s.message}.${s.signal}${unit}${s.downsampled ? " (downsampled)" : ""}`, PAD_L + 4, top + 11);
 
-  // Sample-and-hold step line; no interpolation between samples.
+  // Sample-and-hold step line with a discreet phosphor glow; no interpolation.
   ctx.save();
   ctx.beginPath();
   ctx.rect(PAD_L, top, g.plotW, bot - top);
   ctx.clip();
   ctx.strokeStyle = s.color;
-  ctx.lineWidth = 1.25;
+  ctx.shadowColor = s.color;
+  ctx.shadowBlur = 4;
+  ctx.lineWidth = 1.4;
   ctx.beginPath();
   let started = false, prevY = 0;
   for (let k = 0; k < s.t.length; k++) {
@@ -510,7 +553,7 @@ function drawBand(s, top, bot, g) {
 }
 
 function drawTimeAxis(g) {
-  ctx.fillStyle = css("--muted");
+  ctx.fillStyle = theme.faint;
   ctx.textAlign = "center";
   // Fewer text labels than grid lines so they never overlap on a dense grid.
   const ticks = 6;
@@ -521,18 +564,23 @@ function drawTimeAxis(g) {
 }
 
 function drawCursors(g, bandH, n) {
-  for (const [which, colorVar] of [["a", "--accent"], ["b", "--warn"]]) {
+  const yBot = PAD_T + n * bandH;
+  for (const [which, color] of [["a", theme.curA], ["b", theme.curB]]) {
     const t = state.cursor[which];
     if (t == null) continue;
     const x = g.xOf(t);
     if (x < PAD_L || x > PAD_L + g.plotW) continue;
-    ctx.strokeStyle = css(colorVar);
+    ctx.strokeStyle = color;
     ctx.setLineDash(which === "b" ? [2, 3] : [4, 3]);
-    ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, PAD_T + n * bandH); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x, PAD_T); ctx.lineTo(x, yBot); ctx.stroke();
     ctx.setLineDash([]);
-    ctx.fillStyle = css(colorVar);
-    ctx.textAlign = x > PAD_L + g.plotW / 2 ? "right" : "left";
-    ctx.fillText(which.toUpperCase(), x + (x > PAD_L + g.plotW / 2 ? -4 : 4), PAD_T + 10);
+    // Lettered handle at the foot of the cursor, scope-style.
+    const hw = 7, hy = yBot - 12;
+    ctx.fillStyle = color;
+    ctx.fillRect(x - hw, hy, hw * 2, 12);
+    ctx.fillStyle = "#0a0e12";
+    ctx.textAlign = "center";
+    ctx.fillText(which.toUpperCase(), x, hy + 9);
   }
 }
 
@@ -864,29 +912,35 @@ function clearInspector() {
 }
 
 async function showInspector(row) {
-  const rows = [
-    ["Timestamp", fmtTime(row.timestamp_s)],
-    ["Kind", row.kind],
-    ["Channel", row.channel ?? "—"],
-  ];
+  let html = "";
   if (row.kind === "frame") {
-    rows.push(
-      ["Arbitration ID", row.id_hex ?? "—"],
+    // Instrument header: arbitration id in large mono, message + DBC subtitle,
+    // raw payload highlighted in an "instrument screen" block.
+    const msgParts = [row.name ?? "(undecoded)"];
+    if (row.dbc_source) msgParts.push(row.dbc_source);
+    html += `<div class="insp-id">${esc(row.id_hex ?? "—")}</div>` +
+      `<div class="insp-msg">${esc(msgParts.join(" · "))}</div>`;
+    if (row.data_hex) html += `<div class="insp-raw">${esc(String(row.data_hex).toUpperCase())}</div>`;
+    const rows = [
+      ["Timestamp", fmtTime(row.timestamp_s)],
+      ["Channel", row.channel ?? "—"],
       ["Direction", row.direction ?? "—"],
       ["DLC", row.dlc ?? "—"],
-      ["Data", row.data_hex ?? "—"],
-      ["Message", row.name ?? "(undecoded)"],
       ["Decode status", row.decode_status ?? "—"],
-      ["DBC used", row.dbc_source ?? "—"],
-    );
+    ];
+    html += `<dl class="insp-grid">` +
+      rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("") + `</dl>`;
+    if (row.id_hex) html += `<div class="insp-sec">Decoded signals</div><div id="inspSignals" class="insp-empty">loading…</div>`;
   } else {
-    rows.push(["Event", row.name ?? "—"], ["Detail", row.detail ?? "—"]);
-  }
-  let html = `<dl class="insp-grid">` +
-    rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("") + `</dl>`;
-
-  if (row.kind === "frame" && row.id_hex) {
-    html += `<div class="insp-sec">Decoded signals</div><div id="inspSignals" class="insp-empty">loading…</div>`;
+    const rows = [
+      ["Timestamp", fmtTime(row.timestamp_s)],
+      ["Kind", row.kind],
+      ["Channel", row.channel ?? "—"],
+      ["Event", row.name ?? "—"],
+      ["Detail", row.detail ?? "—"],
+    ];
+    html += `<dl class="insp-grid">` +
+      rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("") + `</dl>`;
   }
   $("inspBody").innerHTML = html;
 
@@ -1110,7 +1164,7 @@ $("prevBtn").addEventListener("click", () => loadTrace(Math.max(0, state.trace.o
 $("nextBtn").addEventListener("click", () => loadTrace(state.trace.offset + state.trace.limit));
 $("colBtn").addEventListener("click", () => { renderColDialog(); $("colDialog").showModal(); });
 $("colClose").addEventListener("click", () => $("colDialog").close());
-window.addEventListener("resize", debounce(() => { renderPlot(); scheduleSeriesRefresh(); }, 150));
+window.addEventListener("resize", debounce(() => { refreshTheme(); renderPlot(); scheduleSeriesRefresh(); }, 150));
 
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
@@ -1152,7 +1206,9 @@ wireSideResize("explorerResizer", "explorer", "explorerToggle", "left", "explore
 wireSideResize("inspectorResizer", "inspector", "inspectorToggle", "right", "inspectorW", "inspectorCollapsed", "›", "‹");
 
 (async function init() {
+  refreshTheme();
   refreshPicked();
+  setLed("idle");
   $("favOnly").checked = store.get("favOnly", false);
   $("gridBtn").classList.toggle("active", state.grid);
   applyLayout();
