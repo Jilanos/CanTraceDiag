@@ -1,5 +1,7 @@
 # CanTraceDiag
 
+[![CI](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml/badge.svg)](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml)
+
 **CanTraceDiag transforme une trace CANalyzer `.asc` et ses DBC en poste de diagnostic local : import, décodage, graphes synchronisés, curseurs A/B, vue trace filtrable et reprise de session.**
 
 L'objectif est simple : explorer hors véhicule des acquisitions CAN réelles, sans serveur distant, sans outil propriétaire ouvert en permanence, et sans charger toute la trace dans le navigateur.
