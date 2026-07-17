@@ -1,14 +1,12 @@
 # CanTraceDiag
 
-[![CI](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml/badge.svg)](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml)
-
 **CanTraceDiag turns a CANalyzer `.asc` trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
 
 The goal is direct: inspect real CAN acquisitions away from the vehicle, without a remote server, without keeping a proprietary tool open, and without loading the whole trace into the browser.
 
 ![CanTraceDiag workspace](docs/assets/cantracediag-workspace.png)
 
-## What It Does
+## Core Features
 
 - **ASC + DBC import** from the browser or server-side paths.
 - **Multi-DBC decoding** with ambiguous arbitration ID detection.
@@ -19,6 +17,24 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Local DBC library** to reuse databases without uploading them again.
 - **Session restore** through a local workspace outside the repository.
 - **One-click Windows + WSL launcher** with a desktop shortcut.
+
+## Quick Start
+
+Prerequisite: Python 3.11+.
+
+```bash
+git clone https://github.com/Jilanos/CanTraceDiag.git
+cd CanTraceDiag
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+python -m pip install -e ".[api,dev]"
+cantracediag --help
+pytest
+cantracediag serve --open
+```
+
+[![CI](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml/badge.svg)](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml)
 
 ## Preview
 
@@ -42,15 +58,13 @@ Imported DBC files are kept in the user workspace, deduplicated by content, and 
 
 ## Developer Setup
 
-Prerequisite: Python 3.11+.
+For local development, install the package with API and development dependencies:
 
 ```bash
-cd /home/paul/dev/CanTraceDiag
 python -m venv .venv
 source .venv/bin/activate
 python -m pip install -U pip
-python -m pip install -e ".[dev,api]"
-pytest
+python -m pip install -e ".[api,dev]"
 ```
 
 Recommended local validation:
@@ -87,7 +101,7 @@ If the requested port is already busy, `serve` picks a free one. If a CanTraceDi
 Run this once per Windows machine from Windows PowerShell:
 
 ```powershell
-cd "\\wsl.localhost\Ubuntu\home\paul\dev\CanTraceDiag"
+cd "\\wsl.localhost\Ubuntu\path\to\CanTraceDiag"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-shortcut.ps1
 ```
 
@@ -101,7 +115,7 @@ After that, double-clicking the shortcut starts the WSL server and opens the Win
 
 ## Quick Test
 
-The synthetic fixtures exercise the full flow without customer data:
+The synthetic fixtures exercise the full flow:
 
 ```bash
 cantracediag info tests/fixtures/sample.asc --dbc tests/fixtures/sample.dbc
@@ -120,8 +134,12 @@ In the UI:
 From the Windows browser, the WSL repository is visible through a path like:
 
 ```text
-\\wsl.localhost\Ubuntu\home\paul\dev\CanTraceDiag\tests\fixtures
+\\wsl.localhost\Ubuntu\path\to\CanTraceDiag\tests\fixtures
 ```
+
+## Privacy And Sample Data
+
+The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces, real DBC files, and generated workspaces should stay outside the repository; the default local workspace is ignored by Git.
 
 ## User Workflow
 
