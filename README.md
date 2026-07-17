@@ -196,13 +196,19 @@ Le backend garde l'index DuckDB côté local et ne renvoie au navigateur que des
 
 ## Captures README
 
-Les captures sont générées depuis l'application réelle :
+Les captures sont générées depuis l'application réelle. Le mode par défaut démarre un serveur éphémère avec une fixture synthétique :
 
 ```bash
 .venv/bin/python scripts/capture-readme-screenshots.py
 ```
 
-Le script démarre un serveur éphémère, importe une trace synthétique décodable, pilote Chromium avec Playwright et met à jour `docs/assets/`.
+Pour régénérer les captures README depuis une session déjà ouverte, par exemple avec une trace POC3 réelle chargée sur le port `8000`, utiliser :
+
+```bash
+.venv/bin/python scripts/capture-readme-screenshots.py --url http://127.0.0.1:8000 --live-poc3
+```
+
+Dans ce mode, les séries viennent de la trace chargée, mais les libellés métier affichés dans les captures sont anonymisés (`MotorTorque`, `VehicleSpeed`, etc.).
 
 ## État actuel
 

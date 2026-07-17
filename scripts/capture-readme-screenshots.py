@@ -14,6 +14,7 @@ import tempfile
 import threading
 import time
 import urllib.request
+from argparse import ArgumentParser, Namespace
 from pathlib import Path
 
 from playwright.sync_api import sync_playwright
@@ -92,7 +93,7 @@ def _write_synth_asc(path: Path) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
-def _start_server() -> tuple[str, object]:
+def _start_server() -> tuple[str, object | None]:
     import uvicorn
 
     os.environ["CANTRACEDIAG_EPHEMERAL"] = "1"
@@ -111,11 +112,117 @@ def _start_server() -> tuple[str, object]:
     return base_url, server
 
 
-def _prepare_loaded_page(page, base_url: str) -> None:
+def _prepare_loaded_page(page, base_url: str, *, live_poc3: bool) -> None:
     page.goto(base_url)
     page.evaluate("() => localStorage.clear()")
     page.reload()
     page.wait_for_function("() => typeof state !== 'undefined' && state.signals.length >= 2")
+    if live_poc3:
+        page.evaluate(
+            """async () => {
+                const picks = [
+                    { message: "Edrv_Act_1", signal: "Edrv_tqAct" },
+                    { message: "Ecran1", signal: "Vitesse" },
+                ];
+                state.selected = [];
+                store.set("selected", []);
+                for (const id of ["fId", "fSignal", "fStart", "fEnd"]) {
+                    document.getElementById(id).value = "";
+                }
+                document.getElementById("fMsg").value = "Edrv_Act_1";
+                document.getElementById("fDir").value = "";
+                document.getElementById("fStatus").value = "";
+                document.getElementById("fEvent").value = "";
+                document.getElementById("showFrames").checked = true;
+                document.getElementById("showEvents").checked = false;
+                setView(1200, 1230);
+                await new Promise((resolve) => setTimeout(resolve, 150));
+                for (const pick of picks) {
+                    const sig = state.signals.find(
+                        (s) => s.message_name === pick.message && s.signal_name === pick.signal
+                    );
+                    if (!sig) throw new Error(`Missing signal ${pick.message}.${pick.signal}`);
+                    await toggleSignal(sig, true);
+                }
+                setView(1200, 1230);
+                await fetchAllSeries();
+                await locateInTrace(1204);
+                const row = document.querySelector("#traceTable tbody tr.selected")
+                    || document.querySelector("#traceTable tbody tr.expandable");
+                if (row) row.click();
+                await new Promise((resolve) => setTimeout(resolve, 400));
+                state.cursor.a = 1204;
+                state.cursor.b = 1222;
+                await refreshCursorReadout();
+                const aliases = [
+                    ["Edrv_Act_1", "Powertrain"],
+                    ["Edrv_tqAct", "MotorTorque"],
+                    ["Edrv_nAct", "MotorSpeed"],
+                    ["Edrv_iAct", "MotorCurrent"],
+                    ["Edrv_uAct", "MotorVoltage"],
+                    ["Edrv_stOperModAct", "OperatingMode"],
+                    ["Edrv_stRunAct", "RunState"],
+                    ["Edrv_nrAlvCntrAct", "Counter"],
+                    ["Edrv_nrChksAct", "Checksum"],
+                    ["Ecran1", "Vehicle"],
+                    ["Vitesse", "VehicleSpeed"],
+                    ["SEG_v3.dbc", "powertrain.dbc"],
+                    ["IHM_TopCon_Circle_v4.dbc", "vehicle.dbc"],
+                    ["2026-06-11_13-24-28_T085_Poc3_SBS_SEG.asc", "road-test-segment.asc"],
+                ];
+                state.selected[0].message = "Powertrain";
+                state.selected[0].signal = "MotorTorque";
+                state.selected[0].unit = "Nm";
+                state.selected[1].message = "Vehicle";
+                state.selected[1].signal = "VehicleSpeed";
+                state.selected[1].unit = "km/h";
+                renderPlot();
+                document.getElementById("fMsg").value = "Powertrain";
+                document.getElementById("signalList").innerHTML = `
+                    <div class="grp">ANONYMIZED DATA</div>
+                    <label class="sig on" style="--sw:${state.selected[0].color}">
+                        <span class="star">★</span><input type="checkbox" checked/>
+                        <span class="swatch" style="background:${state.selected[0].color}"></span>
+                        <span class="name">Powertrain.<b>MotorTorque</b></span>
+                        <span class="unit">Nm</span>
+                    </label>
+                    <label class="sig on" style="--sw:${state.selected[1].color}">
+                        <span class="star">★</span><input type="checkbox" checked/>
+                        <span class="swatch" style="background:${state.selected[1].color}"></span>
+                        <span class="name">Vehicle.<b>VehicleSpeed</b></span>
+                        <span class="unit">km/h</span>
+                    </label>`;
+                document.getElementById("inspBody").innerHTML = `
+                    <div class="insp-id">0A3</div>
+                    <div class="insp-msg">Powertrain · powertrain.dbc</div>
+                    <div class="insp-raw">D9 4E 17 D4 F7 DD 59 F4</div>
+                    <dl class="insp-grid">
+                        <dt>Timestamp</dt><dd>1204.000000 s</dd>
+                        <dt>Channel</dt><dd>1</dd>
+                        <dt>Direction</dt><dd>Rx</dd>
+                        <dt>DLC</dt><dd>8</dd>
+                        <dt>Decode status</dt><dd>ok</dd>
+                    </dl>
+                    <div class="insp-sec">Decoded signals</div>
+                    <div class="insp-sig">
+                        <span>MotorTorque</span><span class="v">14.1 Nm</span>
+                    </div>
+                    <div class="insp-sig">
+                        <span>MotorSpeed</span><span class="v">2580 rpm</span>
+                    </div>`;
+                const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+                const nodes = [];
+                while (walker.nextNode()) nodes.push(walker.currentNode);
+                for (const node of nodes) {
+                    let text = node.nodeValue;
+                    for (const [from, to] of aliases) text = text.replaceAll(from, to);
+                    node.nodeValue = text;
+                }
+            }"""
+        )
+        page.wait_for_timeout(500)
+        return
+
     page.evaluate(
         """async () => {
             await toggleSignal(state.signals[0], true);
@@ -130,14 +237,32 @@ def _prepare_loaded_page(page, base_url: str) -> None:
     page.wait_for_timeout(500)
 
 
+def _parse_args() -> Namespace:
+    parser = ArgumentParser()
+    parser.add_argument(
+        "--url",
+        help="Reuse an already running CanTraceDiag server instead of starting a fixture server.",
+    )
+    parser.add_argument(
+        "--live-poc3",
+        action="store_true",
+        help="Capture the loaded POC3 trace with anonymized signal names.",
+    )
+    return parser.parse_args()
+
+
 def main() -> None:
+    args = _parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
-    base_url, server = _start_server()
+    if args.url:
+        base_url, server = args.url.rstrip("/"), None
+    else:
+        base_url, server = _start_server()
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
             page = browser.new_page(device_scale_factor=1, viewport={"width": 1600, "height": 940})
-            _prepare_loaded_page(page, base_url)
+            _prepare_loaded_page(page, base_url, live_poc3=args.live_poc3)
 
             page.screenshot(path=OUT / "cantracediag-workspace.png", full_page=True)
             page.locator("#plotArea").screenshot(path=OUT / "cantracediag-cursors.png")
@@ -147,10 +272,33 @@ def main() -> None:
             page.locator("#colDialog").evaluate("(dialog) => dialog.close()")
 
             page.locator("#pickLibBtn").click()
+            if args.live_poc3:
+                page.evaluate(
+                    """() => {
+                        const list = document.querySelector("#libList");
+                        if (!list) return;
+                        list.innerHTML = "";
+                        for (const name of [
+                            "powertrain.dbc",
+                            "vehicle.dbc",
+                            "body-control.dbc",
+                            "energy-system.dbc",
+                        ]) {
+                            const row = document.createElement("label");
+                            row.className = "lib-row";
+                            row.innerHTML =
+                                `<input type="checkbox" checked/>` +
+                                `<span class="lname">${name}</span>` +
+                                `<span class="lmeta">cached</span>`;
+                            list.appendChild(row);
+                        }
+                    }"""
+                )
             page.locator("#libDialog").screenshot(path=OUT / "cantracediag-library.png")
             browser.close()
     finally:
-        server.should_exit = True
+        if server is not None:
+            server.should_exit = True
 
 
 if __name__ == "__main__":
