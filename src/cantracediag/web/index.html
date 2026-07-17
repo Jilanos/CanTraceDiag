@@ -9,24 +9,24 @@
 <link rel="alternate icon" href="/favicon.ico" />
 <style>
   /* ====================================================================
-     CanTraceDiag — identité "instrument de mesure" (docs/design-ui.md,
-     ADR 0005). Thème sombre unique, assumé. Toutes les couleurs vivent en
-     tokens ; le rendu canvas les lit via getComputedStyle (app.js).
+     CanTraceDiag — "measurement instrument" identity (docs/design-ui.md,
+     ADR 0005). Single dark theme. All colors live in tokens; canvas rendering
+     reads them through getComputedStyle (app.js).
      ==================================================================== */
   :root {
-    /* fonds et structure */
+    /* backgrounds and structure */
     --bg: #090d12; --bg-deep: #05080c; --panel: #0e141b; --panel2: #131b24;
     --line: #1c2733; --line-soft: #141d27; --grid: #0f1822;
-    /* texte */
+    /* text */
     --fg: #d7e0e8; --muted: #7a8ba1; --faint: #4a5a6e;
-    /* accent + sémantique */
+    /* accent + semantic */
     --accent: #f0a63c; --accent-dim: #8a5f22;
     --ok: #57c99a; --warn: #e0a44e; --err: #e05c6b;
     --sel: #16233270;
-    /* canaux de tracé (code oscilloscope) */
+    /* trace channels (oscilloscope code) */
     --ch1: #f5c542; --ch2: #3fc1e8; --ch3: #e86fc5; --ch4: #7bd88f;
     --ch5: #e0a44e; --ch6: #9a8cf5; --ch7: #5fd4c4; --ch8: #e08baa;
-    /* typographie */
+    /* typography */
     --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
     --sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
   }
@@ -38,13 +38,13 @@
   }
   ::selection { background: #2a3c52; }
 
-  /* micro-label d'instrument */
+  /* instrument micro-label */
   .lbl {
     font: 600 9.5px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase;
     color: var(--muted);
   }
 
-  /* ---- boutons -------------------------------------------------------- */
+  /* ---- buttons -------------------------------------------------------- */
   button {
     background: var(--accent); color: #14100a; border: 1px solid var(--accent);
     padding: 5px 11px; border-radius: 2px; cursor: pointer; font: 700 12px var(--sans);
@@ -68,7 +68,7 @@
   }
   input::placeholder { color: var(--faint); }
 
-  /* ================= HEADER : bandeau d'instrument ================= */
+  /* ================= HEADER: instrument strip ================= */
   header {
     background: linear-gradient(180deg, #101823, #0c1219);
     border-bottom: 1px solid var(--line);
@@ -98,7 +98,7 @@
   .summary b { color: var(--fg); font-weight: 500; }
   .warn { color: var(--warn); } .err { color: var(--err); } .ok { color: var(--ok); }
 
-  /* LED d'état */
+  /* status LED */
   .led { display: inline-flex; align-items: center; gap: 6px; font: 600 10px var(--mono); letter-spacing: .1em; color: var(--muted); flex: 0 0 auto; }
   .led i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
   .led.indexed i { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
@@ -130,7 +130,7 @@
   .side-resizer { width: 5px; cursor: col-resize; background: transparent; flex: 0 0 auto; }
   .side-resizer:hover { background: var(--line); }
 
-  /* ---- explorateur signaux ---- */
+  /* ---- signal explorer ---- */
   #explorer .pbody { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   #sigFilter { margin: 8px; }
   #signalList { overflow: auto; flex: 1; padding: 2px 0; }
@@ -154,7 +154,7 @@
   .star { cursor: pointer; color: var(--line); font-size: 13px; }
   .star.on { color: var(--warn); }
 
-  /* ================= CENTRE : plot + trace ================= */
+  /* ================= CENTER: plot + trace ================= */
   #center { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   #plotArea { flex: 1; display: flex; flex-direction: column; min-height: 120px; }
   .plotbar {
@@ -169,7 +169,7 @@
   .seg button:hover { background: var(--panel2); color: var(--fg); }
   .seg button.active { background: var(--accent); color: #14100a; font-weight: 700; }
 
-  /* readouts de mesure façon scope */
+  /* scope-style measurement readouts */
   .measure { display: flex; gap: 6px; flex-wrap: wrap; }
   .measure.empty { display: none; }
   .mbadge {
@@ -192,7 +192,7 @@
 
   .divider { height: 5px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
 
-  /* ---- vue trace ---- */
+  /* ---- trace view ---- */
   #traceWrap { height: 40%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
   .tracebar {
     display: flex; gap: 8px; align-items: center; padding: 5px 10px; flex-wrap: wrap;
@@ -218,14 +218,14 @@
   tr.detail td { background: var(--panel2); color: var(--muted); white-space: normal; }
   .pager { display: flex; gap: 6px; align-items: center; margin-left: auto; color: var(--muted); font: 11px var(--mono); }
 
-  /* statuts de décodage : pills libellées */
+  /* decode statuses: labeled pills */
   .st { display: inline-block; font: 600 9.5px var(--mono); letter-spacing: .04em; padding: 1px 7px; border-radius: 2px; border: 1px solid var(--line); color: var(--muted); }
   .st.ok { color: var(--ok); border-color: #1e4436; background: #0d1f18; }
   .st.decode_error { color: var(--err); border-color: #4a2028; background: #200b10; }
   .st.ambiguous_id { color: var(--warn); border-color: #4a3820; background: #201808; }
   .st.unknown_id, .st.no_database { color: var(--muted); border-color: var(--line); background: transparent; }
 
-  /* ---- inspecteur ---- */
+  /* ---- inspector ---- */
   #inspector .pbody { flex: 1; overflow: auto; padding: 12px 12px; }
   .insp-empty { color: var(--muted); }
   .insp-id { font: 600 15px var(--mono); color: var(--ch2); margin-bottom: 2px; }
@@ -303,7 +303,7 @@
 </header>
 
 <main>
-  <!-- Zone: signal explorer -->
+  <!-- Area: signal explorer -->
   <aside class="panel" id="explorer">
     <div class="phead">
       <button class="collapse-btn" id="explorerToggle" title="Collapse / expand">‹</button>
@@ -317,7 +317,7 @@
   </aside>
   <div class="side-resizer" id="explorerResizer"></div>
 
-  <!-- Zone: plot + trace -->
+  <!-- Area: plot + trace -->
   <section id="center">
     <div id="plotArea">
       <div class="plotbar">
@@ -371,7 +371,7 @@
     </div>
   </section>
 
-  <!-- Zone: inspector -->
+  <!-- Area: inspector -->
   <div class="side-resizer" id="inspectorResizer"></div>
   <aside class="panel" id="inspector">
     <div class="phead">

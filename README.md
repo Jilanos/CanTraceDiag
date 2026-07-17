@@ -2,47 +2,47 @@
 
 [![CI](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml/badge.svg)](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml)
 
-**CanTraceDiag transforme une trace CANalyzer `.asc` et ses DBC en poste de diagnostic local : import, décodage, graphes synchronisés, curseurs A/B, vue trace filtrable et reprise de session.**
+**CanTraceDiag turns a CANalyzer `.asc` trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
 
-L'objectif est simple : explorer hors véhicule des acquisitions CAN réelles, sans serveur distant, sans outil propriétaire ouvert en permanence, et sans charger toute la trace dans le navigateur.
+The goal is direct: inspect real CAN acquisitions away from the vehicle, without a remote server, without keeping a proprietary tool open, and without loading the whole trace into the browser.
 
-![Workspace CanTraceDiag](docs/assets/cantracediag-workspace.png)
+![CanTraceDiag workspace](docs/assets/cantracediag-workspace.png)
 
-## Ce que fait l'outil
+## What It Does
 
-- **Import ASC + DBC** depuis le navigateur ou par chemin serveur.
-- **Décodage DBC multi-fichiers** avec détection des IDs ambigus.
-- **Graphes empilés** par signal, zoom, pan, grille et curseurs A/B.
-- **Mesures instantanées** : valeurs au curseur et delta temps/valeur.
-- **Trace table** paginée, filtrable, avec colonnes configurables.
-- **Inspecteur de trame** : payload brut, message décodé et signaux physiques.
-- **Bibliothèque DBC locale** pour réutiliser les bases sans re-upload.
-- **Reprise de session** au redémarrage via workspace local hors dépôt.
-- **Lancement 1 clic Windows + WSL** avec raccourci Bureau.
+- **ASC + DBC import** from the browser or server-side paths.
+- **Multi-DBC decoding** with ambiguous arbitration ID detection.
+- **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
+- **Instant measurements** with cursor values and time/value deltas.
+- **Trace table** with pagination, filtering, and configurable columns.
+- **Frame inspector** with raw payload, decoded message, and physical signals.
+- **Local DBC library** to reuse databases without uploading them again.
+- **Session restore** through a local workspace outside the repository.
+- **One-click Windows + WSL launcher** with a desktop shortcut.
 
-## Aperçu
+## Preview
 
-### Graphes et curseurs
+### Plots And Cursors
 
-Les signaux sélectionnés sont tracés en escaliers, avec un axe temps commun. Les curseurs A/B se placent au clic, se déplacent au drag, et alimentent les mesures sous le graphe.
+Selected signals are rendered as stepped traces on a shared time axis. A/B cursors can be placed by click, moved by drag, and feed the measurement table below the plot.
 
-![Curseurs A/B](docs/assets/cantracediag-cursors.png)
+![A/B cursors](docs/assets/cantracediag-cursors.png)
 
-### Colonnes de trace
+### Trace Columns
 
-La vue trace est pensée pour l'inspection répétée : filtres, pagination, statut de décodage, sélection de trame, ordre/largeur/format de colonnes persistés localement.
+The trace view is built for repeated inspection: filters, pagination, decode status, frame selection, and locally persisted column order, width, and format.
 
-![Colonnes de trace](docs/assets/cantracediag-columns.png)
+![Trace columns](docs/assets/cantracediag-columns.png)
 
-### Bibliothèque DBC
+### DBC Library
 
-Les DBC importés sont conservés dans le workspace utilisateur, dédupliqués par contenu, et réutilisables au prochain chargement.
+Imported DBC files are kept in the user workspace, deduplicated by content, and reusable on the next load.
 
-![Bibliothèque DBC](docs/assets/cantracediag-library.png)
+![DBC library](docs/assets/cantracediag-library.png)
 
-## Installation développeur
+## Developer Setup
 
-Prérequis : Python 3.11+.
+Prerequisite: Python 3.11+.
 
 ```bash
 cd /home/paul/dev/CanTraceDiag
@@ -53,55 +53,55 @@ python -m pip install -e ".[dev,api]"
 pytest
 ```
 
-Validation locale recommandée :
+Recommended local validation:
 
 ```bash
 .venv/bin/ruff check .
 .venv/bin/pytest
 ```
 
-## Lancer l'interface
+## Run The UI
 
-Depuis l'environnement virtuel :
+From the virtual environment:
 
 ```bash
 cantracediag serve --open
 ```
 
-Depuis les sources sans script installé :
+From source without the installed script:
 
 ```bash
 PYTHONPATH=src python -m cantracediag.cli serve --open
 ```
 
-Par défaut, l'UI est disponible sur :
+The default UI URL is:
 
 ```text
 http://127.0.0.1:8000
 ```
 
-Si le port demandé est déjà pris, `serve` choisit un port libre. Si une instance CanTraceDiag tourne déjà sur ce port, la commande rouvre simplement le navigateur au lieu de démarrer un second serveur.
+If the requested port is already busy, `serve` picks a free one. If a CanTraceDiag instance is already running on that port, the command reopens the browser instead of starting a second server.
 
-## Lancement 1 clic sous Windows + WSL
+## One-Click Windows + WSL Launch
 
-Une installation par poste suffit. Depuis PowerShell Windows :
+Run this once per Windows machine from Windows PowerShell:
 
 ```powershell
 cd "\\wsl.localhost\Ubuntu\home\paul\dev\CanTraceDiag"
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\install-shortcut.ps1
 ```
 
-Le script crée :
+The script creates:
 
-- `CanTraceDiag.local.cmd` à la racine du dépôt, avec le chemin WSL du clone ;
-- un raccourci **CanTraceDiag** sur le Bureau Windows ;
-- l'icône dédiée du projet sur ce raccourci.
+- `CanTraceDiag.local.cmd` at the repository root, with the clone's WSL path baked in;
+- a **CanTraceDiag** desktop shortcut;
+- the project icon on that shortcut, copied to a Windows-local icon cache.
 
-Ensuite, un double-clic démarre le serveur dans WSL et ouvre l'UI dans le navigateur Windows. Relancer le script après un déplacement du dépôt ou après une mise à jour de l'icône.
+After that, double-clicking the shortcut starts the WSL server and opens the Windows browser. Re-run the script after moving the clone or after updating the icon.
 
-## Tester rapidement
+## Quick Test
 
-Les fixtures synthétiques permettent de vérifier le flux complet sans données client :
+The synthetic fixtures exercise the full flow without customer data:
 
 ```bash
 cantracediag info tests/fixtures/sample.asc --dbc tests/fixtures/sample.dbc
@@ -109,123 +109,123 @@ cantracediag signals tests/fixtures/sample.dbc
 cantracediag serve --open
 ```
 
-Dans l'UI :
+In the UI:
 
-1. Cliquer **Trace** et choisir `tests/fixtures/sample.asc`.
-2. Cliquer **DBC files** et choisir `tests/fixtures/sample.dbc`.
-3. Cliquer **Load**.
-4. Cocher des signaux dans le panneau **Signals**.
-5. Tester zoom, pan, curseurs A/B, filtres de trace, **Columns...**, **Library** et **Clear cache**.
+1. Click **Trace** and choose `tests/fixtures/sample.asc`.
+2. Click **DBC files** and choose `tests/fixtures/sample.dbc`.
+3. Click **Load**.
+4. Select signals in the **Signals** panel.
+5. Try zoom, pan, A/B cursors, trace filters, **Columns...**, **Library**, and **Clear cache**.
 
-Depuis le navigateur Windows, le dépôt WSL est visible via un chemin de ce type :
+From the Windows browser, the WSL repository is visible through a path like:
 
 ```text
 \\wsl.localhost\Ubuntu\home\paul\dev\CanTraceDiag\tests\fixtures
 ```
 
-## Workflow utilisateur
+## User Workflow
 
-1. **Importer** une trace `.asc` et un ou plusieurs fichiers `.dbc`.
-2. **Résoudre les conflits DBC** si plusieurs bases déclarent le même arbitration ID avec des messages non équivalents.
-3. **Sélectionner les signaux** présents dans la trace ou disponibles dans la DBC.
-4. **Explorer les graphes** avec zoom, pan, grille et curseurs A/B.
-5. **Inspecter la trace** avec filtres, pagination, détails de trames et signaux décodés.
-6. **Rouvrir plus tard** : le workspace restaure la dernière analyse et la bibliothèque DBC.
+1. **Import** one `.asc` trace and one or more `.dbc` files.
+2. **Resolve DBC conflicts** when several databases define the same arbitration ID with non-equivalent messages.
+3. **Select signals** present in the trace or available in the DBC catalog.
+4. **Explore plots** with zoom, pan, grid, and A/B cursors.
+5. **Inspect the trace** with filters, pagination, frame details, and decoded signals.
+6. **Reopen later** and let the workspace restore the last analysis and DBC library.
 
-## Ligne de commande
+## Command Line
 
 ```bash
-# Résumer un import
-cantracediag info /chemin/trace.asc --dbc systeme.dbc --dbc annexe.dbc
+# Summarize an import
+cantracediag info /path/to/trace.asc --dbc system.dbc --dbc auxiliary.dbc
 
-# Lister messages et signaux d'une ou plusieurs DBC
-cantracediag signals systeme.dbc
+# List messages and signals from one or more DBC files
+cantracediag signals system.dbc
 
-# Lancer l'UI locale
+# Start the local UI
 cantracediag serve --port 8000 --open
 ```
 
-## API locale
+## Local API
 
-CanTraceDiag expose une API FastAPI locale utilisée par l'UI :
+CanTraceDiag exposes a local FastAPI API used by the UI:
 
-- `POST /api/import-files` : import via upload navigateur ;
-- `POST /api/import` : import par chemins serveur ;
-- `POST /api/resolve` : résolution de conflits DBC ;
-- `GET /api/status` : état de session ;
-- `GET /api/signals` : catalogue de signaux ;
-- `GET /api/series` : séries fenêtrées/downsamplées ;
-- `GET /api/cursor` : valeur la plus proche d'un curseur ;
-- `GET /api/trace` : vue trace paginée et filtrée ;
-- `GET /api/frame-signals` : signaux décodés pour une trame ;
-- `GET /api/dbc-library` : bibliothèque DBC ;
-- `POST /api/workspace-purge` : purge cache + dernière analyse.
+- `POST /api/import-files`: browser upload import;
+- `POST /api/import`: server-side path import;
+- `POST /api/resolve`: DBC conflict resolution;
+- `GET /api/status`: session state;
+- `GET /api/signals`: signal catalog;
+- `GET /api/series`: windowed/downsampled series;
+- `GET /api/cursor`: nearest cursor value;
+- `GET /api/trace`: paginated and filtered trace view;
+- `GET /api/frame-signals`: decoded signals for one frame;
+- `GET /api/dbc-library`: DBC library;
+- `POST /api/workspace-purge`: cache and last-analysis purge.
 
-## Workspace local
+## Local Workspace
 
-En mode normal, les données persistantes sont stockées hors dépôt sous :
+In normal mode, persistent data is stored outside the repository under:
 
 ```text
 ~/.local/share/cantracediag/
 ```
 
-Variables utiles :
+Useful variables:
 
-- `CANTRACEDIAG_DATA_DIR` : changer le dossier de workspace ;
-- `CANTRACEDIAG_DBC_CAP` : nombre maximum de DBC conservés, défaut `20` ;
-- `CANTRACEDIAG_EPHEMERAL=1` : désactiver la persistance, utilisé par les tests.
+- `CANTRACEDIAG_DATA_DIR`: change the workspace directory;
+- `CANTRACEDIAG_DBC_CAP`: maximum number of retained DBC files, default `20`;
+- `CANTRACEDIAG_EPHEMERAL=1`: disable persistence, used by the tests.
 
-Le dépôt ignore les traces, DBC réels et caches pour éviter de versionner des données véhicule ou client.
+The repository ignores real traces, real DBC files, and caches to avoid versioning vehicle or customer data.
 
 ## Architecture
 
 ```text
 src/cantracediag/
 ├── api.py          # FastAPI + static UI
-├── cli.py          # commandes info, signals, serve
-├── dbc.py          # chargement multi-DBC + conflits
-├── decode.py       # décodage signaux physiques
-├── formats/asc.py  # lecteur CANalyzer ASCII
-├── pipeline.py     # import ASC -> index
-├── store.py        # DuckDB + requêtes fenêtrées
-├── workspace.py    # bibliothèque DBC + reprise de session
-└── web/            # UI locale, favicon, assets statiques
+├── cli.py          # info, signals, serve commands
+├── dbc.py          # multi-DBC loading + conflicts
+├── decode.py       # physical signal decoding
+├── formats/asc.py  # CANalyzer ASCII reader
+├── pipeline.py     # ASC import -> index
+├── store.py        # DuckDB + windowed queries
+├── workspace.py    # DBC library + session restore
+└── web/            # local UI, favicon, static assets
 ```
 
-Le backend garde l'index DuckDB côté local et ne renvoie au navigateur que des fenêtres utiles : séries downsamplées, pages de trace, détails de trame. Ce choix garde l'interface fluide même quand les traces grossissent.
+The backend keeps the DuckDB index local and only returns useful windows to the browser: downsampled series, trace pages, and frame details. That keeps the UI responsive as traces grow.
 
-## Captures README
+## README Screenshots
 
-Les captures sont générées depuis l'application réelle. Le mode par défaut démarre un serveur éphémère avec une fixture synthétique :
+Screenshots are generated from the real application. The default mode starts an ephemeral server with a synthetic fixture:
 
 ```bash
 .venv/bin/python scripts/capture-readme-screenshots.py
 ```
 
-Pour régénérer les captures README depuis une session déjà ouverte, par exemple avec une trace POC3 réelle chargée sur le port `8000`, utiliser :
+To regenerate README screenshots from an already running session, for example with a real POC3 trace loaded on port `8000`, run:
 
 ```bash
 .venv/bin/python scripts/capture-readme-screenshots.py --url http://127.0.0.1:8000 --live-poc3
 ```
 
-Dans ce mode, les séries viennent de la trace chargée, mais les libellés métier affichés dans les captures sont anonymisés (`MotorTorque`, `VehicleSpeed`, etc.).
+In that mode, plotted series come from the loaded trace, but business labels shown in screenshots are anonymized (`MotorTorque`, `VehicleSpeed`, and similar names).
 
-## État actuel
+## Current Status
 
-Livré aujourd'hui :
+Delivered today:
 
-- import ASC ;
-- décodage DBC ;
-- index DuckDB ;
-- UI locale avec graphes, trace, inspecteur et curseurs ;
-- workspace persistant ;
-- bibliothèque DBC ;
-- raccourci Windows + WSL ;
-- favicon et icône de raccourci.
+- ASC import;
+- DBC decoding;
+- DuckDB index;
+- local UI with plots, trace table, inspector, and cursors;
+- persistent workspace;
+- DBC library;
+- Windows + WSL shortcut;
+- browser favicon and shortcut icon.
 
-Limites connues :
+Known limits:
 
-- BLF/MF4 non complets ;
-- pas de replay temps réel ;
-- pas de packaging Windows natif ;
-- pas encore de budget CI représentatif de grosses traces autour de 150 Mo.
+- BLF/MF4 support is not complete;
+- no real-time replay;
+- no native Windows package yet;
+- no representative CI performance budget for large traces around 150 MB yet.
