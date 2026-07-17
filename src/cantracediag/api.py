@@ -701,6 +701,10 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
     def index() -> FileResponse:
         return FileResponse(_WEB_DIR / "index.html")
 
+    @app.get("/favicon.ico", include_in_schema=False)
+    def favicon() -> FileResponse:
+        return FileResponse(_WEB_DIR / "app-icon.ico")
+
     if _WEB_DIR.is_dir():
         app.mount("/static", StaticFiles(directory=_WEB_DIR), name="static")
 

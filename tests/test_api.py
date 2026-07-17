@@ -112,6 +112,13 @@ def test_index_page_served(client: TestClient) -> None:
     assert "CanTraceDiag" in r.text
 
 
+def test_favicon_served(client: TestClient) -> None:
+    r = client.get("/favicon.ico")
+    assert r.status_code == 200
+    assert r.headers["content-type"] == "image/vnd.microsoft.icon"
+    assert r.content.startswith(b"\x00\x00\x01\x00")
+
+
 def test_import_files_upload_flow(client: TestClient) -> None:
     asc = (FIX / "sample.asc").read_bytes()
     dbc = (FIX / "sample.dbc").read_bytes()

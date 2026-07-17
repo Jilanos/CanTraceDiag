@@ -38,7 +38,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-cantracediag = ["web/*.html", "web/*.js", "web/*.css"]
+cantracediag = ["web/*.html", "web/*.js", "web/*.css", "web/*.svg", "web/*.ico"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

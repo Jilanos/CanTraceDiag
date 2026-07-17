@@ -18,7 +18,11 @@ $RepoRoot = Split-Path -Parent $ScriptsDir
 
 # Windows path -> WSL path (C:\Users\me\CanTraceDiag -> /mnt/c/Users/me/CanTraceDiag).
 function Convert-ToWslPath([string]$WinPath) {
-    $full = (Resolve-Path $WinPath).Path
+    $resolved = Resolve-Path $WinPath
+    $full = $resolved.ProviderPath
+    if (-not $full) {
+        $full = $resolved.Path -replace '^Microsoft\.PowerShell\.Core\\FileSystem::', ''
+    }
     if ($full -match '^([A-Za-z]):\\(.*)$') {
         $drive = $matches[1].ToLower()
         $rest = $matches[2] -replace '\\', '/'
@@ -40,6 +44,17 @@ $LauncherPath = Join-Path $RepoRoot "CanTraceDiag.local.cmd"
 (Get-Content $TemplatePath -Raw).Replace("__CTD_DIR__", $WslDir) | Set-Content -Path $LauncherPath -Encoding ASCII
 Write-Host "Launcher written: $LauncherPath"
 
+# Explorer is unreliable at loading shortcut icons from \\wsl.localhost paths.
+# Keep a Windows-local copy of the icon and point the shortcut to that file.
+$LocalAppDir = Join-Path $env:LOCALAPPDATA "CanTraceDiag"
+New-Item -ItemType Directory -Force -Path $LocalAppDir | Out-Null
+$RepoIconPath = Join-Path $RepoRoot "src\cantracediag\web\app-icon.ico"
+$LocalIconPath = Join-Path $LocalAppDir "app-icon.ico"
+if (Test-Path $RepoIconPath) {
+    Copy-Item -Force $RepoIconPath $LocalIconPath
+    Write-Host "Icon copied: $LocalIconPath"
+}
+
 # Create the Desktop shortcut.
 $Desktop = [Environment]::GetFolderPath("Desktop")
 $ShortcutPath = Join-Path $Desktop "CanTraceDiag.lnk"
@@ -47,6 +62,9 @@ $Shell = New-Object -ComObject WScript.Shell
 $Shortcut = $Shell.CreateShortcut($ShortcutPath)
 $Shortcut.TargetPath = $LauncherPath
 $Shortcut.WorkingDirectory = $RepoRoot
+if (Test-Path $LocalIconPath) {
+    $Shortcut.IconLocation = "$LocalIconPath,0"
+}
 $Shortcut.WindowStyle = 7          # minimized
 $Shortcut.Description = "Launch CanTraceDiag (WSL server + Windows browser)"
 $Shortcut.Save()
