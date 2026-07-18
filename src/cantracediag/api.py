@@ -31,7 +31,7 @@ from cantracediag.decode import Decoder
 from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
 from cantracediag.security import SecurityConfig
-from cantracediag.store import TraceStore
+from cantracediag.store import TraceStore, _id_hex
 from cantracediag.workspace import Workspace
 
 _WEB_DIR = Path(__file__).parent / "web"
@@ -1056,11 +1056,6 @@ def _discard_store(tmpdir: Path) -> None:
     (AC3).
     """
     shutil.rmtree(tmpdir, ignore_errors=True)
-
-
-def _id_hex(arbitration_id: int, is_extended: bool) -> str:
-    width = 8 if is_extended else 3
-    return f"{arbitration_id:0{width}X}"
 
 
 def _parse_resolution(raw: dict[str, str]) -> dict[int, str]:

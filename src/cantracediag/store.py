@@ -1026,18 +1026,6 @@ class TraceStore:
         )
         return _records(df)
 
-    def _window_clause(
-        self, start_s: float | None, end_s: float | None, params: list[object]
-    ) -> str:
-        clauses: list[str] = []
-        if start_s is not None:
-            clauses.append("timestamp_s >= ?")
-            params.append(start_s)
-        if end_s is not None:
-            clauses.append("timestamp_s <= ?")
-            params.append(end_s)
-        return f"WHERE {' AND '.join(clauses)}" if clauses else ""
-
 
 def _f(value: object) -> float | None:
     """Coerce a DuckDB aggregate result to a plain float (NULL -> None)."""

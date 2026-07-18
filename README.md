@@ -237,11 +237,16 @@ src/cantracediag/
 ├── formats/asc.py  # CANalyzer ASCII reader
 ├── pipeline.py     # ASC import -> index
 ├── store.py        # DuckDB + windowed queries
+├── security.py     # Host/Origin/token/upload hardening
+├── export.py       # streamed CSV/Parquet export
 ├── workspace.py    # DBC library + session restore
 └── web/            # local UI, favicon, static assets
+    ├── index.html  # markup
+    ├── styles.css  # extracted stylesheet
+    └── js/         # core, import, signals, plot, report, trace, inspector, main
 ```
 
-The backend keeps the DuckDB index local and only returns useful windows to the browser: downsampled series, trace pages, and frame details. That keeps the UI responsive as traces grow.
+The frontend is framework-free ES-domain modules loaded in order (`core` first, `main` last); browser tests drive it through the explicit `window.__ctd` surface. The backend keeps the DuckDB index local and only returns useful windows to the browser: downsampled series, trace pages, and frame details. That keeps the UI responsive as traces grow.
 
 ## README Screenshots
 

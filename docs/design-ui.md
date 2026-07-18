@@ -35,9 +35,9 @@ produit, pas un ticket CSS.
 
 ## 3. Palette (tokens CSS)
 
-Toutes les couleurs vivent dans `:root` sous forme de custom properties. Aucune
-couleur en dur dans les règles ni dans `app.js` (le canvas lit les tokens via
-`getComputedStyle`).
+Toutes les couleurs vivent dans `:root` (`web/styles.css`) sous forme de custom
+properties. Aucune couleur en dur dans les règles ni dans les modules JS
+(`web/js/`) ; le canvas lit les tokens via `getComputedStyle` (module `core`).
 
 ### Fonds et structure
 

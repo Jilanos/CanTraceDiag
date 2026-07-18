@@ -1,10 +1,10 @@
 ## item_022_modularize_frontend_and_align_dependencies_ci_and_docs - Modularize frontend and align dependencies CI and docs
 > From version: 0.1.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -62,6 +62,7 @@ pas tous l'usage reel. Les fondations doivent etre stabilisees avant la clarte U
 - Hybrid rationale: Derived from request `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag.md`.
 - Generated locally by logics-manager.
+- Task `task_022_modularize_frontend_and_align_dependencies_ci_and_docs` was finished via `logics-manager flow finish task` on 2026-07-18.
 
 # Tasks
 - `task_022_modularize_frontend_and_align_dependencies_ci_and_docs`

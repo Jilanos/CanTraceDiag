@@ -13,7 +13,6 @@ dependencies = [
   "duckdb>=1.1",
   "pandas>=2.2",
   "pyarrow>=17",
-  "python-can>=4.4",
   "typer>=0.12",
 ]
 
@@ -38,7 +37,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-cantracediag = ["web/*.html", "web/*.js", "web/*.css", "web/*.svg", "web/*.ico"]
+cantracediag = ["web/*.html", "web/*.js", "web/js/*.js", "web/*.css", "web/*.svg", "web/*.ico"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

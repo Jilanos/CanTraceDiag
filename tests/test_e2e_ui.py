@@ -176,11 +176,34 @@ def _canvas_pt(pg, t, frac_y=0.5):
     return pg.evaluate(
         """({t, fy}) => {
             const r = document.getElementById('plot').getBoundingClientRect();
-            const g = plotGeom();
+            const g = window.__ctd.plotGeom();
             return { x: r.left + g.xOf(t), y: r.top + r.height * fy };
         }""",
         {"t": t, "fy": frac_y},
     )
+
+
+def _setup_view_cursor(pg, t0, t1, cursor_t=None, clear=False):
+    """Drive the plot into a known state through the __ctd surface (AC15)."""
+    pg.evaluate(
+        "({t0, t1, ct, clear}) => {"
+        " window.__ctd.setView(t0, t1);"
+        " if (ct !== null) window.__ctd.placeCursor(ct, 'a', false);"
+        " if (clear) { window.__ctd.state.cursor.a = null; window.__ctd.state.cursor.arm = 'a'; }"
+        " }",
+        {"t0": t0, "t1": t1, "ct": cursor_t, "clear": clear},
+    )
+
+
+def _view_and_a(pg):
+    return pg.evaluate(
+        "() => ({ view: [...window.__ctd.state.view],"
+        " a: window.__ctd.state.cursor.a })"
+    )
+
+
+def _cursor_a(pg):
+    return pg.evaluate("() => window.__ctd.state.cursor.a")
 
 
 def _drag(pg, x0, y0, x1, y1, steps=10):
@@ -193,14 +216,14 @@ def _drag(pg, x0, y0, x1, y1, steps=10):
 # --- tests ------------------------------------------------------------------
 def test_cursor_drag_moves_cursor_not_graph(page):
     """Pressing on cursor A and dragging must move A, not pan the view."""
-    page.evaluate("() => { setView(5, 15); placeCursor(10, 'a', false); }")
-    before = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    _setup_view_cursor(page, 5, 15, cursor_t=10)
+    before = _view_and_a(page)
 
     p_from = _canvas_pt(page, 10.0)
     p_to = _canvas_pt(page, 12.0)
     _drag(page, p_from["x"], p_from["y"], p_to["x"], p_from["y"])
 
-    after = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    after = _view_and_a(page)
     # Cursor A moved toward t=12...
     assert after["a"] == pytest.approx(12.0, abs=0.3), after
     assert after["a"] != before["a"]
@@ -211,13 +234,13 @@ def test_cursor_drag_moves_cursor_not_graph(page):
 
 def test_drag_off_cursor_pans_and_leaves_cursor(page):
     """Dragging on empty plot area pans the view but leaves cursor A put."""
-    page.evaluate("() => { setView(5, 15); placeCursor(10, 'a', false); }")
-    before = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    _setup_view_cursor(page, 5, 15, cursor_t=10)
+    before = _view_and_a(page)
 
     p_from = _canvas_pt(page, 7.0)   # >6px away from the cursor at t=10
     _drag(page, p_from["x"], p_from["y"], p_from["x"] - 120, p_from["y"])
 
-    after = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    after = _view_and_a(page)
     assert after["a"] == pytest.approx(before["a"], abs=1e-6), after   # cursor unmoved
     assert after["view"] != before["view"]                            # view panned
     assert not page._ctd_http_errors
@@ -225,21 +248,21 @@ def test_drag_off_cursor_pans_and_leaves_cursor(page):
 
 def test_click_places_cursor(page):
     """A click (no drag) on the plot places the armed cursor."""
-    page.evaluate("() => { setView(0, 20); state.cursor.a = null; state.cursor.arm = 'a'; }")
+    _setup_view_cursor(page, 0, 20, clear=True)
     pt = _canvas_pt(page, 8.0)
     page.mouse.click(pt["x"], pt["y"])
-    a = page.evaluate("() => state.cursor.a")
+    a = _cursor_a(page)
     assert a == pytest.approx(8.0, abs=0.4), a
 
 
 def test_keyboard_moves_armed_cursor(page):
-    page.evaluate("() => { setView(0, 20); state.cursor.a = null; state.cursor.arm = 'a'; }")
+    _setup_view_cursor(page, 0, 20, clear=True)
     page.focus("#plot")
     page.keyboard.press("ArrowRight")
-    a = page.evaluate("() => state.cursor.a")
+    a = _cursor_a(page)
     assert a is not None
     page.keyboard.press("ArrowRight")
-    b = page.evaluate("() => state.cursor.a")
+    b = _cursor_a(page)
     assert b > a
 
 
@@ -281,10 +304,13 @@ def test_rapid_zoom_pan_no_server_errors(page):
     This is the browser-side guard for the DuckDB concurrency fix: many
     overlapping /api/series (and /api/cursor) requests fired back-to-back.
     """
-    page.evaluate("() => { placeCursor(6, 'a', false); placeCursor(14, 'b', false); }")
+    page.evaluate(
+        "() => { window.__ctd.placeCursor(6, 'a', false);"
+        " window.__ctd.placeCursor(14, 'b', false); }"
+    )
     for _ in range(12):
-        page.evaluate("() => { const g = plotGeom(); zoomAt((g.t0+g.t1)/2, 0.7); }")
-        page.evaluate("() => { const g = plotGeom(); zoomAt((g.t0+g.t1)/2, 1.4); }")
+        page.evaluate("() => window.__ctd.zoomAt(10, 0.7)")
+        page.evaluate("() => window.__ctd.zoomAt(10, 1.4)")
         page.evaluate("() => refreshCursorReadout()")
     page.wait_for_timeout(600)   # let debounced series refreshes settle
     assert not page._ctd_http_errors, page._ctd_http_errors
