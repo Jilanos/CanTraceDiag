@@ -18,6 +18,7 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Trace table** with pagination, filtering, and configurable columns.
 - **Frame inspector** with raw payload, decoded message, and physical signals.
 - **Local DBC library** to reuse databases without uploading them again.
+- **Keyboard-accessible controls** (favorites, filters, table rows, dialogs, resizers) with Pointer-Events graph and resize interactions, verified across the 1024×768 / 1280×720 / 1600×900 desktop viewports plus minimal 390×844 support.
 - **Session restore** through a local workspace outside the repository.
 - **One-click Windows + WSL launcher** with a desktop shortcut.
 

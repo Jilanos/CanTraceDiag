@@ -407,18 +407,24 @@ function signalRow(sig) {
   if (sig.present === false) row.classList.add("absent");
   if (sel) { row.classList.add("on"); row.style.setProperty("--sw", sel.color); }
   const swatch = sel ? `<span class="swatch" style="background:${sel.color}"></span>` : `<span class="swatch"></span>`;
+  const fav = state.favorites.has(key);
+  const label = `${sig.message_name}.${sig.signal_name}`;
   row.innerHTML =
-    `<span class="star ${state.favorites.has(key) ? "on" : ""}" title="Favorite">★</span>` +
-    `<input type="checkbox" ${sel ? "checked" : ""}/>` +
+    `<span class="star ${fav ? "on" : ""}" role="button" tabindex="0" ` +
+      `aria-pressed="${fav}" aria-label="Toggle favorite for ${esc(label)}">★</span>` +
+    `<input type="checkbox" ${sel ? "checked" : ""} aria-label="Plot ${esc(label)}"/>` +
     swatch +
     `<span class="name">${esc(sig.message_name)}.<b>${esc(sig.signal_name)}</b></span>` +
     `<span class="unit">${esc(sig.unit || "")}${sig.present === false ? " · DBC" : ""}</span>`;
-  row.querySelector(".star").addEventListener("click", (e) => {
+  const toggleFav = (e) => {
     e.preventDefault(); e.stopPropagation();
     if (state.favorites.has(key)) state.favorites.delete(key); else state.favorites.add(key);
     store.set("favorites", [...state.favorites]);
     renderSignalList();
-  });
+  };
+  const star = row.querySelector(".star");
+  star.addEventListener("click", toggleFav);
+  star.addEventListener("keydown", (e) => { if (e.key === "Enter" || e.key === " ") toggleFav(e); });
   row.querySelector("input").addEventListener("change", (e) => toggleSignal(sig, e.target.checked));
   return row;
 }
@@ -728,10 +734,16 @@ function cursorNear(g, x) {
 let pan = null;              // active pan gesture
 let cursorDrag = null;       // "a" | "b" while dragging a cursor
 
-canvas.addEventListener("mousedown", (e) => {
+// Graph interactions use Pointer Events (AC13): one code path covers mouse, pen
+// and touch, with no mouse regression. `touch-action: none` on the canvas (CSS)
+// stops the browser from hijacking the gesture for scrolling.
+canvas.addEventListener("pointerdown", (e) => {
   if (!state.view) return;
   const g = plotGeom();
   const near = cursorNear(g, e.offsetX);
+  if (e.pointerId != null && canvas.setPointerCapture) {
+    try { canvas.setPointerCapture(e.pointerId); } catch { /* capture is best-effort */ }
+  }
   if (near) {
     // Pressing on a placed cursor grabs it immediately: dragging the cursor
     // takes priority over panning the graph. Panning starts only when the
@@ -744,7 +756,7 @@ canvas.addEventListener("mousedown", (e) => {
   pan = { x: e.offsetX, t0: state.view[0], t1: state.view[1], moved: false };
 });
 
-window.addEventListener("mousemove", (e) => {
+window.addEventListener("pointermove", (e) => {
   const g = plotGeom();
   const rect = canvas.getBoundingClientRect();
   const x = e.clientX - rect.left;
@@ -769,7 +781,7 @@ window.addEventListener("mousemove", (e) => {
   }
 });
 
-window.addEventListener("mouseup", (e) => {
+window.addEventListener("pointerup", (e) => {
   if (cursorDrag) {
     const which = cursorDrag; cursorDrag = null;
     canvas.style.cursor = "crosshair";
@@ -1085,7 +1097,16 @@ function renderTable(rows) {
     if (state.trace.selectedTs != null && row.timestamp_s === state.trace.selectedTs) tr.classList.add("selected");
     tr.innerHTML = vis.map((c) => `<td>${fmtCell(c, row[c.key])}</td>`).join("");
     tr.classList.add("expandable");
+    // Keyboard-operable, named rows (AC13).
+    tr.tabIndex = 0;
+    tr.setAttribute("role", "button");
+    tr.setAttribute("aria-label",
+      `${row.kind} at ${fmtTime(row.timestamp_s)}${row.id_hex ? " id " + row.id_hex : ""}` +
+      `${row.name ? " " + row.name : ""}`);
     tr.addEventListener("click", () => selectRow(row, tr));
+    tr.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); selectRow(row, tr); }
+    });
     tbody.appendChild(tr);
   });
 }
@@ -1289,19 +1310,18 @@ const COLLAPSE_AT = 90;   // dragging a panel narrower than this collapses it
 
 function wireSideResize(resizerId, panelId, btnId, side, key, collapsedKey, openGlyph, closedGlyph) {
   const resizer = $(resizerId), panel = $(panelId);
+  // Named, keyboard-operable separator (AC13).
+  resizer.setAttribute("role", "separator");
+  resizer.setAttribute("aria-orientation", "vertical");
+  resizer.setAttribute("tabindex", "0");
+  resizer.setAttribute("aria-label", `Resize ${panelId} panel (arrow keys)`);
   let dragging = false;
-  resizer.addEventListener("mousedown", (e) => { dragging = true; e.preventDefault(); document.body.style.userSelect = "none"; });
-  window.addEventListener("mouseup", () => {
-    if (!dragging) return;
-    dragging = false; document.body.style.userSelect = "";
+
+  const persist = () => {
     const collapsed = panel.classList.contains("collapsed");
     patchLayout(collapsed ? { [collapsedKey]: true } : { [collapsedKey]: false, [key]: panel.getBoundingClientRect().width });
-  });
-  window.addEventListener("mousemove", (e) => {
-    if (!dragging) return;
-    const rect = panel.getBoundingClientRect();
-    // Anchor point stays fixed; the resizer sits on the panel's inner edge.
-    const raw = side === "left" ? e.clientX - rect.left : rect.right - e.clientX;
+  };
+  const applyWidth = (raw) => {
     if (raw < COLLAPSE_AT) {
       setCollapsed(panelId, btnId, true, openGlyph, closedGlyph);   // slide to ~zero width
     } else {
@@ -1309,6 +1329,36 @@ function wireSideResize(resizerId, panelId, btnId, side, key, collapsedKey, open
       panel.style.width = Math.min(Math.max(raw, 150), 620) + "px";
     }
     renderPlot();
+  };
+
+  resizer.addEventListener("pointerdown", (e) => {
+    dragging = true; e.preventDefault(); document.body.style.userSelect = "none";
+    if (e.pointerId != null && resizer.setPointerCapture) {
+      try { resizer.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
+    }
+  });
+  window.addEventListener("pointerup", () => {
+    if (!dragging) return;
+    dragging = false; document.body.style.userSelect = "";
+    persist();
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    const rect = panel.getBoundingClientRect();
+    // Anchor point stays fixed; the resizer sits on the panel's inner edge.
+    const raw = side === "left" ? e.clientX - rect.left : rect.right - e.clientX;
+    applyWidth(raw);
+  });
+  // Keyboard resize: arrows nudge, Enter/Space toggles collapse.
+  resizer.addEventListener("keydown", (e) => {
+    const width = panel.getBoundingClientRect().width;
+    const grow = side === "left" ? "ArrowRight" : "ArrowLeft";
+    const shrink = side === "left" ? "ArrowLeft" : "ArrowRight";
+    if (e.key === grow) { applyWidth(width + 24); persist(); }
+    else if (e.key === shrink) { applyWidth(width - 24); persist(); }
+    else if (e.key === "Enter" || e.key === " ") { $(btnId).click(); }
+    else return;
+    e.preventDefault();
   });
 }
 
@@ -1390,23 +1440,44 @@ window.addEventListener("resize", debounce(() => { refreshTheme(); renderPlot();
 
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
-// vertical resize between plot and trace
+// vertical resize between plot and trace (Pointer Events + keyboard, AC13)
 (function () {
   const divider = $("divider"), traceWrap = $("traceWrap");
+  divider.setAttribute("role", "separator");
+  divider.setAttribute("aria-orientation", "horizontal");
+  divider.setAttribute("tabindex", "0");
+  divider.setAttribute("aria-label", "Resize plot and trace areas (arrow keys)");
   let dragging = false;
-  divider.addEventListener("mousedown", () => { dragging = true; document.body.style.userSelect = "none"; });
-  window.addEventListener("mouseup", () => {
+  const setHeight = (h) => {
+    const center = $("center");
+    const total = center.clientHeight;
+    traceWrap.style.height = Math.min(Math.max(h, 80), total - 120) + "px";
+    renderPlot();
+  };
+  divider.addEventListener("pointerdown", (e) => {
+    dragging = true; document.body.style.userSelect = "none";
+    if (e.pointerId != null && divider.setPointerCapture) {
+      try { divider.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
+    }
+  });
+  window.addEventListener("pointerup", () => {
     if (!dragging) return;
     dragging = false; document.body.style.userSelect = "";
     patchLayout({ traceH: traceWrap.getBoundingClientRect().height });
   });
-  window.addEventListener("mousemove", (e) => {
+  window.addEventListener("pointermove", (e) => {
     if (!dragging) return;
     const center = $("center");
-    const total = center.clientHeight;
     const fromTop = e.clientY - center.getBoundingClientRect().top;
-    traceWrap.style.height = Math.min(Math.max(total - fromTop, 80), total - 120) + "px";
-    renderPlot();
+    setHeight(center.clientHeight - fromTop);
+  });
+  divider.addEventListener("keydown", (e) => {
+    const h = traceWrap.getBoundingClientRect().height;
+    if (e.key === "ArrowUp") setHeight(h + 24);
+    else if (e.key === "ArrowDown") setHeight(h - 24);
+    else return;
+    e.preventDefault();
+    patchLayout({ traceH: traceWrap.getBoundingClientRect().height });
   });
 })();
 

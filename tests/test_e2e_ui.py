@@ -26,8 +26,14 @@ from pathlib import Path
 
 import pytest
 
-playwright_sync = pytest.importorskip("playwright.sync_api")
-from playwright.sync_api import sync_playwright  # noqa: E402
+# CI must run the E2E suite, so a missing Playwright is a hard failure there
+# rather than a silent skip (AC14); locally it self-skips.
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:  # pragma: no cover - depends on the environment
+    if os.environ.get("CI"):
+        raise
+    pytest.skip("playwright not installed", allow_module_level=True)
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -123,6 +129,10 @@ def browser():
         try:
             b = p.chromium.launch()
         except Exception as e:  # pragma: no cover - env without a usable browser
+            # In CI a browser that will not launch is a failure, not a silent
+            # skip, so viewport/accessibility coverage cannot quietly vanish (AC14).
+            if os.environ.get("CI"):
+                pytest.fail(f"Chromium must launch in CI (AC14): {e}")
             pytest.skip(f"Chromium unavailable: {e}")
         yield b
         b.close()
@@ -349,9 +359,92 @@ def test_narrow_viewport_keeps_critical_actions_reachable(browser, live_url):
     ctx = browser.new_context(viewport={"width": 390, "height": 844})
     pg = ctx.new_page()
     pg.goto(live_url)
-    for selector in ["#pickTraceBtn", "#pickDbcBtn", "#loadBtn", "#fitBtn", "#colBtn"]:
+    # Minimal 390x844 support: import, load, main filters, tab/section and export
+    # stay reachable within the viewport (AC14).
+    for selector in ["#pickTraceBtn", "#loadBtn", "#fId", "#exportBtn", "#reportBtn"]:
         box = pg.locator(selector).bounding_box()
         assert box is not None, selector
-        assert box["x"] >= 0
-        assert box["x"] + box["width"] <= 390
+        assert box["x"] >= 0, selector
+        assert box["x"] + box["width"] <= 390 + 1, selector
+    ctx.close()
+
+
+# The four viewports AC14 mandates; CI runs every one of them.
+_VIEWPORTS = [
+    (1024, 768),
+    (1280, 720),
+    (1600, 900),
+    (390, 844),
+]
+
+
+@pytest.mark.parametrize(("width", "height"), _VIEWPORTS)
+def test_no_horizontal_overflow_at_supported_viewports(browser, live_url, width, height):
+    ctx = browser.new_context(viewport={"width": width, "height": height})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    # No main control overflows horizontally: the document is not wider than the
+    # viewport (AC14).
+    overflow = pg.evaluate(
+        "() => document.documentElement.scrollWidth - window.innerWidth"
+    )
+    assert overflow <= 1, f"horizontal overflow of {overflow}px at {width}x{height}"
+    # Key controls sit within the viewport width at every desktop size.
+    if width >= 1024:
+        for selector in ["#loadBtn", "#exportBtn", "#reportBtn", "#fId", "#colBtn"]:
+            box = pg.locator(selector).bounding_box()
+            assert box is not None, selector
+            assert box["x"] + box["width"] <= width + 1, f"{selector} overflows at {width}"
+    ctx.close()
+
+
+def test_main_controls_have_accessible_names(browser, live_url):
+    """Automated accessibility check over the main paths (AC13)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    unnamed = pg.evaluate(
+        """
+        () => {
+          const sel = 'button, input, select, [role=button], [role=separator]';
+          return [...document.querySelectorAll(sel)]
+            .filter(el => el.offsetParent !== null || el.tagName === 'CANVAS')
+            .filter(el => {
+              const name = (el.getAttribute('aria-label') || el.textContent
+                || el.getAttribute('title') || el.getAttribute('placeholder') || '').trim();
+              return !name;
+            })
+            .map(el => el.id || el.className || el.tagName);
+        }
+        """
+    )
+    assert unnamed == [], f"controls without an accessible name: {unnamed}"
+
+
+def test_favorite_toggles_via_keyboard(browser, live_url):
+    """A favorite star is operable from the keyboard (AC13)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    star = pg.locator(".sig .star").first
+    star.wait_for()
+    before = star.get_attribute("aria-pressed")
+    star.focus()
+    pg.keyboard.press("Enter")
+    pg.wait_for_timeout(50)
+    after = pg.locator(".sig .star").first.get_attribute("aria-pressed")
+    assert before != after
+    ctx.close()
+
+
+def test_trace_dialogs_close_with_escape(browser, live_url):
+    """Dialogs are keyboard-dismissable (AC13)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.locator("#colBtn").click()
+    assert pg.locator("#colDialog").evaluate("d => d.open") is True
+    pg.keyboard.press("Escape")
+    pg.wait_for_timeout(50)
+    assert pg.locator("#colDialog").evaluate("d => d.open") is False
     ctx.close()

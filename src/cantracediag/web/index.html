@@ -62,6 +62,12 @@
   button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible {
     outline: 2px solid var(--accent); outline-offset: 2px;
   }
+  /* Keyboard focus for custom-role controls: favorite stars, resizers, rows (AC13). */
+  [role="button"]:focus-visible, [role="separator"]:focus-visible, tr.expandable:focus-visible {
+    outline: 2px solid var(--accent); outline-offset: -2px;
+  }
+  /* Pointer Events own the gesture; stop the browser hijacking touch (AC13). */
+  #plot, .side-resizer, .divider { touch-action: none; }
   input[type=text], input[type=number], select {
     background: var(--bg-deep); border: 1px solid var(--line); color: var(--fg);
     padding: 4px 7px; border-radius: 2px; font: 11.5px var(--mono);
@@ -155,8 +161,10 @@
   .star.on { color: var(--warn); }
 
   /* ================= CENTER: plot + trace ================= */
-  #center { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #plotArea { flex: 1; display: flex; flex-direction: column; min-height: 120px; }
+  /* min-width:0 lets the centre column shrink below its content so the plotbar
+     wraps and inner scroll areas take over — no horizontal overflow (AC14). */
+  #center { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
+  #plotArea { flex: 1; display: flex; flex-direction: column; min-height: 120px; min-width: 0; }
   .plotbar {
     display: flex; gap: 8px; align-items: center; padding: 5px 10px; flex-wrap: wrap;
     border-bottom: 1px solid var(--line); background: var(--panel); min-height: 34px;
@@ -183,7 +191,7 @@
   .mbadge.b .k { color: var(--accent); } .mbadge.b { border-color: #4f3a2a; }
   .mbadge.d .k { color: var(--ch2); }
 
-  #plotWrap { flex: 1; min-height: 80px; position: relative; background: var(--bg-deep); }
+  #plotWrap { flex: 1; min-height: 80px; min-width: 0; position: relative; background: var(--bg-deep); }
   #plot { width: 100%; height: 100%; display: block; cursor: crosshair; }
   #plotHint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; }
   #cursorReadout { border-top: 1px solid var(--line); background: var(--panel); max-height: 130px; overflow: auto; }
@@ -200,7 +208,7 @@
   .divider { height: 5px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
 
   /* ---- trace view ---- */
-  #traceWrap { height: 40%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
+  #traceWrap { height: 40%; display: flex; flex-direction: column; min-height: 0; min-width: 0; background: var(--panel); }
   .tracebar {
     display: flex; gap: 8px; align-items: center; padding: 5px 10px; flex-wrap: wrap;
     border-bottom: 1px solid var(--line); min-height: 36px;
@@ -209,7 +217,7 @@
   .tracebar label { color: var(--muted); display: flex; gap: 4px; align-items: center; font-size: 11px; }
   .tracebar input[type=text], .tracebar input[type=number] { width: 90px; }
   .tracebar .tw { width: 68px; }
-  #tableScroll { overflow: auto; flex: 1; }
+  #tableScroll { overflow: auto; flex: 1; min-width: 0; }
   table { border-collapse: collapse; width: 100%; font: 11.5px var(--mono); font-variant-numeric: tabular-nums; }
   th {
     position: sticky; top: 0; z-index: 1; background: var(--panel2);
@@ -315,10 +323,10 @@
     <div class="phead">
       <button class="collapse-btn" id="explorerToggle" title="Collapse / expand">‹</button>
       <span class="title">Signals</span>
-      <label class="kbd" title="Show favorites only"><input type="checkbox" id="favOnly" /> fav</label>
+      <label class="kbd" title="Show favorites only"><input type="checkbox" id="favOnly" aria-label="Show favorite signals only" /> fav</label>
     </div>
     <div class="pbody">
-      <input id="sigFilter" type="text" placeholder="signal, message, ID, unit…" />
+      <input id="sigFilter" type="text" placeholder="signal, message, ID, unit…" aria-label="Filter the signal list" />
       <div id="signalList"></div>
     </div>
   </aside>
@@ -362,16 +370,16 @@
     <div id="traceWrap">
       <div class="tracebar">
         <strong>Trace</strong>
-        <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" />
-        <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" />
-        <input type="text" id="fSignal" placeholder="Signal" title="Decoded signal name" />
-        <select id="fDir" title="Direction"><option value="">Dir</option><option>Rx</option><option>Tx</option></select>
-        <select id="fStatus" title="Decode status"><option value="">Status</option><option value="ok">ok</option><option value="unknown_id">unknown_id</option><option value="no_database">no_database</option><option value="ambiguous_id">ambiguous_id</option><option value="decode_error">decode_error</option></select>
-        <select id="fEvent" title="Event type"><option value="">Event</option></select>
-        <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" />
-        <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" />
-        <label><input type="checkbox" id="showFrames" checked /> frames</label>
-        <label><input type="checkbox" id="showEvents" checked /> events</label>
+        <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" aria-label="Filter by arbitration id (hex)" />
+        <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" aria-label="Filter by message or event name" />
+        <input type="text" id="fSignal" placeholder="Signal" title="Decoded signal name" aria-label="Filter by decoded signal name" />
+        <select id="fDir" title="Direction" aria-label="Filter by direction"><option value="">Dir</option><option>Rx</option><option>Tx</option></select>
+        <select id="fStatus" title="Decode status" aria-label="Filter by decode status"><option value="">Status</option><option value="ok">ok</option><option value="unknown_id">unknown_id</option><option value="no_database">no_database</option><option value="ambiguous_id">ambiguous_id</option><option value="decode_error">decode_error</option></select>
+        <select id="fEvent" title="Event type" aria-label="Filter by event type"><option value="">Event</option></select>
+        <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" aria-label="Filter start time in seconds" />
+        <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" aria-label="Filter end time in seconds" />
+        <label><input type="checkbox" id="showFrames" checked aria-label="Show data frames" /> frames</label>
+        <label><input type="checkbox" id="showEvents" checked aria-label="Show non-data events" /> events</label>
         <button class="ghost" id="clearFilters" title="Clear all filters">Reset</button>
         <button class="ghost" id="colBtn">Columns…</button>
         <div class="pager">

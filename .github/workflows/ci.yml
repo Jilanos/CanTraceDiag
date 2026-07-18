@@ -20,6 +20,10 @@ jobs:
         run: |
           python -m pip install -U pip
           python -m pip install -e ".[api,dev]"
+      - name: Install Playwright Chromium
+        # E2E viewport/accessibility tests must run in CI; with CI=true the
+        # suite fails (not skips) if the browser cannot launch (AC14).
+        run: python -m playwright install --with-deps chromium
       - name: Packaging smoke test
         run: |
           python -c "import cantracediag; print(cantracediag.__version__)"
@@ -28,3 +32,5 @@ jobs:
         run: ruff check .
       - name: Test
         run: pytest
+        env:
+          CI: "true"
