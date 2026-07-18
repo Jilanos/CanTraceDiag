@@ -8,7 +8,7 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 
 ## Core Features
 
-- **ASC + DBC import** from the browser or server-side paths.
+- **ASC + DBC import** from the browser or server-side paths, with parsing integrity checks that turn a truncated line, a payload/DLC mismatch, an out-of-range byte or an over-long classic DLC into an explicit import anomaly instead of a corrupt frame.
 - **Multi-DBC decoding** with ambiguous arbitration ID detection.
 - **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
 - **Instant measurements** with cursor values and time/value deltas.

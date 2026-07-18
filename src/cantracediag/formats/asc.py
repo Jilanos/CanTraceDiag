@@ -15,8 +15,12 @@ from pathlib import Path
 
 from cantracediag.models import NonDataEvent, RawCanFrame
 
-# A leading float timestamp is the reliable marker of a trace line.
-_TIMESTAMP = re.compile(r"^\s*(\d+(?:\.\d+)?)\s+(.*)$")
+# A leading float timestamp is the reliable marker of a trace line. Negative and
+# scientific-notation timestamps are accepted (AC12).
+_TIMESTAMP = re.compile(r"^\s*([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s+(.*)$")
+
+# Classic CAN tops out at 8 data bytes; a larger DLC on a non-FD line is invalid.
+_CLASSIC_MAX_DLC = 8
 
 
 @dataclass(slots=True)
@@ -169,9 +173,14 @@ def _parse_body(
         # CAN FD is out of MVP scope; preserve the raw line so nothing is lost.
         return None, NonDataEvent(timestamp, None, "CANFD", rest)
 
-    frame = _parse_data_frame(timestamp, tokens, base)
+    frame, anomaly = _parse_data_frame(timestamp, tokens, base)
     if frame is not None:
         return frame, None
+    if anomaly is not None:
+        # A data-frame line that failed integrity checks becomes an explicit
+        # import anomaly rather than a silently corrupted frame (AC12).
+        channel = tokens[0] if tokens else None
+        return None, NonDataEvent(timestamp, channel, "AscAnomaly", anomaly)
 
     return None, NonDataEvent(timestamp, None, "Other", rest)
 
@@ -191,10 +200,22 @@ def _status_fields(tokens: list[str]) -> tuple[str | None, str | None]:
 
 def _parse_data_frame(
     timestamp: float, tokens: list[str], base: int
-) -> RawCanFrame | None:
-    # Expected shape: <channel> <id>[x] <dir> <d|r> <dlc> [data...]
+) -> tuple[RawCanFrame | None, str | None]:
+    """Parse one data-frame line.
+
+    Returns ``(frame, None)`` on success, ``(None, reason)`` when the line is a
+    data-frame *attempt* that fails an integrity check (the caller records an
+    explicit anomaly, AC12), or ``(None, None)`` when the line is not a data
+    frame at all (the caller records a generic ``Other`` event).
+
+    Expected shape: ``<channel> <id>[x] <dir> <d|r> <dlc> [data...] [meta...]``.
+    """
+    # A data frame is recognised by an Rx/Tx direction in the third column; any
+    # other short line (e.g. "Start of measurement") is not a frame attempt.
+    if len(tokens) < 3 or tokens[2] not in {"Rx", "Tx"}:
+        return None, None
     if len(tokens) < 5:
-        return None
+        return None, "truncated data frame line"
 
     channel = tokens[0]
     id_token = tokens[1]
@@ -202,38 +223,47 @@ def _parse_data_frame(
     id_clean = id_token[:-1] if is_extended else id_token
     arbitration_id = _parse_int(id_clean, base)
     if arbitration_id is None:
-        return None
-
-    direction = tokens[2]
-    if direction not in {"Rx", "Tx"}:
-        return None
+        return None, f"invalid arbitration id {id_token!r}"
 
     kind = tokens[3].lower()
     if kind not in {"d", "r"}:
-        return None
+        return None, f"invalid frame kind {tokens[3]!r} (expected 'd' or 'r')"
     is_remote = kind == "r"
 
     dlc = _parse_int(tokens[4], 10)
-    if dlc is None or dlc < 0 or dlc > 64:
-        return None
+    if dlc is None or dlc < 0:
+        return None, f"invalid DLC {tokens[4]!r}"
+    if dlc > _CLASSIC_MAX_DLC:
+        return None, f"classic CAN DLC {dlc} exceeds {_CLASSIC_MAX_DLC}"
 
     data = b""
     if not is_remote:
-        data_tokens = tokens[5:5 + dlc]
-        try:
-            # Data bytes use the same numeric base as the file header
-            # (CANalyzer "base dec" emits decimal byte values).
-            data = bytes(int(byte, base) for byte in data_tokens)
-        except ValueError:
-            return None
+        # Leading numeric tokens are data bytes; the first non-numeric token
+        # begins trailing metadata ("Length =/BitCount =") which is ignored.
+        values: list[int] = []
+        for tok in tokens[5:]:
+            value = _parse_int(tok, base)
+            if value is None:
+                break
+            values.append(value)
+        if len(values) < dlc:
+            return None, f"payload shorter than DLC ({len(values)} < {dlc})"
+        if len(values) > dlc:
+            return None, f"payload longer than DLC ({len(values)} > {dlc})"
+        if any(v < 0 or v > 0xFF for v in values):
+            return None, "data byte out of range 0..255"
+        data = bytes(values)
 
-    return RawCanFrame(
-        timestamp_s=timestamp,
-        channel=channel,
-        arbitration_id=arbitration_id,
-        is_extended_id=is_extended,
-        dlc=dlc,
-        data=data,
-        direction=direction,
-        is_remote=is_remote,
+    return (
+        RawCanFrame(
+            timestamp_s=timestamp,
+            channel=channel,
+            arbitration_id=arbitration_id,
+            is_extended_id=is_extended,
+            dlc=dlc,
+            data=data,
+            direction=tokens[2],
+            is_remote=is_remote,
+        ),
+        None,
     )
