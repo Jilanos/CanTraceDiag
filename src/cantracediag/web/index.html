@@ -189,6 +189,13 @@
   #cursorReadout { border-top: 1px solid var(--line); background: var(--panel); max-height: 130px; overflow: auto; }
   #cursorReadout table { width: 100%; }
   #cursorReadout.empty { display: none; }
+  #statsReadout { border-top: 1px solid var(--line); background: var(--panel); max-height: 150px; overflow: auto; }
+  #statsReadout table { width: 100%; }
+  #statsReadout.empty { display: none; }
+  #statsReadout .stats-head { display: flex; gap: 10px; align-items: baseline; padding: 5px 8px 3px; position: sticky; top: 0; background: var(--panel); }
+  #statsReadout .stats-msg { color: var(--muted); font: 10.5px var(--mono); }
+  #statsReadout td .dist { color: var(--muted); }
+  #statsReadout td .none { color: var(--faint); }
 
   .divider { height: 5px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
 
@@ -337,6 +344,8 @@
         <button class="ghost" id="curABtn" title="Click plot to place cursor A">Cursor A</button>
         <button class="ghost" id="curBBtn" title="Click plot to place cursor B">Cursor B</button>
         <button class="ghost" id="curClearBtn" title="Clear cursors">Clear</button>
+        <button class="ghost" id="reportBtn" title="Import synthesis report">Report</button>
+        <button class="ghost" id="exportBtn" title="Export selected signals">Export…</button>
         <span class="hint">wheel: zoom · drag: pan · click: set cursor · drag on cursor: move it</span>
       </div>
       <div id="plotWrap">
@@ -344,6 +353,10 @@
         <div id="plotHint">Select signals to plot.</div>
       </div>
       <div id="cursorReadout" class="empty"><table><thead></thead><tbody></tbody></table></div>
+      <div id="statsReadout" class="empty">
+        <div class="stats-head"><span class="lbl">Range statistics (A–B)</span><span class="stats-msg" id="statsMsg"></span></div>
+        <table><thead></thead><tbody></tbody></table>
+      </div>
     </div>
     <div class="divider" id="divider"></div>
     <div id="traceWrap">
@@ -398,6 +411,42 @@
   <div id="colList"></div>
   <div style="text-align:right; margin-top:10px;">
     <button class="ghost" id="colClose">Done</button>
+  </div>
+</dialog>
+
+<dialog id="reportDialog">
+  <h3>Diagnostic report</h3>
+  <div id="reportBody"><p class="summary" style="text-align:left; margin:0">Loading…</p></div>
+  <div style="text-align:right; margin-top:12px;">
+    <button class="ghost" id="reportClose">Done</button>
+  </div>
+</dialog>
+
+<dialog id="exportDialog">
+  <h3>Export signals</h3>
+  <p class="summary" style="text-align:left; margin:0 0 10px">Export the selected signals over a chosen range. The long format has one
+    physical sample per row; the wide CSV aligns samples by timestamp without interpolation.</p>
+  <div class="col-row"><span class="lbl" style="width:70px">Signals</span><span id="exportSignals" class="picked" style="max-width:340px"></span></div>
+  <div class="col-row">
+    <span class="lbl" style="width:70px">Range</span>
+    <select id="exportScope">
+      <option value="between_ab">Between A and B</option>
+      <option value="visible">Visible window</option>
+      <option value="full">Full trace</option>
+    </select>
+  </div>
+  <div class="col-row">
+    <span class="lbl" style="width:70px">Format</span>
+    <select id="exportFormat">
+      <option value="csv">CSV (long)</option>
+      <option value="parquet">Parquet (long)</option>
+      <option value="csv_wide">CSV (wide)</option>
+    </select>
+  </div>
+  <p class="summary err" id="exportError" style="text-align:left; margin:8px 0 0" hidden></p>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+    <button class="ghost" id="exportCancel">Cancel</button>
+    <button id="exportRun">Export</button>
   </div>
 </dialog>
 

@@ -9,6 +9,7 @@ supplied either as uploads from the browser's native file picker
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import tempfile
@@ -19,11 +20,12 @@ from pathlib import Path
 
 import cantools
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
+from cantracediag import export
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
 from cantracediag.models import DecodedSignalSample
@@ -154,6 +156,29 @@ class ImportRequest(BaseModel):
 
 class ResolveRequest(BaseModel):
     resolution: dict[str, str] = {}
+
+
+class ExportSignal(BaseModel):
+    message: str
+    signal: str
+
+
+class ExportRequest(BaseModel):
+    signals: list[ExportSignal] = []
+    # "between_ab" and "visible" require start/end; "full" ignores them.
+    scope: str = "between_ab"
+    start: float | None = None
+    end: float | None = None
+    # "csv" and "parquet" use the canonical long schema; "csv_wide" pivots by
+    # timestamp without interpolation.
+    format: str = "csv"
+
+
+_EXPORT_FORMATS = {
+    "csv": ("text/csv", "csv"),
+    "csv_wide": ("text/csv", "csv"),
+    "parquet": ("application/vnd.apache.parquet", "parquet"),
+}
 
 
 def create_app(workspace: Workspace | None = None) -> FastAPI:
@@ -676,6 +701,140 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
                 return {"signals": []}
             _, samples = _decoder().decode_frame(frame)
             return {"signals": [_sample_payload(sample) for sample in samples]}
+
+    @app.get("/api/report")
+    def api_report() -> dict:
+        """Import synthesis for the Report view (AC1).
+
+        Combines the analysed file and DBC selection with the acquisition
+        summary: time range and duration, volumes (frames, events, ids), the
+        DBCs actually credited with a decode, and anomalies grouped by type
+        (decode failures plus non-data ASC events).
+        """
+        with session.use_store() as store:
+            summary = store.summary()
+            usage = store.dbc_usage()
+        status = summary.get("decode_status", {})
+        start_s, end_s = summary.get("start_s"), summary.get("end_s")
+        duration = (
+            end_s - start_s if start_s is not None and end_s is not None else None
+        )
+        anomalies = {
+            "unknown_id": int(status.get("unknown_id", 0) or 0),
+            "ambiguous_id": int(status.get("ambiguous_id", 0) or 0),
+            "decode_error": int(status.get("decode_error", 0) or 0),
+            # Non-data ASC events (ErrorFrame, Status, Other, CANFD, …) are the
+            # trace-level anomalies distinct from decode failures.
+            "asc_events": {k: int(v) for k, v in summary.get("event_types", {}).items()},
+        }
+        return {
+            "trace_path": session.trace_path,
+            "asc_base": session.asc_base,
+            "dbc_paths": session.dbc_paths,
+            "dbcs_used": usage,
+            "start_s": start_s,
+            "end_s": end_s,
+            "duration_s": duration,
+            "frames": summary.get("frames", 0),
+            "events": summary.get("events", 0),
+            "decoded_frames": summary.get("decoded_frames", 0),
+            "unique_ids": summary.get("unique_ids", 0),
+            "decode_status": status,
+            "anomalies": anomalies,
+        }
+
+    @app.get("/api/signal-stats")
+    def api_signal_stats(
+        message: str,
+        signal: str,
+        start: float | None = None,
+        end: float | None = None,
+    ) -> dict:
+        """Range statistics for one signal between two bounds (AC3)."""
+        with session.use_store() as store:
+            _ensure_series_cached(store, message, signal, start, end)
+            return store.signal_stats(message, signal, start, end)
+
+    @app.post("/api/export")
+    def api_export(req: ExportRequest) -> StreamingResponse:
+        """Stream selected signals over a chosen range as CSV or Parquet (AC2).
+
+        The export is generated incrementally from DuckDB so memory does not
+        grow with the number of exported rows. ``scope`` selects the range:
+        ``between_ab`` and ``visible`` use the supplied ``start``/``end``;
+        ``full`` exports the whole trace.
+        """
+        if not req.signals:
+            raise HTTPException(400, "Select at least one signal to export.")
+        if req.format not in _EXPORT_FORMATS:
+            raise HTTPException(400, f"Unknown export format: {req.format}")
+        if req.scope not in {"between_ab", "visible", "full"}:
+            raise HTTPException(400, f"Unknown export scope: {req.scope}")
+        if req.scope == "full":
+            start, end = None, None
+        else:
+            if req.start is None or req.end is None:
+                raise HTTPException(400, f"Scope '{req.scope}' requires start and end.")
+            start, end = min(req.start, req.end), max(req.start, req.end)
+
+        pairs = [(s.message, s.signal) for s in req.signals]
+        media_type, suffix = _EXPORT_FORMATS[req.format]
+
+        # Hold the store for the whole response: the streaming body is consumed
+        # after this function returns, so it is released in the generators'
+        # finally clauses (or after the Parquet file is fully written).
+        with session._lock:
+            store = session.store
+        if store is None or not store.acquire():
+            raise HTTPException(409, "No trace loaded. POST /api/import first.")
+        try:
+            for message, signal in pairs:
+                _ensure_series_cached(store, message, signal, start, end)
+        except Exception:
+            store.release()
+            raise
+
+        filename = f"cantracediag_export.{suffix}"
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+
+        if req.format == "parquet":
+            # Parquet needs a seekable sink, so it is written to a temp file
+            # (one batch at a time, bounded memory) and then streamed out.
+            fd, tmp_path = tempfile.mkstemp(prefix="ctd_export_", suffix=".parquet")
+            try:
+                with os.fdopen(fd, "wb") as sink:
+                    export.long_parquet(
+                        store.iter_export_batches(pairs, start, end), sink
+                    )
+            except Exception:
+                os.unlink(tmp_path)
+                raise
+            finally:
+                store.release()
+
+            def _file_iter():
+                try:
+                    with open(tmp_path, "rb") as handle:
+                        while chunk := handle.read(1 << 16):
+                            yield chunk
+                finally:
+                    os.unlink(tmp_path)
+
+            return StreamingResponse(_file_iter(), media_type=media_type, headers=headers)
+
+        if req.format == "csv_wide":
+            labels = [export.signal_label(m, s) for m, s in pairs]
+            body = export.wide_csv(store.iter_export_batches(pairs, start, end), labels)
+        else:
+            body = export.long_csv(store.iter_export_batches(pairs, start, end))
+
+        def _stream():
+            try:
+                yield from body
+            finally:
+                store.release()
+
+        return StreamingResponse(_stream(), media_type=media_type, headers=headers)
 
     @app.get("/api/import-job")
     def api_import_job() -> dict:
