@@ -178,11 +178,12 @@ CanTraceDiag exposes a local FastAPI API used by the UI:
 - `GET /api/status`: session state;
 - `GET /api/signals`: signal catalog;
 - `GET /api/series`: windowed/downsampled series;
-- `GET /api/cursor`: nearest cursor value;
+- `GET /api/cursor`: nearest cursor value for one signal (bounded lookup);
+- `POST /api/cursors`: nearest values for N signals at cursors A and B in one call;
 - `GET /api/signal-stats`: range statistics for one signal between two bounds;
 - `GET /api/report`: import synthesis (volumes, DBCs used, anomalies by type);
 - `POST /api/export`: streamed CSV/Parquet export of selected signals over a range;
-- `GET /api/trace`: paginated and filtered trace view;
+- `GET /api/trace`: filtered trace view, paginated by opaque keyset cursor;
 - `GET /api/frame-signals`: decoded signals for one frame;
 - `GET /api/dbc-library`: DBC library;
 - `POST /api/workspace-purge`: cache and last-analysis purge.

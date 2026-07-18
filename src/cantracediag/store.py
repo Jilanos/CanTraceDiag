@@ -8,6 +8,9 @@ The database file lives outside Git (see ``.gitignore``).
 
 from __future__ import annotations
 
+import base64
+import binascii
+import json
 import threading
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -157,10 +160,18 @@ class TraceStore:
 
     # -- ingestion ---------------------------------------------------------
 
-    def ingest_frames(self, frames: Iterable[RawCanFrame], seq_start: int = 0) -> int:
+    def ingest_frames(
+        self,
+        frames: Iterable[RawCanFrame],
+        seq_start: int = 0,
+        seqs: list[int] | None = None,
+    ) -> int:
+        frames = list(frames)
+        if seqs is None:
+            seqs = [seq_start + i for i in range(len(frames))]
         rows = [
             {
-                "seq": seq_start + i,
+                "seq": seqs[i],
                 "timestamp_s": f.timestamp_s,
                 "channel": f.channel,
                 "arbitration_id": f.arbitration_id,
@@ -178,10 +189,18 @@ class TraceStore:
         ]
         return self._append("frames", rows)
 
-    def ingest_events(self, events: Iterable[NonDataEvent], seq_start: int = 0) -> int:
+    def ingest_events(
+        self,
+        events: Iterable[NonDataEvent],
+        seq_start: int = 0,
+        seqs: list[int] | None = None,
+    ) -> int:
+        events = list(events)
+        if seqs is None:
+            seqs = [seq_start + i for i in range(len(events))]
         rows = [
             {
-                "seq": seq_start + i,
+                "seq": seqs[i],
                 "timestamp_s": e.timestamp_s,
                 "channel": e.channel,
                 "event_type": e.event_type,
@@ -524,19 +543,22 @@ class TraceStore:
     def nearest_frame_for_signal(
         self, arbitration_id: int, at_s: float
     ) -> RawCanFrame | None:
-        row = self._one(
-            """
-            SELECT timestamp_s, channel, arbitration_id, is_extended_id, dlc,
-                   data_hex, direction, is_remote, message_name, decode_status, dbc_source
-            FROM frames
-            WHERE arbitration_id = ?
-            ORDER BY abs(timestamp_s - ?)
-            LIMIT 1
-            """,
-            [arbitration_id, at_s],
+        """Frame of ``arbitration_id`` nearest to ``at_s`` (AC8).
+
+        Bounded like :meth:`nearest_sample`: one lookup before and one after,
+        never a distance sort over every frame of the id.
+        """
+        candidates = self._nearest_rows(
+            "frames",
+            "timestamp_s, channel, arbitration_id, is_extended_id, dlc, "
+            "data_hex, direction, is_remote, message_name, decode_status, dbc_source",
+            ["arbitration_id = ?"],
+            [arbitration_id],
+            at_s,
         )
-        if row is None:
+        if not candidates:
             return None
+        row = min(candidates, key=lambda r: abs(r[0] - at_s))
         return _frame_from_record({
             "timestamp_s": row[0],
             "channel": row[1],
@@ -653,28 +675,60 @@ class TraceStore:
     def nearest_sample(
         self, message_name: str, signal_name: str, at_s: float
     ) -> dict | None:
-        """Nearest sample by absolute time distance — no interpolation (AC5)."""
-        row = self._one(
-            """
-            SELECT timestamp_s, value_num, value_text, unit
-            FROM samples
-            WHERE message_name = ? AND signal_name = ?
-            ORDER BY abs(timestamp_s - ?)
-            LIMIT 1
-            """,
-            [message_name, signal_name, at_s],
+        """Nearest sample to ``at_s`` — no interpolation (AC8).
+
+        Uses at most one bounded lookup before ``at_s`` and one after, each
+        ordered on the raw timestamp with ``LIMIT 1`` (never a sort by absolute
+        distance over every sample), then keeps the closer of the two. A
+        synthetic benchmark asserts this stays two bounded queries so the hot
+        cursor path never regresses to a full scan.
+        """
+        candidates = self._nearest_rows(
+            "samples",
+            "timestamp_s, value_num, value_text, unit",
+            ["message_name = ?", "signal_name = ?"],
+            [message_name, signal_name],
+            at_s,
         )
-        if row is None:
+        if not candidates:
             return None
+        row = min(candidates, key=lambda r: abs(r[0] - at_s))
         return {
             "timestamp_s": row[0],
             "value": row[1] if row[1] is not None else row[2],
             "unit": row[3],
         }
 
+    def _nearest_rows(
+        self,
+        table: str,
+        columns: str,
+        clauses: list[str],
+        params: list[object],
+        at_s: float,
+    ) -> list[tuple]:
+        """Return the row just at/before ``at_s`` and the one just at/after it.
+
+        Two bounded ``LIMIT 1`` queries (one ``<=`` descending, one ``>=``
+        ascending), so the number of queries is constant regardless of how many
+        rows the table holds (AC8).
+        """
+        prefix = " AND ".join([*clauses, ""]) if clauses else ""
+        before = self._one(
+            f"SELECT {columns} FROM {table} WHERE {prefix}timestamp_s <= ? "
+            f"ORDER BY timestamp_s DESC LIMIT 1",
+            [*params, at_s],
+        )
+        after = self._one(
+            f"SELECT {columns} FROM {table} WHERE {prefix}timestamp_s >= ? "
+            f"ORDER BY timestamp_s ASC LIMIT 1",
+            [*params, at_s],
+        )
+        return [row for row in (before, after) if row is not None]
+
     def trace_rows(
         self,
-        offset: int = 0,
+        cursor: str | None = None,
         limit: int = 200,
         start_s: float | None = None,
         end_s: float | None = None,
@@ -688,35 +742,70 @@ class TraceStore:
         signal: str | None = None,
         signal_ids: list[int] | None = None,
     ) -> dict:
-        """Time-ordered, paginated view mixing frames and events (AC4, AC6).
+        """Deterministically ordered, cursor-paginated frames+events (AC9).
 
-        Every filter is combinable and applied server-side so the browser never
-        loads the whole trace. ``id_hex``/``message`` match case-insensitive
-        substrings; the rest match exactly.
+        Rows are totally ordered by the canonical ``(timestamp_s, seq)`` key and
+        paginated with an opaque keyset ``cursor`` instead of ``OFFSET`` so the
+        same row is never duplicated or skipped across pages, even when several
+        rows share a timestamp. Every filter is combinable and applied
+        server-side. ``id_hex``/``message`` match case-insensitive substrings;
+        the rest match exactly.
         """
+        limit = max(1, int(limit))
         union, params = self._trace_union(
             start_s, end_s, include_frames, include_events,
             id_hex, message, direction, decode_status, event_type, signal, signal_ids,
         )
         if union is None:
-            return {"total": 0, "offset": offset, "limit": limit, "rows": []}
+            return {
+                "total": 0, "limit": limit, "start_index": 0,
+                "rows": [], "next_cursor": None, "prev_cursor": None,
+            }
 
-        total = self._one(
-            f"SELECT count(*) FROM ({union})", list(params)
-        )[0]
-        rows = self._df(
-            f"""
-            SELECT * FROM ({union})
-            ORDER BY timestamp_s
-            LIMIT {int(limit)} OFFSET {int(offset)}
-            """,
-            list(params),
+        total = int(self._one(f"SELECT count(*) FROM ({union})", list(params))[0])
+        mode, key = _decode_cursor(cursor)
+
+        key_sql, key_params, descending = _keyset_predicate(mode, key)
+        order = "DESC" if descending else "ASC"
+        where = f"WHERE {key_sql}" if key_sql else ""
+        rows_df = self._df(
+            f"SELECT * FROM ({union}) {where} "
+            f"ORDER BY timestamp_s {order}, seq {order} LIMIT {limit}",
+            [*params, *key_params],
+        )
+        rows = _records(rows_df)
+        if descending:
+            rows.reverse()
+
+        if not rows:
+            return {
+                "total": total, "limit": limit, "start_index": total,
+                "rows": [], "next_cursor": None, "prev_cursor": None,
+            }
+
+        first_key = (float(rows[0]["timestamp_s"]), int(rows[0]["seq"]))
+        last_key = (float(rows[-1]["timestamp_s"]), int(rows[-1]["seq"]))
+        # Ordinal of the first row = rows strictly before it in canonical order.
+        start_index = int(self._one(
+            f"SELECT count(*) FROM ({union}) "
+            f"WHERE (timestamp_s < ? OR (timestamp_s = ? AND seq < ?))",
+            [*params, first_key[0], first_key[0], first_key[1]],
+        )[0])
+        prev_cursor = (
+            None if start_index == 0
+            else _encode_cursor("before", *first_key)
+        )
+        next_cursor = (
+            None if start_index + len(rows) >= total
+            else _encode_cursor("after", *last_key)
         )
         return {
             "total": total,
-            "offset": offset,
             "limit": limit,
-            "rows": _records(rows),
+            "start_index": start_index,
+            "rows": rows,
+            "next_cursor": next_cursor,
+            "prev_cursor": prev_cursor,
         }
 
     def locate_row(
@@ -734,36 +823,41 @@ class TraceStore:
         signal: str | None = None,
         signal_ids: list[int] | None = None,
     ) -> dict:
-        """Row index of the trace row nearest to ``at_s`` under active filters.
+        """Locate the trace row nearest to ``at_s`` under active filters (AC9).
 
-        Powers graph-to-trace synchronization (AC3): the UI pages to the index
-        so the nearest frames become visible and can be highlighted.
+        Powers graph-to-trace synchronization: returns the row's canonical
+        ordinal and an opaque ``cursor`` that opens the page starting exactly on
+        that row, so the located frame is always visible and highlightable. The
+        nearest row is found with two bounded lookups (one before, one after),
+        never a distance sort over the whole trace.
         """
         union, params = self._trace_union(
             start_s, end_s, include_frames, include_events,
             id_hex, message, direction, decode_status, event_type, signal, signal_ids,
         )
+        empty = {"total": 0, "index": None, "timestamp_s": None, "seq": None, "cursor": None}
         if union is None:
-            return {"total": 0, "index": None, "timestamp_s": None}
-        total = self._one(
-            f"SELECT count(*) FROM ({union})", list(params)
-        )[0]
-        # Rows strictly before the nearest sit ahead of it in time order.
-        row = self._one(
-            f"""
-            WITH ordered AS (
-                SELECT timestamp_s,
-                       row_number() OVER (ORDER BY timestamp_s) - 1 AS idx
-                FROM ({union})
-            )
-            SELECT idx, timestamp_s FROM ordered
-            ORDER BY abs(timestamp_s - ?) , idx LIMIT 1
-            """,
-            [*params, at_s],
+            return empty
+        total = int(self._one(f"SELECT count(*) FROM ({union})", list(params))[0])
+        candidates = self._nearest_rows(
+            f"({union})", "timestamp_s, seq", [], list(params), at_s
         )
-        if row is None:
-            return {"total": total, "index": None, "timestamp_s": None}
-        return {"total": total, "index": int(row[0]), "timestamp_s": row[1]}
+        if not candidates:
+            return {**empty, "total": total}
+        ts, seq = min(candidates, key=lambda r: abs(r[0] - at_s))
+        ts, seq = float(ts), int(seq)
+        index = int(self._one(
+            f"SELECT count(*) FROM ({union}) "
+            f"WHERE (timestamp_s < ? OR (timestamp_s = ? AND seq < ?))",
+            [*params, ts, ts, seq],
+        )[0])
+        return {
+            "total": total,
+            "index": index,
+            "timestamp_s": ts,
+            "seq": seq,
+            "cursor": _encode_cursor("at", ts, seq),
+        }
 
     def _trace_union(
         self,
@@ -799,7 +893,7 @@ class TraceStore:
             where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
             selects.append(
                 f"""
-                SELECT timestamp_s, channel, 'frame' AS kind, id_hex,
+                SELECT timestamp_s, seq, channel, 'frame' AS kind, id_hex,
                        message_name AS name, direction, dlc, data_hex,
                        decode_status, dbc_source, NULL AS detail
                 FROM frames {where}
@@ -813,7 +907,7 @@ class TraceStore:
             where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
             selects.append(
                 f"""
-                SELECT timestamp_s, channel, 'event' AS kind, NULL AS id_hex,
+                SELECT timestamp_s, seq, channel, 'event' AS kind, NULL AS id_hex,
                        event_type AS name, NULL AS direction, NULL AS dlc,
                        NULL AS data_hex, NULL AS decode_status,
                        NULL AS dbc_source, detail
@@ -948,6 +1042,52 @@ class TraceStore:
 def _f(value: object) -> float | None:
     """Coerce a DuckDB aggregate result to a plain float (NULL -> None)."""
     return None if value is None else float(value)
+
+
+# -- opaque keyset cursors (AC9) ------------------------------------------
+# A cursor is an opaque base64 token wrapping the canonical key of a boundary
+# row and the direction to read from it: ``after``/``at`` page forward (``at``
+# includes the boundary row, so a located row lands first on its page),
+# ``before`` pages backward.
+_CURSOR_MODES = {"after", "at", "before"}
+
+
+def _encode_cursor(mode: str, timestamp_s: float, seq: int) -> str:
+    payload = json.dumps({"m": mode, "t": float(timestamp_s), "s": int(seq)})
+    return base64.urlsafe_b64encode(payload.encode()).decode()
+
+
+def _decode_cursor(cursor: str | None) -> tuple[str | None, tuple[float, int] | None]:
+    """Return ``(mode, (timestamp_s, seq))`` for a token, ``(None, None)`` for
+    the first page. Raises ``ValueError`` on a malformed token."""
+    if not cursor:
+        return None, None
+    try:
+        payload = json.loads(base64.urlsafe_b64decode(cursor.encode()))
+        mode = payload["m"]
+        key = (float(payload["t"]), int(payload["s"]))
+    except (ValueError, KeyError, TypeError, binascii.Error) as exc:
+        raise ValueError(f"Invalid trace cursor: {cursor!r}") from exc
+    if mode not in _CURSOR_MODES:
+        raise ValueError(f"Invalid trace cursor mode: {mode!r}")
+    return mode, key
+
+
+def _keyset_predicate(
+    mode: str | None, key: tuple[float, int] | None
+) -> tuple[str, list[object], bool]:
+    """SQL keyset predicate, its params, and whether the page reads descending."""
+    if mode is None or key is None:
+        return "", [], False
+    ts, seq = key
+    if mode == "before":
+        return "(timestamp_s < ? OR (timestamp_s = ? AND seq < ?))", [ts, ts, seq], True
+    op = ">=" if mode == "at" else ">"
+    return (
+        f"(timestamp_s > ? OR (timestamp_s = ? AND seq {op} ?))",
+        [ts, ts, seq],
+        False,
+    )
 
 
 def _id_hex(arbitration_id: int, is_extended: bool) -> str:

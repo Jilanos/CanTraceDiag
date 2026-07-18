@@ -57,10 +57,18 @@ def test_trace_rows_merge_frames_and_events() -> None:
 
 def test_trace_rows_pagination() -> None:
     store, _ = _store()
-    first = store.trace_rows(offset=0, limit=3)
-    second = store.trace_rows(offset=3, limit=3)
+    first = store.trace_rows(limit=3)
+    second = store.trace_rows(cursor=first["next_cursor"], limit=3)
     assert len(first["rows"]) == 3
-    assert first["rows"][0]["timestamp_s"] <= second["rows"][0]["timestamp_s"]
+    assert first["start_index"] == 0
+    assert first["prev_cursor"] is None
+    assert first["next_cursor"] is not None
+    assert second["start_index"] == 3
+    assert first["rows"][-1]["timestamp_s"] <= second["rows"][0]["timestamp_s"]
+    # No row is shared across the two pages (keyset pagination, AC9).
+    keys_first = {(r["timestamp_s"], r["seq"]) for r in first["rows"]}
+    keys_second = {(r["timestamp_s"], r["seq"]) for r in second["rows"]}
+    assert keys_first.isdisjoint(keys_second)
     store.close()
 
 

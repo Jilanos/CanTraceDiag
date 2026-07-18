@@ -73,25 +73,30 @@ def import_trace(
     store = store or TraceStore(db_path)
 
     frame_batch: list[RawCanFrame] = []
+    frame_seqs: list[int] = []
     sample_batch: list = []
     event_batch: list[NonDataEvent] = []
-    frames_seen = 0
-    events_seen = 0
+    event_seqs: list[int] = []
+    # One global sequence shared by frames and events, assigned in file order.
+    # This makes ``(timestamp_s, seq)`` a canonical, gap-free total order so the
+    # trace view is deterministic even when frames and events share a timestamp
+    # (AC9); a per-table counter would let a frame and an event collide on
+    # ``(timestamp_s, seq)``.
+    seq = 0
 
     def flush() -> None:
-        nonlocal frames_seen, events_seen
         if frame_batch:
-            store.ingest_frames(frame_batch, seq_start=frames_seen)
-            frames_seen += len(frame_batch)
+            store.ingest_frames(frame_batch, seqs=frame_seqs)
             frame_batch.clear()
+            frame_seqs.clear()
         if sample_batch:
             for start in range(0, len(sample_batch), _BATCH):
                 store.ingest_samples(sample_batch[start:start + _BATCH])
             sample_batch.clear()
         if event_batch:
-            store.ingest_events(event_batch, seq_start=events_seen)
-            events_seen += len(event_batch)
+            store.ingest_events(event_batch, seqs=event_seqs)
             event_batch.clear()
+            event_seqs.clear()
 
     try:
         total_bytes = Path(trace_path).stat().st_size
@@ -116,9 +121,12 @@ def import_trace(
                     updated, _ = decoder.describe_frame(item)
                     samples = []
                 frame_batch.append(updated)
+                frame_seqs.append(seq)
                 sample_batch.extend(samples)
             else:
                 event_batch.append(item)
+                event_seqs.append(seq)
+            seq += 1
             if (
                 len(frame_batch) >= _BATCH
                 or len(event_batch) >= _BATCH

@@ -44,7 +44,7 @@ const state = {
   bounds: null,                     // [t0, t1] full data extent
   view: null,                       // [t0, t1] visible window
   cursor: { a: null, b: null, arm: "a" },
-  trace: { offset: 0, limit: 200, total: 0, rows: [], selectedTs: null },
+  trace: { limit: 200, total: 0, rows: [], selectedTs: null, startIndex: 0, nextCursor: null, prevCursor: null },
   seriesToken: 0,
   grid: store.get("grid", true),
   pendingConflicts: null,
@@ -274,7 +274,7 @@ async function onLoaded(r) {
   await loadSignals();
   await restoreSelected();
   renderPlot();
-  await loadTrace(0);
+  await loadTrace(null);
   clearInspector();
   loadLibrary();   // a fresh import may have added DBCs to the library
 }
@@ -809,22 +809,21 @@ async function refreshCursorReadout() {
   if ((a == null && b == null) || !state.selected.length) { box.classList.add("empty"); return; }
   box.classList.remove("empty");
 
-  // Nearest real samples come from the server (no interpolation, exact).
-  const at = async (t) => {
-    if (t == null) return {};
-    const out = {};
-    await Promise.all(state.selected.map(async (s) => {
-      try {
-        const r = await api(`/api/cursor?message=${encodeURIComponent(s.message)}&signal=${encodeURIComponent(s.signal)}&at=${t}`);
-        out[favSig(s)] = r;
-      } catch (err) {
-        console.warn("Cursor sample lookup failed", err);
-        out[favSig(s)] = null;
-      }
-    }));
-    return out;
-  };
-  const [va, vb] = await Promise.all([at(a), at(b)]);
+  // Nearest real samples for every selected signal at A and B in one bounded
+  // call (AC8): no interpolation, exact, and no per-signal request fan-out.
+  let va = {}, vb = {};
+  try {
+    const batch = await api("/api/cursors", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        signals: state.selected.map((s) => ({ message: s.message, signal: s.signal })),
+        a, b,
+      }),
+    });
+    va = batch.a || {}; vb = batch.b || {};
+  } catch (err) {
+    console.warn("Cursor batch lookup failed", err);
+  }
 
   const head = `<tr><th>Signal</th><th>A</th><th>B</th><th>Δ (B−A)</th></tr>`;
   let rows = "";
@@ -998,9 +997,9 @@ async function locateInTrace(t) {
   params.set("at", t);
   try {
     const loc = await api(`/api/trace-locate?${params}`);
-    if (loc.index == null) return;
-    const page = Math.floor(loc.index / state.trace.limit) * state.trace.limit;
-    await loadTrace(page, loc.timestamp_s);
+    if (loc.cursor == null) return;
+    // The opaque cursor opens the page that starts on the located row (AC9).
+    await loadTrace(loc.cursor, loc.timestamp_s);
   } catch (err) {
     reportError(err, "Trace locate failed");
   }
@@ -1030,23 +1029,28 @@ function persistFilters() {
   });
 }
 
-async function loadTrace(offset, highlightTs) {
+// Cursor-paginated trace load (AC9). `cursor` is an opaque keyset token from a
+// previous page or a locate; null loads the first page.
+async function loadTrace(cursor, highlightTs) {
   const params = traceFilterParams();
-  params.set("offset", offset);
+  if (cursor != null) params.set("cursor", cursor);
   params.set("limit", state.trace.limit);
   try {
     const r = await api(`/api/trace?${params}`);
-    state.trace.offset = r.offset; state.trace.total = r.total; state.trace.rows = r.rows;
+    state.trace.total = r.total; state.trace.rows = r.rows;
+    state.trace.startIndex = r.start_index;
+    state.trace.nextCursor = r.next_cursor; state.trace.prevCursor = r.prev_cursor;
     if (highlightTs !== undefined) state.trace.selectedTs = highlightTs;
     renderTable(r.rows);
-    const from = r.total ? r.offset + 1 : 0;
-    const to = Math.min(r.offset + state.trace.limit, r.total);
+    const from = r.total ? r.start_index + 1 : 0;
+    const to = r.start_index + r.rows.length;
     $("pageInfo").textContent = `${from}–${to} of ${r.total}`;
-    $("prevBtn").disabled = r.offset <= 0;
-    $("nextBtn").disabled = to >= r.total;
+    $("prevBtn").disabled = r.prev_cursor == null;
+    $("nextBtn").disabled = r.next_cursor == null;
     return true;
   } catch (err) {
     state.trace.rows = [];
+    state.trace.nextCursor = state.trace.prevCursor = null;
     renderTable([]);
     $("pageInfo").textContent = "0-0 of 0";
     $("prevBtn").disabled = true;
@@ -1351,7 +1355,7 @@ function armButtons() {
   $("curBBtn").classList.toggle("active", state.cursor.arm === "b");
 }
 
-const reloadTrace = () => { persistFilters(); loadTrace(0); };
+const reloadTrace = () => { persistFilters(); loadTrace(null); };
 for (const id of ["fId", "fMsg", "fSignal", "fStart", "fEnd"]) $(id).addEventListener("input", debounce(reloadTrace, 250));
 for (const id of ["fDir", "fStatus", "fEvent"]) $(id).addEventListener("change", reloadTrace);
 $("showFrames").addEventListener("change", reloadTrace);
@@ -1362,8 +1366,8 @@ $("clearFilters").addEventListener("click", () => {
   $("showFrames").checked = true; $("showEvents").checked = true;
   reloadTrace();
 });
-$("prevBtn").addEventListener("click", () => loadTrace(Math.max(0, state.trace.offset - state.trace.limit)));
-$("nextBtn").addEventListener("click", () => loadTrace(state.trace.offset + state.trace.limit));
+$("prevBtn").addEventListener("click", () => { if (state.trace.prevCursor != null) loadTrace(state.trace.prevCursor); });
+$("nextBtn").addEventListener("click", () => { if (state.trace.nextCursor != null) loadTrace(state.trace.nextCursor); });
 $("colBtn").addEventListener("click", () => { renderColDialog(); $("colDialog").showModal(); });
 $("colClose").addEventListener("click", () => $("colDialog").close());
 $("reportBtn").addEventListener("click", openReportDialog);

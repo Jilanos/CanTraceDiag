@@ -163,6 +163,12 @@ class ExportSignal(BaseModel):
     signal: str
 
 
+class CursorBatchRequest(BaseModel):
+    signals: list[ExportSignal] = []
+    a: float | None = None
+    b: float | None = None
+
+
 class ExportRequest(BaseModel):
     signals: list[ExportSignal] = []
     # "between_ab" and "visible" require start/end; "full" ignores them.
@@ -626,27 +632,53 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             _ensure_series_cached(store, message, signal, start, end)
             return store.signal_series(message, signal, start, end, max_points)
 
+    def _resolve_cursor(store: TraceStore, message: str, signal: str, at: float):
+        """Nearest sample for one signal at ``at`` (AC8): a cached sample if
+        present, else the signal decoded from the nearest frame on demand."""
+        sample = store.nearest_sample(message, signal, at)
+        if sample is not None:
+            return sample
+        info = _signal_info(message, signal)
+        frame = store.nearest_frame_for_signal(info.arbitration_id, at)
+        decoded = _decoder().decode_signal(frame, message, signal) if frame else None
+        if decoded is None:
+            return None
+        return {
+            "timestamp_s": decoded.timestamp_s,
+            "value": decoded.value,
+            "unit": decoded.unit,
+        }
+
     @app.get("/api/cursor")
     def api_cursor(message: str, signal: str, at: float) -> dict:
         with session.use_store() as store:
-            sample = store.nearest_sample(message, signal, at)
-            if sample is None:
-                info = _signal_info(message, signal)
-                frame = store.nearest_frame_for_signal(info.arbitration_id, at)
-                decoded = _decoder().decode_signal(frame, message, signal) if frame else None
-                if decoded is not None:
-                    sample = {
-                        "timestamp_s": decoded.timestamp_s,
-                        "value": decoded.value,
-                        "unit": decoded.unit,
-                    }
+            sample = _resolve_cursor(store, message, signal, at)
         if sample is None:
             raise HTTPException(404, "No sample for that signal.")
         return sample
 
+    @app.post("/api/cursors")
+    def api_cursors(req: CursorBatchRequest) -> dict:
+        """Nearest values for N signals at cursors A and B in one call (AC8).
+
+        Collapses the per-signal, per-cursor round-trips the readout used to fire
+        into a single bounded request; each lookup stays two bounded queries.
+        """
+        with session.use_store() as store:
+            out: dict[str, dict] = {}
+            for label, at in (("a", req.a), ("b", req.b)):
+                if at is None:
+                    out[label] = {}
+                    continue
+                out[label] = {
+                    f"{s.message}.{s.signal}": _resolve_cursor(store, s.message, s.signal, at)
+                    for s in req.signals
+                }
+        return out
+
     @app.get("/api/trace")
     def api_trace(
-        offset: int = 0,
+        cursor: str | None = None,
         limit: int = 200,
         start: float | None = None,
         end: float | None = None,
@@ -661,12 +693,15 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
     ) -> dict:
         limit = max(1, min(limit, 2000))
         with session.use_store() as store:
-            return store.trace_rows(
-                offset, limit, start, end, frames, events,
-                id_hex=id, message=message, direction=direction,
-                decode_status=status, event_type=event_type, signal=signal,
-                signal_ids=_signal_ids_matching(signal),
-            )
+            try:
+                return store.trace_rows(
+                    cursor, limit, start, end, frames, events,
+                    id_hex=id, message=message, direction=direction,
+                    decode_status=status, event_type=event_type, signal=signal,
+                    signal_ids=_signal_ids_matching(signal),
+                )
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
 
     @app.get("/api/trace-locate")
     def api_trace_locate(

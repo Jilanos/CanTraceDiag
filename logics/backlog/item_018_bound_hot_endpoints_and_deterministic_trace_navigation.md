@@ -1,10 +1,10 @@
 ## item_018_bound_hot_endpoints_and_deterministic_trace_navigation - Bound hot endpoints and deterministic trace navigation
 > From version: 0.1.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -60,6 +60,7 @@ ce qui rend le cout et l'ordre fragiles sur les acquisitions volumineuses.
 - Hybrid rationale: Derived from request `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag.md`.
 - Generated locally by logics-manager.
+- Task `task_018_bound_hot_endpoints_and_deterministic_trace_navigation` was finished via `logics-manager flow finish task` on 2026-07-18.
 
 # Tasks
 - `task_018_bound_hot_endpoints_and_deterministic_trace_navigation`
