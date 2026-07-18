@@ -1,9 +1,9 @@
 ## item_010_p1_livrer_export_et_completude_diagnostic - P1 Livrer export et completude diagnostic
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
-> Understanding: 90%
-> Confidence: 85%
+> Status: Obsolete
+> Understanding: 100%
+> Confidence: 100%
 > Progress: 0%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
@@ -46,6 +46,7 @@ Réduire la dette : parsing ASC robuste aux lignes tronquées et timestamps nég
 - Architecture decision(s): (none yet)
 - Request: `logics/request/req_003_robustesse_execution_et_completude_post_audit_2026_07_16.md`
 - Primary task(s): (none yet)
+- Superseded by: `item_017_deliver_diagnostic_report_statistics_and_exports`
 
 # AI Context
 - Summary: P1 Livrer export et completude diagnostic

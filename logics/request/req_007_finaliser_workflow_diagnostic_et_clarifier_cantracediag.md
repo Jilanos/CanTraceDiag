@@ -2,8 +2,8 @@
 > From version: 0.1.0
 > Schema version: 1.0
 > Status: Ready
-> Understanding: 95%
-> Confidence: 90%
+> Understanding: 100%
+> Confidence: 95%
 > Complexity: high
 > Theme: product-clarity-and-diagnostic-completeness
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
@@ -55,23 +55,30 @@
 - Conserver l'identite visuelle « instrument de mesure » et la densite desktop ; la
   clarification passe par une hierarchie de modes et d'etats, pas par une page
   marketing ni une simplification qui masque les donnees utiles.
-- Structurer l'espace de travail en trois vues explicites : `Analyse` (signaux,
-  graphes, curseurs, statistiques), `Trace` (filtres, table, navigation, inspecteur)
-  et `Rapport` (qualite d'import, couverture DBC, erreurs, decisions et exports).
-- Choisir une langue produit unique pour l'interface et les messages utilisateur.
-  Les identifiants techniques d'API peuvent rester en anglais, avec libelles lisibles
-  dans l'UI.
+- Structurer l'espace de travail en trois onglets centraux explicites : `Analysis`
+  (signaux, graphes, curseurs, statistiques), `Trace` (filtres, table, navigation,
+  inspecteur) et `Report` (synthese d'import, DBC utilisees, anomalies, duree et
+  exports). L'explorateur de signaux et l'etat de session persistent entre les onglets.
+- Utiliser exclusivement l'anglais pour l'interface, les actions, les messages
+  utilisateur, les etats vides et la documentation utilisateur. Les statuts techniques
+  d'API conservent leur valeur brute en anglais et recoivent un libelle explicite.
 - L'export cible d'abord les signaux selectionnes et la plage ordonnee delimitee par
   A/B. CSV et Parquet sont generes en flux depuis DuckDB sans materialisation complete
   en memoire.
+- Le format long (`timestamp`, `message`, `signal`, `value`, `unit`) est le schema
+  canonique CSV/Parquet. Un CSV large optionnel aligne les timestamps sans interpolation
+  et laisse les valeurs absentes vides.
 - Les statistiques de plage minimales sont nombre d'echantillons, minimum, maximum,
   moyenne, ecart-type et RMS pour chaque signal numerique selectionne.
+- Les signaux textuels ou enumeres affichent le nombre d'echantillons et la repartition
+  des valeurs, sans statistiques numeriques artificielles.
 - La navigation de trace reste serveur : ordre canonique `(timestamp_s, seq)`,
   curseurs de page opaques et recherche bornee avant/apres un timestamp. L'UI ne
   charge jamais toute l'acquisition.
 - La securite suit un modele d'application locale type Jupyter : hote local par
   defaut, allowlist Host, controle Origin, jeton de session pour les mutations et
-  taille maximale configurable. Le mode LAN reste explicite et protege.
+  taille maximale configurable. En mode LAN, le jeton protege toute l'API et l'import
+  par chemin serveur est desactive.
 - Conserver Python, FastAPI, DuckDB et le frontend natif. La modularisation JavaScript
   ne doit pas introduire de framework et expose une surface E2E stable
   `window.__ctd`.
@@ -81,7 +88,7 @@
   statistiques A/B, erreurs contextualisees et integrite du parsing ASC.
 - P0 - Securite locale : Host, Origin, jeton des mutations, plafond d'upload et
   restriction documentee de l'import par chemin serveur.
-- P1 - Clarte du parcours : vues Analyse/Trace/Rapport, langue produit coherente,
+- P1 - Clarte du parcours : vues Analysis/Trace/Report, interface tout en anglais,
   criteres actifs visibles, etats vides et presets de disposition.
 - P1 - Performance : curseur borne et batch, ordre stable, pagination par curseur,
   localisation coherente et budgets de performance reproductibles.
@@ -89,24 +96,28 @@
   modules frontend, dependances nettoyees et documentation Logics resynchronisee.
 
 # Acceptance criteria
-- AC1: Une vue `Rapport` liste pour chaque ID arbitre le nombre de trames, le message,
-  la DBC retenue, l'origine de la decision (unique, equivalente ou choix operateur),
-  les statuts `unknown_id`, `ambiguous_id` et `decode_error`, avec acces depuis l'etat
-  global de la session.
+- AC1: Une vue `Report` fournit une synthese de l'import avec le fichier analyse, la
+  plage temporelle et sa duree, les DBC effectivement utilisees, le nombre de trames,
+  d'evenements et d'IDs, ainsi que les anomalies regroupees par type (`unknown_id`,
+  `ambiguous_id`, `decode_error` et anomalies ASC). Elle est accessible depuis l'etat
+  global sans imposer un inventaire detaille par ID.
 - AC2: L'utilisateur exporte en CSV et Parquet les signaux selectionnes sur la plage
-  ordonnee `[min(A,B), max(A,B)]` ou, sans deux curseurs, sur la vue ou toute la trace.
-  L'export est streame et un test prouve que la memoire ne croit pas avec le nombre
-  total de lignes exportees.
-- AC3: La vue Analyse affiche par signal numerique selectionne le nombre
+  explicitement choisie dans le dialogue : `Between A and B`, `Visible window` ou
+  `Full trace`. Le format long canonique est disponible en CSV et Parquet ; un CSV
+  large optionnel n'interpole pas les signaux. L'export est streame et un test prouve
+  que la memoire ne croit pas avec le nombre total de lignes exportees.
+- AC3: La vue `Analysis` affiche par signal numerique selectionne le nombre
   d'echantillons, le minimum, le maximum, la moyenne, l'ecart-type et le RMS entre A
-  et B. Les unites et l'absence de donnees sont explicites.
-- AC4: L'interface propose les vues `Analyse`, `Trace` et `Rapport` sans perdre l'etat
-  courant. A 1600x900, l'action principale et le statut de session sont identifies en
-  moins d'un niveau de navigation, et les presets de disposition `Graphes`, `Trace`
-  et `Diagnostic complet` restaurent des layouts persistants.
-- AC5: Tous les libelles et messages utilisateur suivent une langue produit unique.
-  Les statuts techniques disposent d'un libelle comprehensible et leur valeur brute
-  reste disponible pour l'audit.
+  et B. Pour un signal textuel ou enumere, elle affiche le nombre d'echantillons et la
+  repartition des valeurs. Les unites et l'absence de donnees sont explicites.
+- AC4: L'interface propose les onglets `Analysis`, `Trace` et `Report` sans perdre
+  l'etat courant ; l'explorateur de signaux et le statut de session restent presents.
+  A 1600x900, l'action principale et le statut sont identifies en moins d'un niveau de
+  navigation, et les presets `Plots`, `Trace` et `Full diagnostic` restaurent des
+  layouts persistants.
+- AC5: Tous les libelles, actions, messages, etats vides et contenus de documentation
+  utilisateur sont en anglais. Les statuts techniques disposent d'un libelle anglais
+  comprehensible et leur valeur brute reste disponible pour l'audit.
 - AC6: Une erreur de serie, table, inspecteur ou export est affichee dans le composant
   concerne avec une action de relance quand elle est pertinente. Elle ne remplace pas
   le resume global, ne bloque pas les autres composants et ne laisse pas un controle
@@ -123,9 +134,9 @@
   ligne n'est dupliquee ou omise et `trace-locate` ouvre la page contenant exactement
   la ligne retournee.
 - AC10: L'API rejette un Host ou une Origin non autorises, exige un jeton de session
-  sur les endpoints mutateurs, limite la taille d'upload via une configuration
-  documentee et n'expose pas de chemin local dans ses messages d'erreur. Des tests
-  hostiles couvrent chaque cas.
+  sur les endpoints mutateurs en boucle locale et sur tous les endpoints en mode LAN,
+  limite la taille d'upload via une configuration documentee et n'expose pas de chemin
+  local dans ses messages d'erreur. Des tests hostiles couvrent chaque cas.
 - AC11: L'import par chemin serveur est desactive hors boucle locale ou derriere une
   option explicite protegee. Le lancement `--lan` ne rend jamais la lecture arbitraire
   de fichiers accessible sans jeton.
@@ -137,7 +148,9 @@
   sont nommes et utilisables au clavier. Les interactions de graphe et de resize
   utilisent les Pointer Events sans regression souris ; une verification automatisee
   d'accessibilite couvre les parcours principaux.
-- AC14: Aucun controle principal ne deborde a 1024x768, 1280x720, 1600x900 et 390x844.
+- AC14: Aucun controle principal ne deborde a 1024x768, 1280x720 et 1600x900. A
+  390x844, le support reste minimal : import, chargement, selection d'onglet, filtres
+  principaux et export restent accessibles sans promettre l'espace de travail complet.
   Les E2E executent ces quatre viewports et echouent en CI si Chromium ne peut pas se
   lancer au lieu de passer par skip silencieux.
 - AC15: `app.js` et le CSS embarque sont decoupes par domaines `core`, `import`,
@@ -153,13 +166,19 @@
   remonte aucun blocage nouveau pour cette chaine.
 
 # Suggested delivery slices
-- Slice 1 - Rapport d'import, statistiques A/B et exports CSV/Parquet : AC1-AC3.
-- Slice 2 - Hierarchie Analyse/Trace/Rapport, langue, erreurs et filtres : AC4-AC7.
-- Slice 3 - Endpoints chauds et navigation deterministe : AC8-AC9.
-- Slice 4 - Securite locale et import par chemin : AC10-AC11.
-- Slice 5 - Integrite ASC : AC12.
-- Slice 6 - Accessibilite et responsive : AC13-AC14.
-- Slice 7 - Modularisation, dependances, CI et documentation : AC15-AC17.
+- Slice 1 - Synthese d'import, statistiques A/B et exports CSV/Parquet : AC1-AC3.
+- Slice 2 - Endpoints chauds et navigation deterministe : AC8-AC9.
+- Slice 3 - Securite locale et import par chemin : AC10-AC11.
+- Slice 4 - Integrite ASC : AC12.
+- Slice 5 - Accessibilite et responsive minimal : AC13-AC14.
+- Slice 6 - Modularisation, dependances, CI et documentation technique : AC15-AC17,
+  hors changements de hierarchie visuelle reserves a la slice finale.
+- Slice 7 - Clarte UI finale : onglets Analysis/Trace/Report, anglais integral,
+  erreurs contextualisees, filtres actifs, etats vides et presets : AC4-AC7.
+- Chaque slice est livree dans un commit autonome comprenant implementation, tests et
+  documentation associee. Aucun commit ne melange deux slices ; la slice 7 termine la
+  sequence afin que la refonte de clarte repose sur les contrats fonctionnels et les
+  modules stabilises par les six commits precedents.
 
 # Out of scope
 - Replay temps reel, connexion a un vehicule ou emission de trames CAN.
@@ -196,7 +215,8 @@
 - Le rapport d'import doit reutiliser les donnees deja indexees et ne pas declencher
   un second decodage complet.
 - Un theme clair n'est pas exige par cette requete : il peut etre traite ensuite sans
-  retarder la clarte fonctionnelle, sous reserve de conserver les tokens CSS.
+  retarder la clarte fonctionnelle, sous reserve de conserver les tokens CSS. Aucun
+  travail de theme clair n'est attendu dans les sept slices.
 
 # Companion docs
 - Product brief(s): `prod_002_product_brief_cantracediag_mvp`
@@ -228,4 +248,10 @@
   ou une fonction deja livree sans regression prouvee.
 
 # Backlog
-- none
+- `item_017_deliver_diagnostic_report_statistics_and_exports`
+- `item_018_bound_hot_endpoints_and_deterministic_trace_navigation`
+- `item_019_harden_local_and_lan_api_security`
+- `item_020_enforce_asc_parsing_integrity`
+- `item_021_improve_accessibility_and_minimal_responsive_support`
+- `item_022_modularize_frontend_and_align_dependencies_ci_and_docs`
+- `item_023_clarify_final_ui_workflow_in_english`

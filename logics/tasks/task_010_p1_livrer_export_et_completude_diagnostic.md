@@ -1,19 +1,19 @@
 ## task_010_p1_livrer_export_et_completude_diagnostic - P1 Livrer export et completude diagnostic
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
-> Understanding: 90%
-> Confidence: 85%
+> Status: Obsolete
+> Understanding: 100%
+> Confidence: 99%
 > Progress: 0%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 
 # Definition of Done (DoD)
-- [ ] The backlog scope is implemented.
-- [ ] Acceptance criteria are covered.
-- [ ] Validation passes.
-- [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
+- [x] Withdrawn before implementation; no delivery is claimed.
+- [x] Replacement task is linked in the workflow indicators.
+- [x] No code or validation proof is attributed to this obsolete task.
+- [x] Remaining scope is carried by `task_017_deliver_diagnostic_report_statistics_and_exports`.
 
 # Backlog
 - `item_010_p1_livrer_export_et_completude_diagnostic`
@@ -44,3 +44,4 @@
 - Request: `req_003_robustesse_execution_et_completude_post_audit_2026_07_16`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+- Superseded by: `task_017_deliver_diagnostic_report_statistics_and_exports`

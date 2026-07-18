@@ -1,19 +1,20 @@
 ## task_013_p2_reduire_dette_parsing_maintenance_ci - P2 Reduire dette parsing maintenance CI
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
-> Understanding: 90%
-> Confidence: 85%
+> Status: Obsolete
+> Understanding: 100%
+> Confidence: 99%
 > Progress: 0%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 
 # Definition of Done (DoD)
-- [ ] The backlog scope is implemented.
-- [ ] Acceptance criteria are covered.
-- [ ] Validation passes.
-- [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
+- [x] Withdrawn before implementation; no delivery is claimed.
+- [x] Replacement request is linked in the workflow indicators.
+- [x] No code or validation proof is attributed to this obsolete task.
+- [x] Remaining scope is split between `task_020_enforce_asc_parsing_integrity` and
+  `task_022_modularize_frontend_and_align_dependencies_ci_and_docs`.
 
 # Backlog
 - `item_013_p2_reduire_dette_parsing_maintenance_ci`
@@ -46,3 +47,4 @@
 - Request: `req_003_robustesse_execution_et_completude_post_audit_2026_07_16`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+- Superseded by: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`

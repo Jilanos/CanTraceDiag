@@ -1,9 +1,9 @@
 ## req_003_robustesse_execution_et_completude_post_audit_2026_07_16 - Robustifier et compléter CanTraceDiag après audit du 16 juillet 2026
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
-> Understanding: Corriger la robustesse d'exécution (import asynchrone réel, concurrence de session, erreurs UI), optimiser les endpoints chauds, livrer l'export et les compléments diagnostic, durcir la sécurité locale, puis traiter design, accessibilité et dette.
-> Confidence: high
+> Status: Obsolete
+> Understanding: 100%
+> Confidence: 100%
 > Complexity: high
 > Theme: quality-hardening
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
@@ -215,3 +215,6 @@
 - `item_011_p1_durcir_securite_locale`
 - `item_012_p2_ameliorer_ui_accessibilite_responsive`
 - `item_013_p2_reduire_dette_parsing_maintenance_ci`
+
+# Links
+- Superseded by: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`

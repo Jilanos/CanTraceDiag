@@ -1,9 +1,9 @@
 ## item_013_p2_reduire_dette_parsing_maintenance_ci - P2 Reduire dette parsing maintenance CI
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
-> Understanding: 90%
-> Confidence: 85%
+> Status: Obsolete
+> Understanding: 100%
+> Confidence: 100%
 > Progress: 0%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
@@ -48,6 +48,7 @@ Réduire la dette : parsing ASC robuste aux lignes tronquées et timestamps nég
 - Architecture decision(s): (none yet)
 - Request: `logics/request/req_003_robustesse_execution_et_completude_post_audit_2026_07_16.md`
 - Primary task(s): (none yet)
+- Superseded by: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`
 
 # AI Context
 - Summary: P2 Reduire dette parsing maintenance CI
