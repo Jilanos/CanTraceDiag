@@ -3,21 +3,14 @@ combinable trace filters, graph/trace locate, and DBC conflict resolution."""
 
 from pathlib import Path
 
-import pytest
 from starlette.testclient import TestClient
 
-from cantracediag.api import create_app
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
 from cantracediag.models import DECODE_OK, DecodedSignalSample, NonDataEvent, RawCanFrame
 from cantracediag.store import TraceStore
 
 FIX = Path(__file__).parent / "fixtures"
-
-
-@pytest.fixture
-def client() -> TestClient:
-    return TestClient(create_app())
 
 
 # -- server-side downsampling (AC9) ---------------------------------------

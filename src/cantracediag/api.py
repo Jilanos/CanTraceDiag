@@ -19,8 +19,8 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import cantools
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
@@ -30,10 +30,12 @@ from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
 from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
+from cantracediag.security import SecurityConfig
 from cantracediag.store import TraceStore
 from cantracediag.workspace import Workspace
 
 _WEB_DIR = Path(__file__).parent / "web"
+_TOKEN_HEADER = "x-ctd-token"
 
 
 class Pending:
@@ -187,13 +189,34 @@ _EXPORT_FORMATS = {
 }
 
 
-def create_app(workspace: Workspace | None = None) -> FastAPI:
+def create_app(
+    workspace: Workspace | None = None,
+    security: SecurityConfig | None = None,
+) -> FastAPI:
     app = FastAPI(title="CanTraceDiag", version="0.1.0")
     session = Session()
     session.workspace = workspace or Workspace.from_env()
+    cfg = security or SecurityConfig.from_env()
     # Exposed so a test (or an embedding process) can reach the live session,
-    # e.g. to close the store connection when simulating a server restart.
+    # e.g. to close the store connection when simulating a server restart, and
+    # read the per-process session token.
     app.state.ctd_session = session
+    app.state.ctd_security = cfg
+
+    @app.middleware("http")
+    async def _guard(request: Request, call_next):
+        # DNS-rebinding and cross-site defences run before any handler (AC10).
+        if not cfg.host_allowed(request.headers.get("host")):
+            return JSONResponse({"detail": "Host not allowed."}, status_code=403)
+        if not cfg.origin_allowed(request.headers.get("origin")):
+            return JSONResponse({"detail": "Origin not allowed."}, status_code=403)
+        if cfg.requires_token(request.url.path, request.method):
+            provided = request.headers.get(_TOKEN_HEADER) or request.query_params.get("token")
+            if not cfg.token_ok(provided):
+                return JSONResponse(
+                    {"detail": "Missing or invalid session token."}, status_code=401
+                )
+        return await call_next(request)
 
     def _prepare(
         trace: Path,
@@ -430,14 +453,21 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
 
     @app.post("/api/import")
     def api_import(req: ImportRequest) -> dict:
-        """Import by server-side path (CLI/power users; accepts Windows/UNC paths)."""
+        """Import by server-side path (CLI/power users; accepts Windows/UNC paths).
+
+        Reading an arbitrary server path is disabled outside loopback unless
+        explicitly re-enabled, so ``--lan`` never exposes the filesystem (AC11).
+        Error messages never echo the resolved local path (AC10).
+        """
+        if not cfg.allow_server_import:
+            raise HTTPException(403, "Server-side path import is disabled.")
         trace = Path(normalize_local_path(req.trace_path)).expanduser()
         if not trace.is_file():
-            raise HTTPException(404, f"Trace not found: {trace}")
+            raise HTTPException(404, "Trace file not found.")
         dbc_paths = [Path(normalize_local_path(d)).expanduser() for d in req.dbc_paths]
         for dbc in dbc_paths:
             if not dbc.is_file():
-                raise HTTPException(404, f"DBC not found: {dbc}")
+                raise HTTPException(404, "DBC file not found.")
         try:
             return _prepare(
                 trace, dbc_paths, str(trace), [str(p) for p in dbc_paths],
@@ -448,6 +478,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
 
     @app.post("/api/import-files")
     async def api_import_files(
+        request: Request,
         trace: UploadFile = File(...),
         dbcs: list[UploadFile] = File(default=[]),
         library: list[str] = Form(default=[]),
@@ -469,11 +500,17 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
         if not (trace.filename or "").lower().endswith(".asc"):
             raise HTTPException(400, "Trace file must be a .asc file.")
 
+        # Reject oversized uploads early via the declared length, then enforce
+        # the cap while streaming so a lying Content-Length cannot bypass it (AC10).
+        declared = request.headers.get("content-length")
+        if declared is not None and declared.isdigit() and int(declared) > cfg.max_upload_bytes:
+            raise HTTPException(413, "Upload exceeds the configured size limit.")
+
         tmpdir = Path(tempfile.mkdtemp(prefix="ctd_"))
         keep_tmpdir = False
         try:
             trace_path = tmpdir / _safe_name(trace.filename)
-            await _spool(trace, trace_path)
+            await _spool(trace, trace_path, cfg.max_upload_bytes)
 
             dbc_paths: list[Path] = []
             display_dbcs: list[str] = []
@@ -487,7 +524,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
                     raise HTTPException(400, f"Duplicate DBC basename: {safe}")
                 seen_names.add(safe)
                 dest = tmpdir / safe
-                await _spool(upload, dest)
+                await _spool(upload, dest, cfg.max_upload_bytes)
                 dbc_paths.append(dest)
                 display_dbcs.append(Path(name).name)
 
@@ -892,8 +929,15 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
         return {"cancelled": True}
 
     @app.get("/")
-    def index() -> FileResponse:
-        return FileResponse(_WEB_DIR / "index.html")
+    def index() -> HTMLResponse:
+        # Embed the session token in the shell so same-origin scripts can send it
+        # (AC10). Cross-origin pages cannot read this document, so the token is
+        # only exposed to a legitimately served UI. In LAN mode the middleware
+        # already required the token to reach this route.
+        html = (_WEB_DIR / "index.html").read_text(encoding="utf-8")
+        meta = f'<meta name="ctd-token" content="{cfg.token}" />'
+        html = html.replace("</head>", f"{meta}\n</head>", 1)
+        return HTMLResponse(html)
 
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon() -> FileResponse:
@@ -972,10 +1016,19 @@ def normalize_local_path(raw: str) -> str:
     return s
 
 
-async def _spool(upload: UploadFile, dest: Path) -> None:
-    """Stream an uploaded file to disk in chunks (handles large traces)."""
+async def _spool(upload: UploadFile, dest: Path, max_bytes: int | None = None) -> None:
+    """Stream an uploaded file to disk in chunks (handles large traces).
+
+    Enforces ``max_bytes`` while streaming so an upload cannot exceed the
+    configured cap even if it lies about its Content-Length (AC10).
+    """
+    written = 0
     with open(dest, "wb") as handle:
         while chunk := await upload.read(1 << 20):
+            written += len(chunk)
+            if max_bytes is not None and written > max_bytes:
+                await upload.close()
+                raise HTTPException(413, "Upload exceeds the configured size limit.")
             handle.write(chunk)
     await upload.close()
 

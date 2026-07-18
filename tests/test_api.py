@@ -6,16 +6,10 @@ import pytest
 from starlette.testclient import TestClient
 
 import cantracediag.api as api_module
-from cantracediag.api import create_app
 from cantracediag.decode import Decoder
 from cantracediag.pipeline import import_trace
 
 FIX = Path(__file__).parent / "fixtures"
-
-
-@pytest.fixture
-def client() -> TestClient:
-    return TestClient(create_app())
 
 
 def _import(client: TestClient):

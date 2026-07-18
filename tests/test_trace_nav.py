@@ -13,17 +13,11 @@ from pathlib import Path
 import pytest
 from starlette.testclient import TestClient
 
-from cantracediag.api import create_app
 from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import import_trace
 from cantracediag.store import TraceStore
 
 FIX = Path(__file__).parent / "fixtures"
-
-
-@pytest.fixture
-def client() -> TestClient:
-    return TestClient(create_app())
 
 
 def _same_ts_store() -> TraceStore:

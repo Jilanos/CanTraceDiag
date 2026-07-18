@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from starlette.testclient import TestClient
+from conftest import make_client
 
 from cantracediag.api import create_app
 from cantracediag.workspace import Workspace
@@ -68,7 +68,7 @@ def test_ephemeral_persists_nothing(tmp_path: Path) -> None:
 def test_session_restore_after_restart(tmp_path: Path) -> None:
     ws1 = _persistent(tmp_path)
     app1 = create_app(ws1)
-    c1 = TestClient(app1)
+    c1 = make_client(app1)
     r = c1.post(
         "/api/import",
         json={"trace_path": str(FIX / "sample.asc"), "dbc_paths": [str(FIX / "sample.dbc")]},
@@ -82,7 +82,7 @@ def test_session_restore_after_restart(tmp_path: Path) -> None:
     app1.state.ctd_session.store.close()
 
     app2 = create_app(Workspace(ws1.root, ephemeral=False))
-    c2 = TestClient(app2)
+    c2 = make_client(app2)
     status = c2.get("/api/status").json()
     assert status["loaded"] is True                       # AC6: restored
     assert status["summary"]["frames"] == frames          # no re-import/re-parse
@@ -95,7 +95,7 @@ def test_corrupt_manifest_starts_empty(tmp_path: Path) -> None:
     ws = _persistent(tmp_path)
     ws.manifest_path.write_text("{ this is not valid json ")
     app = create_app(Workspace(ws.root, ephemeral=False))  # must not crash (AC7)
-    c = TestClient(app)
+    c = make_client(app)
     assert c.get("/api/status").json() == {"loaded": False}
 
 
@@ -108,7 +108,7 @@ def test_missing_library_dbc_starts_empty(tmp_path: Path) -> None:
         "dbcs": [{"digest": "missing", "name": "gone.dbc"}], "resolution": {},
     }))
     app = create_app(Workspace(ws.root, ephemeral=False))
-    c = TestClient(app)
+    c = make_client(app)
     assert c.get("/api/status").json() == {"loaded": False}
 
 
@@ -116,7 +116,7 @@ def test_missing_library_dbc_starts_empty(tmp_path: Path) -> None:
 def test_import_files_reuses_library_dbc(tmp_path: Path) -> None:
     ws = _persistent(tmp_path)
     app = create_app(ws)
-    c = TestClient(app)
+    c = make_client(app)
 
     asc = (FIX / "sample.asc").read_bytes()
     dbc = (FIX / "sample.dbc").read_bytes()

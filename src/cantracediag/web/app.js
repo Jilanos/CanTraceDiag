@@ -78,8 +78,18 @@ let columns = loadColumns();
 const saveColumns = () => store.set("columns", columns);
 
 /* ---- API helpers -------------------------------------------------------- */
+// Per-process session token embedded by the server in the page shell (AC10).
+// Sent on every request so mutations (local mode) and all endpoints (LAN mode)
+// authenticate; cross-origin pages cannot read it.
+const CTD_TOKEN = document.querySelector('meta[name="ctd-token"]')?.content || "";
+function withToken(opts = {}) {
+  const headers = new Headers(opts.headers || {});
+  if (CTD_TOKEN) headers.set("X-CTD-Token", CTD_TOKEN);
+  return { ...opts, headers };
+}
+
 async function api(path, opts) {
-  const res = await fetch(path, opts);
+  const res = await fetch(path, withToken(opts));
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     const detail = typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail);
@@ -98,6 +108,7 @@ function uploadWithProgress(url, formData, onProgress, onUploadComplete) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.open("POST", url);
+    if (CTD_TOKEN) xhr.setRequestHeader("X-CTD-Token", CTD_TOKEN);
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
     xhr.upload.onload = () => { onProgress(1); if (onUploadComplete) onUploadComplete(); };
     xhr.onload = () => {
@@ -957,10 +968,10 @@ async function runExport() {
     payload.start = state.view[0]; payload.end = state.view[1];
   }
   try {
-    const resp = await fetch("/api/export", {
+    const resp = await fetch("/api/export", withToken({
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload),
-    });
+    }));
     if (!resp.ok) {
       let detail = `Export failed (${resp.status})`;
       try { const j = await resp.json(); if (j.detail) detail = j.detail; } catch { /* keep default */ }

@@ -136,6 +136,16 @@ def _open_when_ready(host: str, port: int, url: str) -> None:
         time.sleep(0.1)
 
 
+def _primary_lan_ip() -> str:
+    """Best-effort primary LAN IPv4 of this machine (no traffic is sent)."""
+    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+        try:
+            s.connect(("192.0.2.1", 9))  # TEST-NET-1: routable target, never reached
+            return s.getsockname()[0]
+        except OSError:
+            return "127.0.0.1"
+
+
 @app.command()
 def serve(
     host: str = typer.Option("127.0.0.1", help="Bind host (localhost by default)"),
@@ -143,19 +153,41 @@ def serve(
     open_ui: bool = typer.Option(
         False, "--open/--no-open", help="Open the UI in the browser once ready"
     ),
+    lan: bool = typer.Option(
+        False, "--lan", help="Expose on the LAN (binds 0.0.0.0; token protects the whole API)"
+    ),
 ) -> None:
     """Launch the local web UI and query API."""
     import uvicorn
 
+    from cantracediag.security import SecurityConfig
+
+    # In LAN mode bind all interfaces and allowlist this machine's LAN IP so the
+    # token — required on every endpoint — is the gate, while a stray Host is
+    # still rejected (AC10, AC11).
+    if lan and host == "127.0.0.1":
+        host = "0.0.0.0"  # noqa: S104 - explicit, opt-in LAN exposure
+    reachable = _primary_lan_ip() if host == "0.0.0.0" else host  # noqa: S104
+
+    # Resolve config in this process, then hand it to the imported app via the
+    # environment so the printed token matches the one the server enforces.
+    os.environ["CANTRACEDIAG_LAN"] = "1" if lan else "0"
+    os.environ.setdefault("CANTRACEDIAG_TOKEN", SecurityConfig.from_env().token)
+    os.environ["CANTRACEDIAG_HOST"] = reachable
+    token = os.environ["CANTRACEDIAG_TOKEN"]
+
     action, port = resolve_serve_target(host, port)
-    url = f"http://{host}:{port}"
+    base = f"http://{reachable}:{port}"
+    url = f"{base}/?token={token}" if lan else base
     if action == "attach":
-        typer.echo(f"CanTraceDiag is already running at {url}")
+        typer.echo(f"CanTraceDiag is already running at {base}")
         if open_ui:
             open_browser(url)
         return
 
     typer.echo(f"CanTraceDiag UI on {url}")
+    if lan:
+        typer.echo("LAN mode: the whole API requires the session token above.")
     if open_ui:
         threading.Thread(target=_open_when_ready, args=(host, port, url), daemon=True).start()
     uvicorn.run("cantracediag.api:app", host=host, port=port, log_level="info")

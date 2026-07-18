@@ -105,7 +105,10 @@ def live_url(tmp_path_factory):
                 "dbc_paths": [str(REPO / "tests" / "fixtures" / "sample.dbc")],
             }
         ).encode(),
-        headers={"Content-Type": "application/json"},
+        # Mutating endpoints require the session token (AC10); read it from the
+        # live app the server was built from.
+        headers={"Content-Type": "application/json",
+                 "X-CTD-Token": app.state.ctd_security.token},
     )
     summary = json.load(urllib.request.urlopen(req))["summary"]
     assert summary["frames"] == 8000

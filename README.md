@@ -166,6 +166,9 @@ cantracediag signals system.dbc
 
 # Start the local UI
 cantracediag serve --port 8000 --open
+
+# Expose on the LAN (binds 0.0.0.0; the printed token protects the whole API)
+cantracediag serve --lan --port 8000
 ```
 
 ## Local API
@@ -203,6 +206,24 @@ Useful variables:
 - `CANTRACEDIAG_EPHEMERAL=1`: disable persistence, used by the tests.
 
 The repository ignores real traces, real DBC files, and caches to avoid versioning vehicle or customer data.
+
+## Security
+
+CanTraceDiag follows a local-first, Jupyter-style security model:
+
+- it binds to loopback by default and rejects requests whose `Host` is not on an allowlist (DNS-rebinding defence) or whose `Origin` is cross-site;
+- a per-process **session token** is generated at startup, embedded in the served page, and required on mutating endpoints locally and on **every** endpoint in `--lan` mode (the token is printed in the launch URL);
+- uploads are capped by a documented limit;
+- server-side path import is disabled in `--lan` mode so exposing the UI never grants arbitrary file reads;
+- error messages never echo local filesystem paths.
+
+Security variables:
+
+- `CANTRACEDIAG_LAN=1`: protect the whole API with the token and disable server-path import;
+- `CANTRACEDIAG_TOKEN`: pin the session token instead of generating one;
+- `CANTRACEDIAG_HOST` / `CANTRACEDIAG_ALLOWED_HOSTS`: additional allowed `Host` values;
+- `CANTRACEDIAG_MAX_UPLOAD_MB`: maximum upload size in MB, default `512`;
+- `CANTRACEDIAG_ALLOW_SERVER_IMPORT`: force-enable/disable server-side path import.
 
 ## Architecture
 

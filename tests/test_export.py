@@ -15,16 +15,10 @@ import pytest
 from starlette.testclient import TestClient
 
 from cantracediag import export
-from cantracediag.api import create_app
 from cantracediag.models import DecodedSignalSample
 from cantracediag.store import TraceStore
 
 FIX = Path(__file__).parent / "fixtures"
-
-
-@pytest.fixture
-def client() -> TestClient:
-    return TestClient(create_app())
 
 
 def _import_sample(client: TestClient) -> None:
