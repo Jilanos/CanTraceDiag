@@ -45,7 +45,7 @@ def _wait_for_server(base_url: str) -> None:
     raise RuntimeError("uvicorn did not start")
 
 
-def _import_fixture(base_url: str) -> None:
+def _import_fixture(base_url: str, token: str) -> None:
     trace = OUT / "readme-sample.asc"
     _write_synth_asc(trace)
     req = urllib.request.Request(
@@ -56,7 +56,9 @@ def _import_fixture(base_url: str) -> None:
                 "dbc_paths": [str(REPO / "tests" / "fixtures" / "sample.dbc")],
             }
         ).encode(),
-        headers={"Content-Type": "application/json"},
+        # Mutating endpoints require the per-process session token (local API
+        # hardening), so authenticate the import the way the served UI does.
+        headers={"Content-Type": "application/json", "X-CTD-Token": token},
     )
     urllib.request.urlopen(req, timeout=10).read()
 
@@ -108,7 +110,7 @@ def _start_server() -> tuple[str, object | None]:
     thread.start()
     base_url = f"http://127.0.0.1:{port}"
     _wait_for_server(base_url)
-    _import_fixture(base_url)
+    _import_fixture(base_url, app.state.ctd_security.token)
     return base_url, server
 
 
@@ -120,6 +122,15 @@ def _prepare_loaded_page(page, base_url: str, *, live_poc3: bool) -> None:
     if live_poc3:
         page.evaluate(
             """async () => {
+                // Derive the cursor window from the loaded trace bounds so the
+                // capture lands on real data whatever POC3 trace is loaded
+                // (traces differ in duration, e.g. ~812 s vs ~1772 s).
+                const [boundLo, boundHi] = state.bounds;
+                const boundSpan = boundHi - boundLo;
+                const cursorA = boundLo + boundSpan * 0.50;
+                const cursorB = Math.min(cursorA + 18, boundHi - boundSpan * 0.01);
+                const viewLo = Math.max(boundLo, cursorA - 6);
+                const viewHi = Math.min(boundHi, cursorB + 6);
                 const picks = [
                     { message: "Edrv_Act_1", signal: "Edrv_tqAct" },
                     { message: "Ecran1", signal: "Vitesse" },
@@ -135,7 +146,7 @@ def _prepare_loaded_page(page, base_url: str, *, live_poc3: bool) -> None:
                 document.getElementById("fEvent").value = "";
                 document.getElementById("showFrames").checked = true;
                 document.getElementById("showEvents").checked = false;
-                setView(1200, 1230);
+                setView(viewLo, viewHi);
                 await new Promise((resolve) => setTimeout(resolve, 150));
                 for (const pick of picks) {
                     const sig = state.signals.find(
@@ -144,15 +155,15 @@ def _prepare_loaded_page(page, base_url: str, *, live_poc3: bool) -> None:
                     if (!sig) throw new Error(`Missing signal ${pick.message}.${pick.signal}`);
                     await toggleSignal(sig, true);
                 }
-                setView(1200, 1230);
+                setView(viewLo, viewHi);
                 await fetchAllSeries();
-                await locateInTrace(1204);
+                await locateInTrace(cursorA);
                 const row = document.querySelector("#traceTable tbody tr.selected")
                     || document.querySelector("#traceTable tbody tr.expandable");
                 if (row) row.click();
                 await new Promise((resolve) => setTimeout(resolve, 400));
-                state.cursor.a = 1204;
-                state.cursor.b = 1222;
+                state.cursor.a = cursorA;
+                state.cursor.b = cursorB;
                 await refreshCursorReadout();
                 const aliases = [
                     ["Edrv_Act_1", "Powertrain"],
@@ -197,7 +208,7 @@ def _prepare_loaded_page(page, base_url: str, *, live_poc3: bool) -> None:
                     <div class="insp-msg">Powertrain · powertrain.dbc</div>
                     <div class="insp-raw">D9 4E 17 D4 F7 DD 59 F4</div>
                     <dl class="insp-grid">
-                        <dt>Timestamp</dt><dd>1204.000000 s</dd>
+                        <dt>Timestamp</dt><dd>${cursorA.toFixed(6)} s</dd>
                         <dt>Channel</dt><dd>1</dd>
                         <dt>Direction</dt><dd>Rx</dd>
                         <dt>DLC</dt><dd>8</dd>
@@ -264,9 +275,35 @@ def main() -> None:
             page = browser.new_page(device_scale_factor=1, viewport={"width": 1600, "height": 940})
             _prepare_loaded_page(page, base_url, live_poc3=args.live_poc3)
 
+            if args.live_poc3:
+                # In POC3 mode the selected signals were re-labelled to anonymized
+                # names after their real series were fetched and cached on each
+                # signal object. Switching views triggers a series refresh, which
+                # would re-request the (now anonymized) names, get nothing, and
+                # blank the plot. Neutralize the refresh so view switches redraw
+                # from the cached series with the anonymized labels intact.
+                page.evaluate(
+                    "() => { window.fetchAllSeries = async () => false;"
+                    " window.scheduleSeriesRefresh = () => {}; }"
+                )
+
+            # Hero shot: the split "Plots + trace" view showcases the flagship
+            # workspace layout — synchronized plot, unified measurement table and
+            # trace table side by side under one view control.
+            page.locator("#viewSplit").click()
+            page.wait_for_timeout(400)
             page.screenshot(path=OUT / "cantracediag-workspace.png", full_page=True)
+
+            # Plots view gives the plot area full height for a clean capture of
+            # the cursors and the unified cursor/range measurement table.
+            page.locator("#viewPlots").click()
+            page.wait_for_timeout(300)
             page.locator("#plotArea").screenshot(path=OUT / "cantracediag-cursors.png")
 
+            # The column dialog lives in the trace view: activate it first so the
+            # trace toolbar (and its Columns... button) is visible.
+            page.locator("#viewTrace").click()
+            page.wait_for_timeout(200)
             page.locator("#colBtn").click()
             page.locator("#colDialog").screenshot(path=OUT / "cantracediag-columns.png")
             page.locator("#colDialog").evaluate("(dialog) => dialog.close()")
