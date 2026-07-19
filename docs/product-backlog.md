@@ -69,7 +69,7 @@ Acceptance criteria:
 
 ## P1 - Ergonomie et robustesse
 
-- Sauvegarde des layouts utilisateur. — livré (presets Analysis/Trace/Report, layout persistant).
+- Sauvegarde des layouts utilisateur. — livré (vues Plots / Plots + trace / Trace / Report, layout persistant).
 - Recherche avancée dans les signaux. — livré (explorateur filtrable, favoris).
 - Export CSV/Parquet des signaux sélectionnés. — livré (req_007 : export long/large streamé).
 - Rapport de synthèse d'import et statistiques de plage A/B. — livré (req_007).

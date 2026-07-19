@@ -11,9 +11,10 @@
 - Livré (req_007) : rapport de synthèse d'import, statistiques de plage A/B,
   export CSV/Parquet streamé, endpoints de curseur bornés et batch,
   durcissement sécurité local/LAN (Host/Origin/jeton/plafond upload),
-  onglets Analysis/Trace/Report tout en anglais, erreurs par composant,
-  états vides distincts, accessibilité clavier et responsive minimal,
-  frontend modularisé et E2E en CI.
+  vues d'espace de travail Plots / Plots + trace / Trace / Report tout en
+  anglais, erreurs par composant, états vides distincts, accessibilité clavier
+  et responsive minimal, frontend modularisé avec cache-busting des assets
+  (ADR 0007) et E2E en CI.
 - Partiellement livré : import volumineux avec batches et DuckDB temporaire ;
   progression exposée via état de job léger mais pas encore import asynchrone
   durable.

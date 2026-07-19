@@ -11,8 +11,8 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **ASC + DBC import** from the browser or server-side paths, with parsing integrity checks that turn a truncated line, a payload/DLC mismatch, an out-of-range byte or an over-long classic DLC into an explicit import anomaly instead of a corrupt frame.
 - **Multi-DBC decoding** with ambiguous arbitration ID detection.
 - **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
-- **Instant measurements** with cursor values and time/value deltas.
-- **Range statistics** (count, min, max, mean, std, RMS) between the A and B cursors, with value distributions for text/enum signals.
+- **Workspace views** from a single control — Plots, Plots + trace (split with a resizable divider), Trace, and Report — that switch layout while preserving selection, cursors, and filters.
+- **Unified measurement table** below the plot, combining A/B cursor values with the A–B range statistics (count, min, max, mean, std, RMS), plus value distributions for text/enum signals.
 - **Diagnostic report** summarizing the import: time range, volumes, DBCs used, and anomalies by type.
 - **Streamed export** of selected signals to CSV or Parquet over a chosen range, with bounded memory.
 - **Trace table** with pagination, filtering, and configurable columns.
@@ -150,9 +150,9 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 1. **Import** one `.asc` trace and one or more `.dbc` files.
 2. **Resolve DBC conflicts** when several databases define the same arbitration ID with non-equivalent messages.
 3. **Select signals** present in the trace or available in the DBC catalog.
-4. **Explore plots** with zoom, pan, grid, and A/B cursors.
-5. **Read range statistics** between cursors A and B for each selected signal.
-6. **Inspect the trace** with filters, pagination, frame details, and decoded signals.
+4. **Switch workspace views** — Plots, Plots + trace (split), Trace, or Report — from the single view control; switching keeps your selection, cursors, and filters.
+5. **Explore plots** with zoom, pan, grid, and A/B cursors, and read the unified measurement table (cursor values + A–B range statistics) below the plot.
+6. **Inspect the trace** with filters, pagination, frame details, and decoded signals, using the split view to keep plots and trace side by side.
 7. **Review the report** for the import synthesis and anomalies, then **export** the selected signals to CSV or Parquet over the range you choose (between A and B, the visible window, or the full trace).
 8. **Reopen later** and let the workspace restore the last analysis and DBC library.
 
@@ -230,7 +230,7 @@ Security variables:
 
 ```text
 src/cantracediag/
-├── api.py          # FastAPI + static UI
+├── api.py          # FastAPI + version-stamped static UI
 ├── cli.py          # info, signals, serve commands
 ├── dbc.py          # multi-DBC loading + conflicts
 ├── decode.py       # physical signal decoding
@@ -246,7 +246,11 @@ src/cantracediag/
     └── js/         # core, import, signals, plot, report, trace, inspector, main
 ```
 
-The frontend is framework-free ES-domain modules loaded in order (`core` first, `main` last); browser tests drive it through the explicit `window.__ctd` surface. The backend keeps the DuckDB index local and only returns useful windows to the browser: downsampled series, trace pages, and frame details. That keeps the UI responsive as traces grow.
+The frontend is framework-free ES-domain modules loaded in order (`core` first, `main` last); browser tests drive it through the explicit `window.__ctd` surface. A single view control switches between the Plots, Plots + trace (split), Trace, and Report workspace layouts without losing state.
+
+The shell (`index.html`) is served dynamically by the `/` route, which stamps a content-derived version token onto every `/static/*.js|*.css` reference (`?v=<token>`) and returns the shell with `Cache-Control: no-store`. A changed asset therefore always gets a new URL, so a fresh shell can never load a stale cached script or stylesheet (see [ADR 0007](docs/adr/0007-livraison-frontend-modules-et-cache.md)).
+
+The backend keeps the DuckDB index local and only returns useful windows to the browser: downsampled series, trace pages, and frame details. That keeps the UI responsive as traces grow.
 
 ## README Screenshots
 
