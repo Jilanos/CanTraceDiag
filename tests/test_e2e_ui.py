@@ -347,7 +347,8 @@ def test_imported_text_does_not_execute_html(browser, live_url, tmp_path):
     pg.set_input_files("#traceFile", str(trace))
     pg.set_input_files("#dbcFiles", str(dbc))
     pg.click("#loadBtn")
-    pg.wait_for_function("() => typeof state !== 'undefined' && state.signals.length === 1")
+    pg.wait_for_function("() => window.__ctd && window.__ctd.state.signals.length === 1")
+    pg.locator("#tabTrace").click()  # the trace table lives on the Trace tab
     pg.wait_for_selector("#traceTable tbody tr")
     pg.wait_for_timeout(200)
     assert pg.evaluate("() => window.__ctdXss") == 0
@@ -387,7 +388,8 @@ def test_narrow_viewport_keeps_critical_actions_reachable(browser, live_url):
     pg.goto(live_url)
     # Minimal 390x844 support: import, load, main filters, tab/section and export
     # stay reachable within the viewport (AC14).
-    for selector in ["#pickTraceBtn", "#loadBtn", "#fId", "#exportBtn", "#reportBtn"]:
+    # Analysis tab is active by default; import/load/tabs/export stay reachable.
+    for selector in ["#pickTraceBtn", "#loadBtn", "#tabTrace", "#tabReport", "#exportBtn"]:
         box = pg.locator(selector).bounding_box()
         assert box is not None, selector
         assert box["x"] >= 0, selector
@@ -417,7 +419,7 @@ def test_no_horizontal_overflow_at_supported_viewports(browser, live_url, width,
     assert overflow <= 1, f"horizontal overflow of {overflow}px at {width}x{height}"
     # Key controls sit within the viewport width at every desktop size.
     if width >= 1024:
-        for selector in ["#loadBtn", "#exportBtn", "#reportBtn", "#fId", "#colBtn"]:
+        for selector in ["#loadBtn", "#exportBtn", "#tabAnalysis", "#tabTrace", "#tabReport"]:
             box = pg.locator(selector).bounding_box()
             assert box is not None, selector
             assert box["x"] + box["width"] <= width + 1, f"{selector} overflows at {width}"
@@ -468,9 +470,57 @@ def test_trace_dialogs_close_with_escape(browser, live_url):
     ctx = browser.new_context(viewport={"width": 1600, "height": 900})
     pg = ctx.new_page()
     pg.goto(live_url)
+    pg.locator("#tabTrace").click()  # column dialog lives on the Trace tab
     pg.locator("#colBtn").click()
     assert pg.locator("#colDialog").evaluate("d => d.open") is True
     pg.keyboard.press("Escape")
     pg.wait_for_timeout(50)
     assert pg.locator("#colDialog").evaluate("d => d.open") is False
+    ctx.close()
+
+
+def test_tabs_switch_panels_and_preserve_state(browser, live_url):
+    """Tabs show one panel at a time and never lose the selection (AC4)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    # Plot a signal on Analysis.
+    pg.locator(".sig input[type=checkbox]").first.check()
+    pg.wait_for_timeout(200)
+    selected_before = pg.evaluate("() => window.__ctd.selected.length")
+    assert selected_before > 0
+    # Switch to Trace: the trace panel shows, the analysis panel hides.
+    pg.locator("#tabTrace").click()
+    assert pg.locator("#traceWrap").is_visible()
+    assert not pg.locator("#plotArea").is_visible()
+    assert pg.locator("#traceTable").is_visible()
+    # Switch to Report: it renders the synthesis.
+    pg.locator("#tabReport").click()
+    pg.wait_for_timeout(100)
+    assert pg.locator("#reportPanel").is_visible()
+    assert "frames" in pg.locator("#reportBody").inner_text().lower()
+    # Back to Analysis: the plotted selection is intact (state preserved).
+    pg.locator("#tabAnalysis").click()
+    assert pg.locator("#plotArea").is_visible()
+    assert pg.evaluate("() => window.__ctd.selected.length") == selected_before
+    ctx.close()
+
+
+def test_trace_empty_state_for_no_matching_filter(browser, live_url):
+    """A filter with no matches shows a distinct empty state (AC7)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.locator("#tabTrace").click()
+    pg.locator("#fId").fill("ZZZZ")  # no id matches
+    pg.wait_for_timeout(400)
+    empty = pg.locator("#traceEmpty")
+    assert empty.is_visible()
+    assert "No matching rows" in empty.inner_text()
+    # The active filter is shown as a removable chip that restores results.
+    chip = pg.locator("#filterChips .chip")
+    assert chip.count() >= 1
+    chip.first.locator("button").click()
+    pg.wait_for_timeout(400)
+    assert not pg.locator("#traceEmpty").is_visible()
     ctx.close()

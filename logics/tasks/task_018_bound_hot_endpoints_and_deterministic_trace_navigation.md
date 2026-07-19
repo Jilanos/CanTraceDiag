@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Non-semantic edit: task-level AC traceability closure (req_007 AC17).
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -84,3 +85,7 @@
 - Request: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC8 -> task_018. Proof: bounded nearest lookup (one `<=` + one `>=` LIMIT 1, no abs-sort) and a batch cursor endpoint; tests/test_trace_nav.py::test_nearest_sample_plan_stays_two_bounded_queries and ::test_cursors_batch_endpoint_returns_a_and_b.
+- request-AC9 -> task_018. Proof: canonical (timestamp_s, seq) order with opaque keyset pagination; tests/test_trace_nav.py::test_same_timestamp_pagination_has_no_duplicate_or_omission and ::test_locate_opens_page_starting_on_the_located_row.

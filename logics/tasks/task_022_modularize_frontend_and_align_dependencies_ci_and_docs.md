@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Non-semantic edit: task-level AC traceability closure (req_007 AC17).
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -71,3 +72,7 @@
 - Request: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC15 -> task_022. Proof: web/app.js split into framework-free web/js/ domain modules + extracted styles.css, explicit window.__ctd surface driven by the E2E suite in Chromium.
+- request-AC16 -> task_022. Proof: python-can removed, pyarrow kept for Parquet export, dead code de-duplicated, synthetic time/memory budget; tests/test_perf_budget.py, CI matrix Python 3.11 and 3.12.

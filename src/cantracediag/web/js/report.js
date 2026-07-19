@@ -43,15 +43,22 @@ async function refreshStats() {
   box.querySelector("tbody").innerHTML = rows;
 }
 
-/* ---- diagnostic report (AC1) ------------------------------------------- */
-async function openReportDialog() {
+/* ---- diagnostic report tab (AC1, AC4) ---------------------------------- */
+async function loadReport() {
   const body = $("reportBody");
-  body.innerHTML = `<p class="summary" style="text-align:left; margin:0">Loading…</p>`;
-  $("reportDialog").showModal();
+  body.innerHTML = `<p class="empty-state">Loading…</p>`;
   try {
     body.innerHTML = renderReport(await api("/api/report"));
   } catch (err) {
-    body.innerHTML = `<p class="summary err" style="text-align:left; margin:0">${esc(err.message || "Load a trace first.")}</p>`;
+    // A 409 means no trace is loaded — a distinct empty state, not an error (AC6).
+    if (/No trace loaded/i.test(err.message || "")) {
+      body.innerHTML = `<p class="empty-state"><b>No trace loaded</b>Import a trace to see its diagnostic report.</p>`;
+    } else {
+      body.innerHTML =
+        `<div class="comp-error"><span class="msg">${esc(err.message || "Report failed to load.")}</span>` +
+        `<button id="reportRetry">Retry</button></div>`;
+      $("reportRetry").addEventListener("click", loadReport);
+    }
   }
 }
 

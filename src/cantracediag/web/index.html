@@ -54,9 +54,21 @@
   </aside>
   <div class="side-resizer" id="explorerResizer"></div>
 
-  <!-- Area: plot + trace -->
+  <!-- Area: tabbed workspace (Analysis / Trace / Report) -->
   <section id="center">
-    <div id="plotArea">
+    <div class="tabs" role="tablist" aria-label="Workspace views">
+      <button class="tab active" role="tab" id="tabAnalysis" data-tab="analysis" aria-selected="true">Analysis</button>
+      <button class="tab" role="tab" id="tabTrace" data-tab="trace" aria-selected="false">Trace</button>
+      <button class="tab" role="tab" id="tabReport" data-tab="report" aria-selected="false">Report</button>
+      <span class="tab-spacer"></span>
+      <span class="lbl">Layout</span>
+      <div class="seg">
+        <button id="presetPlots" title="Plots layout">Plots</button>
+        <button id="presetTrace" title="Trace layout">Trace</button>
+        <button id="presetFull" title="Full diagnostic layout">Full diagnostic</button>
+      </div>
+    </div>
+    <div id="plotArea" class="tabpanel" data-panel="analysis" role="tabpanel" aria-labelledby="tabAnalysis">
       <div class="plotbar">
         <div class="seg">
           <button id="fitBtn" title="Fit all data (double-click plot)">Fit</button>
@@ -74,7 +86,6 @@
         <button class="ghost" id="curABtn" title="Click plot to place cursor A">Cursor A</button>
         <button class="ghost" id="curBBtn" title="Click plot to place cursor B">Cursor B</button>
         <button class="ghost" id="curClearBtn" title="Clear cursors">Clear</button>
-        <button class="ghost" id="reportBtn" title="Import synthesis report">Report</button>
         <button class="ghost" id="exportBtn" title="Export selected signals">Export…</button>
         <span class="hint">wheel: zoom · drag: pan · click: set cursor · drag on cursor: move it</span>
       </div>
@@ -87,21 +98,16 @@
         <div class="stats-head"><span class="lbl">Range statistics (A–B)</span><span class="stats-msg" id="statsMsg"></span></div>
         <table><thead></thead><tbody></tbody></table>
       </div>
+      <div id="plotError" class="comp-error" hidden></div>
     </div>
-    <div class="divider" id="divider"></div>
-    <div id="traceWrap">
+    <div id="traceWrap" class="tabpanel" data-panel="trace" role="tabpanel" aria-labelledby="tabTrace" hidden>
       <div class="tracebar">
-        <strong>Trace</strong>
         <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" aria-label="Filter by arbitration id (hex)" />
         <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" aria-label="Filter by message or event name" />
         <input type="text" id="fSignal" placeholder="Signal" title="Decoded signal name" aria-label="Filter by decoded signal name" />
-        <select id="fDir" title="Direction" aria-label="Filter by direction"><option value="">Dir</option><option>Rx</option><option>Tx</option></select>
-        <select id="fStatus" title="Decode status" aria-label="Filter by decode status"><option value="">Status</option><option value="ok">ok</option><option value="unknown_id">unknown_id</option><option value="no_database">no_database</option><option value="ambiguous_id">ambiguous_id</option><option value="decode_error">decode_error</option></select>
-        <select id="fEvent" title="Event type" aria-label="Filter by event type"><option value="">Event</option></select>
-        <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" aria-label="Filter start time in seconds" />
-        <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" aria-label="Filter end time in seconds" />
         <label><input type="checkbox" id="showFrames" checked aria-label="Show data frames" /> frames</label>
         <label><input type="checkbox" id="showEvents" checked aria-label="Show non-data events" /> events</label>
+        <button class="ghost" id="moreFilters" aria-expanded="false" aria-controls="secondaryFilters" title="Show more filters">More filters ▾</button>
         <button class="ghost" id="clearFilters" title="Clear all filters">Reset</button>
         <button class="ghost" id="colBtn">Columns…</button>
         <div class="pager">
@@ -110,7 +116,27 @@
           <button class="ghost" id="nextBtn">Next</button>
         </div>
       </div>
+      <div class="tracebar secondary" id="secondaryFilters" hidden>
+        <select id="fDir" title="Direction" aria-label="Filter by direction"><option value="">Direction</option><option>Rx</option><option>Tx</option></select>
+        <select id="fStatus" title="Decode status" aria-label="Filter by decode status"><option value="">Decode status</option><option value="ok">OK</option><option value="unknown_id">Unknown ID</option><option value="no_database">No database</option><option value="ambiguous_id">Ambiguous ID</option><option value="decode_error">Decode error</option></select>
+        <select id="fEvent" title="Event type" aria-label="Filter by event type"><option value="">Event type</option></select>
+        <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" aria-label="Filter start time in seconds" />
+        <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" aria-label="Filter end time in seconds" />
+      </div>
+      <div id="filterChips" class="chips" hidden aria-label="Active filters"></div>
       <div id="tableScroll"><table id="traceTable"><thead></thead><tbody></tbody></table></div>
+      <div id="traceEmpty" class="empty-state" hidden></div>
+      <div id="traceError" class="comp-error" hidden></div>
+    </div>
+
+    <div id="reportPanel" class="tabpanel" data-panel="report" role="tabpanel" aria-labelledby="tabReport" hidden>
+      <div class="report-bar">
+        <strong>Diagnostic report</strong>
+        <span class="tab-spacer"></span>
+        <button class="ghost" id="reportRefresh" title="Reload report">Refresh</button>
+        <button id="reportExportBtn" title="Export selected signals">Export…</button>
+      </div>
+      <div id="reportBody" class="report-body"><p class="empty-state">Load a trace to see its diagnostic report.</p></div>
     </div>
   </section>
 
@@ -141,14 +167,6 @@
   <div id="colList"></div>
   <div style="text-align:right; margin-top:10px;">
     <button class="ghost" id="colClose">Done</button>
-  </div>
-</dialog>
-
-<dialog id="reportDialog">
-  <h3>Diagnostic report</h3>
-  <div id="reportBody"><p class="summary" style="text-align:left; margin:0">Loading…</p></div>
-  <div style="text-align:right; margin-top:12px;">
-    <button class="ghost" id="reportClose">Done</button>
   </div>
 </dialog>
 

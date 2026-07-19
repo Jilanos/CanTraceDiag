@@ -21,7 +21,7 @@ async function showInspector(row) {
       ["Channel", row.channel ?? "—"],
       ["Direction", row.direction ?? "—"],
       ["DLC", row.dlc ?? "—"],
-      ["Decode status", row.decode_status ?? "—"],
+      ["Decode status", row.decode_status ? statusLabel(row.decode_status) : "—"],
     ];
     html += `<dl class="insp-grid">` +
       rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("") + `</dl>`;
@@ -53,7 +53,15 @@ async function showInspector(row) {
     } catch (err) {
       console.warn("Inspector signal lookup failed", err);
       const box = $("inspSignals");
-      if (box) box.textContent = "decoded signals unavailable";
+      if (box) {
+        // Error stays inside the inspector with a retry; nothing else is affected (AC6).
+        box.className = "comp-error";
+        box.innerHTML = `<span class="msg">Decoded signals unavailable.</span>`;
+        const btn = document.createElement("button");
+        btn.textContent = "Retry";
+        btn.addEventListener("click", () => showInspector(row));
+        box.appendChild(btn);
+      }
     }
   }
 }

@@ -69,9 +69,11 @@ Acceptance criteria:
 
 ## P1 - Ergonomie et robustesse
 
-- Sauvegarde des layouts utilisateur.
-- Recherche avancée dans les signaux.
-- Export CSV/Parquet des signaux sélectionnés.
+- Sauvegarde des layouts utilisateur. — livré (presets Analysis/Trace/Report, layout persistant).
+- Recherche avancée dans les signaux. — livré (explorateur filtrable, favoris).
+- Export CSV/Parquet des signaux sélectionnés. — livré (req_007 : export long/large streamé).
+- Rapport de synthèse d'import et statistiques de plage A/B. — livré (req_007).
+- Durcissement sécurité local/LAN (Host/Origin/jeton/plafond upload). — livré (req_007).
 - Support des signaux multiplexés si non couvert en P0.
 - Gestion de traces plus volumineuses que 150 Mo.
 

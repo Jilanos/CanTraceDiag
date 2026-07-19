@@ -95,9 +95,13 @@ async function toggleSignal(sig, on) {
     state.selected.push(entry);
     try {
       await fetchSeries(entry);
+      clearComponentError("plotError");
     } catch (err) {
       state.selected = state.selected.filter((s) => s !== entry);
-      reportError(err, `Series failed to load: ${entry.message}.${entry.signal}`);
+      // Series errors surface on the plot with a retry, not on the global summary (AC6).
+      showComponentError("plotError",
+        `Series failed to load: ${entry.message}.${entry.signal} — ${err.message || err}`,
+        () => toggleSignal(sig, true));
     }
   } else {
     state.selected = state.selected.filter((s) => !(s.message === sig.message_name && s.signal === sig.signal_name));
@@ -143,9 +147,14 @@ async function fetchSeries(entry) {
 async function fetchAllSeries() {
   const token = ++state.seriesToken;
   const results = await Promise.allSettled(state.selected.map((s) => fetchSeries(s)));
-  results.forEach((result) => {
-    if (result.status === "rejected") reportError(result.reason, "Series refresh failed");
-  });
+  const failed = results.find((result) => result.status === "rejected");
+  if (failed) {
+    showComponentError("plotError",
+      `Series refresh failed — ${failed.reason?.message || failed.reason}`,
+      () => { scheduleSeriesRefresh(); });
+  } else {
+    clearComponentError("plotError");
+  }
   if (token !== state.seriesToken) return false;   // a newer request superseded us
   return results.every((result) => result.status === "fulfilled");
 }

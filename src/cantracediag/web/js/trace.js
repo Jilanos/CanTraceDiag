@@ -31,6 +31,8 @@ async function loadTrace(cursor, highlightTs) {
   const params = traceFilterParams();
   if (cursor != null) params.set("cursor", cursor);
   params.set("limit", state.trace.limit);
+  clearComponentError("traceError");
+  renderFilterChips();
   try {
     const r = await api(`/api/trace?${params}`);
     state.trace.total = r.total; state.trace.rows = r.rows;
@@ -43,17 +45,81 @@ async function loadTrace(cursor, highlightTs) {
     $("pageInfo").textContent = `${from}–${to} of ${r.total}`;
     $("prevBtn").disabled = r.prev_cursor == null;
     $("nextBtn").disabled = r.next_cursor == null;
+    updateTraceEmpty(r.total, false);
     return true;
   } catch (err) {
     state.trace.rows = [];
     state.trace.nextCursor = state.trace.prevCursor = null;
     renderTable([]);
-    $("pageInfo").textContent = "0-0 of 0";
+    $("pageInfo").textContent = "0–0 of 0";
     $("prevBtn").disabled = true;
     $("nextBtn").disabled = true;
-    reportError(err, "Trace table failed to load");
+    // Component-scoped error with retry; the global session summary is untouched (AC6).
+    updateTraceEmpty(0, true);
+    showComponentError("traceError", err.message || "Trace table failed to load.",
+      () => loadTrace(cursor, highlightTs));
     return false;
   }
+}
+
+// Distinct empty states for the trace (AC7).
+function hasActiveFilters() {
+  const textActive = ["fId", "fMsg", "fSignal", "fDir", "fStatus", "fEvent", "fStart", "fEnd"]
+    .some((id) => $(id).value.trim() !== "");
+  return textActive || !$("showFrames").checked || !$("showEvents").checked;
+}
+
+function updateTraceEmpty(total, failed) {
+  const box = $("traceEmpty");
+  const scroll = $("tableScroll");
+  if (failed || total > 0) {
+    box.hidden = true;
+    scroll.hidden = false;
+    return;
+  }
+  box.hidden = false;
+  scroll.hidden = true;
+  if (!state.loaded) {
+    box.innerHTML = "<div><b>No trace loaded</b>Import an ASC trace and its DBC files to begin.</div>";
+  } else if (hasActiveFilters()) {
+    box.innerHTML = "<div><b>No matching rows</b>No frames or events match the active filters.</div>";
+  } else {
+    box.innerHTML = "<div><b>Empty trace</b>This acquisition has no frames or events.</div>";
+  }
+}
+
+// Active-filter chips: visible, individually removable, and persistent (AC7).
+const _CHIP_FIELDS = [
+  ["fId", "ID"], ["fMsg", "Message"], ["fSignal", "Signal"],
+  ["fDir", "Direction"], ["fStatus", "Status"], ["fEvent", "Event"],
+  ["fStart", "t≥"], ["fEnd", "t≤"],
+];
+function renderFilterChips() {
+  const box = $("filterChips");
+  const chips = [];
+  for (const [id, label] of _CHIP_FIELDS) {
+    const v = $(id).value.trim();
+    if (v) chips.push({ id, label, value: id === "fStatus" ? statusLabel(v) : v });
+  }
+  if (!$("showFrames").checked) chips.push({ id: "showFrames", label: "Frames", value: "hidden" });
+  if (!$("showEvents").checked) chips.push({ id: "showEvents", label: "Events", value: "hidden" });
+  box.hidden = chips.length === 0;
+  box.innerHTML = "";
+  for (const c of chips) {
+    const el = document.createElement("span");
+    el.className = "chip";
+    el.innerHTML = `${esc(c.label)}: ${esc(c.value)} <button aria-label="Remove ${esc(c.label)} filter">×</button>`;
+    el.querySelector("button").addEventListener("click", () => clearOneFilter(c.id));
+    box.appendChild(el);
+  }
+}
+
+function clearOneFilter(id) {
+  const el = $(id);
+  if (id === "showFrames" || id === "showEvents") el.checked = true;
+  else el.value = "";
+  persistFilters();
+  loadTrace(null);
 }
 
 function renderTable(rows) {
@@ -95,10 +161,24 @@ function selectRow(row, tr) {
   showInspector(row);
 }
 
+// English labels for technical decode statuses; the raw value stays available
+// for audit via the title attribute (AC5).
+const STATUS_LABELS = {
+  ok: "OK",
+  unknown_id: "Unknown ID",
+  no_database: "No database",
+  ambiguous_id: "Ambiguous ID",
+  decode_error: "Decode error",
+  not_decoded: "Not decoded",
+};
+function statusLabel(value) { return STATUS_LABELS[value] || value; }
+
 function fmtCell(col, value) {
   if (value === null || value === undefined) return "";
   if (col.format === "s") return `<span>${fmtTime(value)}</span>`;
-  if (col.format === "status") return `<span class="st ${esc(value)}">${esc(value)}</span>`;
+  if (col.format === "status") {
+    return `<span class="st ${esc(value)}" title="${esc(value)}">${esc(statusLabel(value))}</span>`;
+  }
   if (col.format === "hex") return esc(String(value).toUpperCase());
   if (col.format === "dec") {
     const n = Number(value);

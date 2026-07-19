@@ -64,6 +64,7 @@ async function purgeWorkspace() {
     lastSessionDbcs = [];
     renderLibrary();
     refreshPicked();
+    state.loaded = false;
     $("summary").innerHTML = `<span class="ok">Workspace cache cleared.</span>`;
   } catch (err) {
     reportError(err, "Clearing the workspace cache failed");
@@ -154,6 +155,7 @@ async function doLoad() {
 }
 
 async function onLoaded(r) {
+  state.loaded = true;
   renderSummary(r);
   setLed("indexed");
   populateEventFilter(r.summary && r.summary.event_types);

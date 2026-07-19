@@ -1,10 +1,10 @@
 ## item_023_clarify_final_ui_workflow_in_english - Clarify final UI workflow in English
 > From version: 0.1.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -64,6 +64,7 @@ s'appuyer sur les contrats et modules stabilises par les six slices precedentes.
 - Hybrid rationale: Derived from request `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag.md`.
 - Generated locally by logics-manager.
+- Task `task_023_clarify_final_ui_workflow_in_english` was finished via `logics-manager flow finish task` on 2026-07-19.
 
 # Tasks
 - `task_023_clarify_final_ui_workflow_in_english`

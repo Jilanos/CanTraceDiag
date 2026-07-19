@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Non-semantic edit: task-level AC traceability closure (req_007 AC17).
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -66,3 +67,6 @@
 - Request: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC12 -> task_020. Proof: malformed ASC lines become explicit AscAnomaly events, no corrupt frame; negative/scientific timestamps accepted; tests/test_asc.py::test_malformed_lines_become_explicit_anomalies_not_corrupt_frames, ::test_negative_and_scientific_timestamps_are_accepted.

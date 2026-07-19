@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Non-semantic edit: task-level AC traceability closure (req_007 AC17).
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -77,3 +78,7 @@
 - Request: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC10 -> task_019. Proof: Host/Origin allowlist, session token on mutations/LAN, upload cap, no path leak; tests/test_security.py::test_disallowed_host_is_rejected, ::test_cross_origin_request_is_rejected, ::test_mutation_without_token_is_rejected_locally, ::test_upload_over_limit_is_rejected, ::test_missing_file_error_does_not_leak_paths.
+- request-AC11 -> task_019. Proof: server-path import disabled outside loopback / in LAN; tests/test_security.py::test_lan_mode_disables_server_path_import, ::test_lan_mode_requires_token_on_reads.

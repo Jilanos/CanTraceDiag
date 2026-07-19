@@ -8,6 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Non-semantic edit: task-level AC traceability closure (req_007 AC17).
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -72,3 +73,7 @@
 - Request: `req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC13 -> task_021. Proof: named keyboard-operable controls + Pointer Events; tests/test_e2e_ui.py::test_main_controls_have_accessible_names, ::test_favorite_toggles_via_keyboard, ::test_trace_dialogs_close_with_escape.
+- request-AC14 -> task_021. Proof: no horizontal overflow across 1024x768/1280x720/1600x900 and minimal 390x844, CI hard-fails without Chromium; tests/test_e2e_ui.py::test_no_horizontal_overflow_at_supported_viewports, ::test_narrow_viewport_keeps_critical_actions_reachable.

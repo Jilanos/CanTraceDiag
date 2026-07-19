@@ -49,6 +49,7 @@ const state = {
   seriesToken: 0,
   grid: store.get("grid", true),
   pendingConflicts: null,
+  loaded: false,                    // whether an acquisition is currently loaded
 };
 
 /* ---- column model for the trace view ----------------------------------- */
@@ -102,6 +103,29 @@ async function api(path, opts) {
 function reportError(err, context) {
   console.error(context, err);
   $("summary").innerHTML = `<span class="err">${esc(err.message || String(err))}</span>`;
+}
+
+/* Per-component error banner with an optional Retry action (AC6). Errors surface
+ * in the affected component and never overwrite the global session summary or
+ * block the other components. `slotId` is a dedicated empty `.comp-error` div. */
+function showComponentError(slotId, message, onRetry) {
+  const slot = $(slotId);
+  if (!slot) return;
+  slot.hidden = false;
+  slot.innerHTML = `<span class="msg">${esc(message)}</span>`;
+  if (onRetry) {
+    const btn = document.createElement("button");
+    btn.textContent = "Retry";
+    btn.addEventListener("click", () => { clearComponentError(slotId); onRetry(); });
+    slot.appendChild(btn);
+  }
+}
+
+function clearComponentError(slotId) {
+  const slot = $(slotId);
+  if (!slot) return;
+  slot.hidden = true;
+  slot.innerHTML = "";
 }
 
 // Upload with progress (AC8): XHR exposes upload.onprogress; fetch does not.

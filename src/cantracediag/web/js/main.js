@@ -66,54 +66,60 @@ $("prevBtn").addEventListener("click", () => { if (state.trace.prevCursor != nul
 $("nextBtn").addEventListener("click", () => { if (state.trace.nextCursor != null) loadTrace(state.trace.nextCursor); });
 $("colBtn").addEventListener("click", () => { renderColDialog(); $("colDialog").showModal(); });
 $("colClose").addEventListener("click", () => $("colDialog").close());
-$("reportBtn").addEventListener("click", openReportDialog);
-$("reportClose").addEventListener("click", () => $("reportDialog").close());
 $("exportBtn").addEventListener("click", openExportDialog);
+$("reportExportBtn").addEventListener("click", openExportDialog);
+$("reportRefresh").addEventListener("click", loadReport);
 $("exportCancel").addEventListener("click", () => $("exportDialog").close());
 $("exportRun").addEventListener("click", runExport);
 window.addEventListener("resize", debounce(() => { refreshTheme(); renderPlot(); scheduleSeriesRefresh(); }, 150));
 
-
-// vertical resize between plot and trace (Pointer Events + keyboard, AC13)
-(function () {
-  const divider = $("divider"), traceWrap = $("traceWrap");
-  divider.setAttribute("role", "separator");
-  divider.setAttribute("aria-orientation", "horizontal");
-  divider.setAttribute("tabindex", "0");
-  divider.setAttribute("aria-label", "Resize plot and trace areas (arrow keys)");
-  let dragging = false;
-  const setHeight = (h) => {
-    const center = $("center");
-    const total = center.clientHeight;
-    traceWrap.style.height = Math.min(Math.max(h, 80), total - 120) + "px";
-    renderPlot();
-  };
-  divider.addEventListener("pointerdown", (e) => {
-    dragging = true; document.body.style.userSelect = "none";
-    if (e.pointerId != null && divider.setPointerCapture) {
-      try { divider.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
-    }
-  });
-  window.addEventListener("pointerup", () => {
-    if (!dragging) return;
-    dragging = false; document.body.style.userSelect = "";
-    patchLayout({ traceH: traceWrap.getBoundingClientRect().height });
-  });
-  window.addEventListener("pointermove", (e) => {
-    if (!dragging) return;
-    const center = $("center");
-    const fromTop = e.clientY - center.getBoundingClientRect().top;
-    setHeight(center.clientHeight - fromTop);
-  });
-  divider.addEventListener("keydown", (e) => {
-    const h = traceWrap.getBoundingClientRect().height;
-    if (e.key === "ArrowUp") setHeight(h + 24);
-    else if (e.key === "ArrowDown") setHeight(h - 24);
+/* ---- workspace tabs: Analysis / Trace / Report (AC4) ------------------- */
+// Panels keep their DOM (and state) when hidden, so switching tabs never loses
+// the current selection, cursors, filters or report. The signal explorer,
+// inspector and session status live outside the tabs and persist across them.
+const TABS = ["analysis", "trace", "report"];
+function showTab(name) {
+  if (!TABS.includes(name)) name = "analysis";
+  for (const btn of document.querySelectorAll(".tab")) {
+    const on = btn.dataset.tab === name;
+    btn.classList.toggle("active", on);
+    btn.setAttribute("aria-selected", on ? "true" : "false");
+    btn.tabIndex = on ? 0 : -1;
+  }
+  for (const panel of document.querySelectorAll(".tabpanel")) {
+    panel.hidden = panel.dataset.panel !== name;
+  }
+  store.set("tab", name);
+  if (name === "analysis") { renderPlot(); scheduleSeriesRefresh(); }
+  if (name === "report") loadReport();
+}
+for (const btn of document.querySelectorAll(".tab")) {
+  btn.addEventListener("click", () => showTab(btn.dataset.tab));
+  btn.addEventListener("keydown", (e) => {
+    const i = TABS.indexOf(btn.dataset.tab);
+    let next = null;
+    if (e.key === "ArrowRight") next = TABS[(i + 1) % TABS.length];
+    else if (e.key === "ArrowLeft") next = TABS[(i - 1 + TABS.length) % TABS.length];
     else return;
     e.preventDefault();
-    patchLayout({ traceH: traceWrap.getBoundingClientRect().height });
+    showTab(next);
+    $("tab" + next[0].toUpperCase() + next.slice(1)).focus();
   });
-})();
+}
+// Layout presets restore a persisted view (AC4).
+$("presetPlots").addEventListener("click", () => showTab("analysis"));
+$("presetTrace").addEventListener("click", () => showTab("trace"));
+$("presetFull").addEventListener("click", () => showTab("report"));
+
+// Collapsible secondary filters (AC7): value is kept even while collapsed.
+$("moreFilters").addEventListener("click", () => {
+  const sec = $("secondaryFilters");
+  const open = sec.hidden;
+  sec.hidden = !open;
+  $("moreFilters").setAttribute("aria-expanded", open ? "true" : "false");
+  $("moreFilters").textContent = open ? "More filters ▴" : "More filters ▾";
+  store.set("moreFilters", open);
+});
 
 // restore persisted filters/prefs, then any active server-side trace
 function restoreFilters() {
@@ -141,6 +147,9 @@ wireSideResize("inspectorResizer", "inspector", "inspectorToggle", "right", "ins
   applyLayout();
   restoreFilters();
   armButtons();
+  if (store.get("moreFilters", false)) $("moreFilters").click();
+  showTab(store.get("tab", "analysis"));
+  updateTraceEmpty(0, false);   // "No trace loaded" until an import lands
   try {
     const st = await api("/api/status");
     if (st.loaded) await onLoaded(st);
