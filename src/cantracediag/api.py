@@ -9,6 +9,7 @@ supplied either as uploads from the browser's native file picker
 
 from __future__ import annotations
 
+import hashlib
 import os
 import re
 import shutil
@@ -36,6 +37,31 @@ from cantracediag.workspace import Workspace
 
 _WEB_DIR = Path(__file__).parent / "web"
 _TOKEN_HEADER = "x-ctd-token"
+
+# Rewrite same-origin references to a bundled script/stylesheet so we can append
+# the asset version below (e.g. ``src="/static/js/main.js"`` -> ``...?v=<token>``).
+_ASSET_REF = re.compile(r'((?:href|src)=")(/static/[^"?]+\.(?:js|css))(")')
+
+
+def _asset_version() -> str:
+    """Short token that changes whenever any bundled UI asset changes.
+
+    The shell (``index.html``) is served dynamically and is therefore always
+    fresh, but the browser caches ``/static/*.js`` and ``/static/*.css`` under
+    heuristic freshness. That let a *fresh* shell load *stale* scripts after an
+    edit, and the mismatch silently broke event wiring (a removed element id in
+    the old script threw during bootstrap, killing panel resize/collapse and the
+    view controls). Stamping the version into each asset URL means a changed file
+    always gets a new URL, so the browser can never pair new HTML with old JS.
+    """
+    digest = hashlib.sha1()
+    for path in sorted(_WEB_DIR.rglob("*")):
+        if path.suffix in {".js", ".css", ".html"} and path.is_file():
+            stat = path.stat()
+            digest.update(path.name.encode("utf-8"))
+            digest.update(str(stat.st_mtime_ns).encode("utf-8"))
+            digest.update(str(stat.st_size).encode("utf-8"))
+    return digest.hexdigest()[:12]
 
 
 class Pending:
@@ -937,7 +963,14 @@ def create_app(
         html = (_WEB_DIR / "index.html").read_text(encoding="utf-8")
         meta = f'<meta name="ctd-token" content="{cfg.token}" />'
         html = html.replace("</head>", f"{meta}\n</head>", 1)
-        return HTMLResponse(html)
+        # Cache-bust bundled scripts/styles so a fresh shell can never load a
+        # stale cached asset (see _asset_version). The token rides on the URL, so
+        # the assets themselves stay cacheable until their content changes.
+        version = _asset_version()
+        html = _ASSET_REF.sub(rf"\g<1>\g<2>?v={version}\g<3>", html)
+        # The shell is dynamic (embeds the token and the asset version): never let
+        # the browser reuse a previously stored copy.
+        return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon() -> FileResponse:

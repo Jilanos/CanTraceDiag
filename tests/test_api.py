@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 from pathlib import Path
@@ -104,6 +105,54 @@ def test_index_page_served(client: TestClient) -> None:
     r = client.get("/")
     assert r.status_code == 200
     assert "CanTraceDiag" in r.text
+
+
+def test_index_versions_bundled_assets_and_forbids_shell_cache(client: TestClient) -> None:
+    """The shell must cache-bust every bundled script/style and never be stored.
+
+    Regression guard for the stale-asset mismatch: a fresh index.html loading a
+    cached (stale) main.js threw during bootstrap and killed panel resize,
+    collapse and the view controls. Versioned URLs + a non-cacheable shell make
+    that pairing impossible.
+    """
+    import re as _re
+
+    r = client.get("/")
+    assert r.status_code == 200
+
+    # The shell itself must not be reused from cache (it embeds the token and
+    # the asset version), so the browser always re-fetches matching assets.
+    assert "no-store" in r.headers.get("cache-control", "").lower()
+
+    # Every same-origin JS/CSS reference carries a ?v=<token> version.
+    refs = _re.findall(r'(?:href|src)="(/static/[^"]+\.(?:js|css))(\?v=[0-9a-f]+)?"', r.text)
+    assert refs, "expected bundled asset references in the shell"
+    assert refs == [(path, ver) for path, ver in refs if ver], (
+        "every bundled JS/CSS reference must be versioned; unversioned: "
+        f"{[p for p, v in refs if not v]}"
+    )
+    # main.js specifically (the file whose stale copy caused the regression).
+    assert any(path.endswith("/js/main.js") and ver for path, ver in refs)
+
+
+def test_asset_version_rotates_when_a_bundled_file_changes(tmp_path, monkeypatch) -> None:
+    """AC1: the version token must change when an asset's content changes."""
+    web = tmp_path / "web"
+    (web / "js").mkdir(parents=True)
+    (web / "styles.css").write_text("a{}", encoding="utf-8")
+    (web / "js" / "main.js").write_text("console.log(1);", encoding="utf-8")
+    (web / "index.html").write_text("<html></html>", encoding="utf-8")
+    monkeypatch.setattr(api_module, "_WEB_DIR", web)
+
+    before = api_module._asset_version()
+    # Rewrite a file with different content and a newer mtime.
+    js = web / "js" / "main.js"
+    js.write_text("console.log(2);console.log(3);", encoding="utf-8")
+    os.utime(js, (js.stat().st_atime + 5, js.stat().st_mtime + 5))
+    after = api_module._asset_version()
+
+    assert before != after
+    assert len(after) == 12 and all(c in "0123456789abcdef" for c in after)
 
 
 def test_favicon_served(client: TestClient) -> None:
