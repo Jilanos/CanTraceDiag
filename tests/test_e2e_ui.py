@@ -266,6 +266,24 @@ def test_keyboard_moves_armed_cursor(page):
     assert b > a
 
 
+def test_cursor_values_and_range_analysis_share_one_panel(page):
+    """A/B values and interval statistics render in one measurement table."""
+    page.evaluate(
+        "() => { window.__ctd.placeCursor(6, 'a', false);"
+        " window.__ctd.placeCursor(14, 'b', false); }"
+    )
+    panel = page.locator("#cursorReadout")
+    panel.locator("th", has_text="Range analysis A–B").wait_for()
+    assert panel.is_visible()
+    assert page.locator("#statsReadout").count() == 0
+    headings = panel.locator("thead").inner_text().lower()
+    assert "cursor values" in headings
+    assert "range analysis a–b" in headings
+    assert "mean" in headings
+    assert panel.locator("tbody tr").count() == 3  # time + two selected signals
+    assert not page._ctd_http_errors
+
+
 @pytest.mark.parametrize(
     "panel,toggle",
     [("explorer", "explorerToggle"), ("inspector", "inspectorToggle")],
@@ -348,7 +366,7 @@ def test_imported_text_does_not_execute_html(browser, live_url, tmp_path):
     pg.set_input_files("#dbcFiles", str(dbc))
     pg.click("#loadBtn")
     pg.wait_for_function("() => window.__ctd && window.__ctd.state.signals.length === 1")
-    pg.locator("#tabTrace").click()  # the trace table lives on the Trace tab
+    pg.locator("#viewTrace").click()  # the trace table lives in the Trace view
     pg.wait_for_selector("#traceTable tbody tr")
     pg.wait_for_timeout(200)
     assert pg.evaluate("() => window.__ctdXss") == 0
@@ -386,10 +404,10 @@ def test_narrow_viewport_keeps_critical_actions_reachable(browser, live_url):
     ctx = browser.new_context(viewport={"width": 390, "height": 844})
     pg = ctx.new_page()
     pg.goto(live_url)
-    # Minimal 390x844 support: import, load, main filters, tab/section and export
+    # Minimal 390x844 support: import, load, main filters, views and export
     # stay reachable within the viewport (AC14).
-    # Analysis tab is active by default; import/load/tabs/export stay reachable.
-    for selector in ["#pickTraceBtn", "#loadBtn", "#tabTrace", "#tabReport", "#exportBtn"]:
+    # Plots is active by default; import/load/views/export stay reachable.
+    for selector in ["#pickTraceBtn", "#loadBtn", "#viewSplit", "#viewReport", "#exportBtn"]:
         box = pg.locator(selector).bounding_box()
         assert box is not None, selector
         assert box["x"] >= 0, selector
@@ -419,7 +437,11 @@ def test_no_horizontal_overflow_at_supported_viewports(browser, live_url, width,
     assert overflow <= 1, f"horizontal overflow of {overflow}px at {width}x{height}"
     # Key controls sit within the viewport width at every desktop size.
     if width >= 1024:
-        for selector in ["#loadBtn", "#exportBtn", "#tabAnalysis", "#tabTrace", "#tabReport"]:
+        controls = [
+            "#loadBtn", "#exportBtn", "#viewPlots", "#viewSplit",
+            "#viewTrace", "#viewReport",
+        ]
+        for selector in controls:
             box = pg.locator(selector).bounding_box()
             assert box is not None, selector
             assert box["x"] + box["width"] <= width + 1, f"{selector} overflows at {width}"
@@ -470,7 +492,7 @@ def test_trace_dialogs_close_with_escape(browser, live_url):
     ctx = browser.new_context(viewport={"width": 1600, "height": 900})
     pg = ctx.new_page()
     pg.goto(live_url)
-    pg.locator("#tabTrace").click()  # column dialog lives on the Trace tab
+    pg.locator("#viewTrace").click()  # column dialog lives in the Trace view
     pg.locator("#colBtn").click()
     assert pg.locator("#colDialog").evaluate("d => d.open") is True
     pg.keyboard.press("Escape")
@@ -479,28 +501,33 @@ def test_trace_dialogs_close_with_escape(browser, live_url):
     ctx.close()
 
 
-def test_tabs_switch_panels_and_preserve_state(browser, live_url):
-    """Tabs show one panel at a time and never lose the selection (AC4)."""
+def test_workspace_views_include_split_and_preserve_state(browser, live_url):
+    """One view control restores plots, split, trace and report layouts (AC4)."""
     ctx = browser.new_context(viewport={"width": 1600, "height": 900})
     pg = ctx.new_page()
     pg.goto(live_url)
-    # Plot a signal on Analysis.
+    # Plot a signal in the Plots view.
     pg.locator(".sig input[type=checkbox]").first.check()
     pg.wait_for_timeout(200)
     selected_before = pg.evaluate("() => window.__ctd.selected.length")
     assert selected_before > 0
-    # Switch to Trace: the trace panel shows, the analysis panel hides.
-    pg.locator("#tabTrace").click()
+    # The combined view restores the plot and trace at the same time.
+    pg.locator("#viewSplit").click()
+    assert pg.locator("#plotArea").is_visible()
+    assert pg.locator("#traceWrap").is_visible()
+    assert pg.locator("#splitDivider").is_visible()
+    # Trace alone hides the plot.
+    pg.locator("#viewTrace").click()
     assert pg.locator("#traceWrap").is_visible()
     assert not pg.locator("#plotArea").is_visible()
     assert pg.locator("#traceTable").is_visible()
     # Switch to Report: it renders the synthesis.
-    pg.locator("#tabReport").click()
+    pg.locator("#viewReport").click()
     pg.wait_for_timeout(100)
     assert pg.locator("#reportPanel").is_visible()
     assert "frames" in pg.locator("#reportBody").inner_text().lower()
-    # Back to Analysis: the plotted selection is intact (state preserved).
-    pg.locator("#tabAnalysis").click()
+    # Back to Plots: the plotted selection is intact (state preserved).
+    pg.locator("#viewPlots").click()
     assert pg.locator("#plotArea").is_visible()
     assert pg.evaluate("() => window.__ctd.selected.length") == selected_before
     ctx.close()
@@ -511,7 +538,7 @@ def test_trace_empty_state_for_no_matching_filter(browser, live_url):
     ctx = browser.new_context(viewport={"width": 1600, "height": 900})
     pg = ctx.new_page()
     pg.goto(live_url)
-    pg.locator("#tabTrace").click()
+    pg.locator("#viewTrace").click()
     pg.locator("#fId").fill("ZZZZ")  # no id matches
     pg.wait_for_timeout(400)
     empty = pg.locator("#traceEmpty")

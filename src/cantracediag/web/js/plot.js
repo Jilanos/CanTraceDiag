@@ -330,36 +330,58 @@ function placeCursor(t, which, locate) {
 // shortly after the pointer stops.
 const refreshCursorReadoutDebounced = debounce(() => refreshCursorReadout(), 90);
 
+let cursorReadoutRequest = 0;
 async function refreshCursorReadout() {
-  refreshStats();
+  const request = ++cursorReadoutRequest;
   const box = $("cursorReadout");
   const { a, b } = state.cursor;
-  if ((a == null && b == null) || !state.selected.length) { box.classList.add("empty"); return; }
+  if ((a == null && b == null) || !state.selected.length) {
+    box.classList.add("empty");
+    $("statsMsg").textContent = "";
+    return;
+  }
   box.classList.remove("empty");
 
   // Nearest real samples for every selected signal at A and B in one bounded
   // call (AC8): no interpolation, exact, and no per-signal request fan-out.
-  let va = {}, vb = {};
-  try {
-    const batch = await api("/api/cursors", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        signals: state.selected.map((s) => ({ message: s.message, signal: s.signal })),
-        a, b,
-      }),
-    });
-    va = batch.a || {}; vb = batch.b || {};
-  } catch (err) {
-    console.warn("Cursor batch lookup failed", err);
-  }
+  const start = a == null || b == null ? null : Math.min(a, b);
+  const end = a == null || b == null ? null : Math.max(a, b);
+  const cursorPromise = api("/api/cursors", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      signals: state.selected.map((s) => ({ message: s.message, signal: s.signal })),
+      a, b,
+    }),
+  }).catch((err) => { console.warn("Cursor batch lookup failed", err); return {}; });
+  const statsPromise = start == null ? Promise.resolve([]) : loadRangeStats(start, end);
+  const [batch, stats] = await Promise.all([cursorPromise, statsPromise]);
+  if (request !== cursorReadoutRequest) return;
+  const va = batch.a || {}, vb = batch.b || {};
+  const statsBySignal = new Map(stats.map(({ s, r }) => [favSig(s), r]));
+  $("statsMsg").textContent = start == null ? "Place both cursors for range analysis" : `${fmtTime(start)} – ${fmtTime(end)}`;
 
-  const head = `<tr><th>Signal</th><th>A</th><th>B</th><th>Δ (B−A)</th></tr>`;
-  let rows = "";
-  const tRow = (label, av, bv, dv) =>
-    `<tr><td>${label}</td><td>${av}</td><td>${bv}</td><td>${dv}</td></tr>`;
-  rows += tRow("<b>time</b>",
-    a == null ? "—" : fmtTime(a), b == null ? "—" : fmtTime(b),
-    (a == null || b == null) ? "—" : fmtDelta(b - a) + " s");
+  const head = `<tr><th rowspan="2">Signal</th><th colspan="3" class="group">Cursor values</th>` +
+    `<th colspan="6" class="group">Range analysis A–B</th></tr>` +
+    `<tr><th class="range-start">A</th><th>B</th><th>Δ (B−A)</th>` +
+    `<th class="range-start">n</th><th>min</th><th>max</th><th>mean</th><th>std</th><th>rms</th></tr>`;
+  const statsCells = (r) => {
+    if (!r) return `<td colspan="6" class="range-start none">—</td>`;
+    const unit = r.unit ? ` ${r.unit}` : "";
+    if (r.kind === "empty") {
+      return `<td class="range-start">0</td><td colspan="5" class="none">no samples in range</td>`;
+    }
+    if (r.kind === "text") {
+      const dist = (r.distribution || []).map((d) => `${esc(d.value)}×${d.count}`).join(", ");
+      return `<td class="range-start">${r.count}</td><td colspan="5" class="dist">${dist || "—"}</td>`;
+    }
+    const c = (v) => v == null ? "—" : esc(fmtNum(v) + unit);
+    return `<td class="range-start">${r.count}</td><td>${c(r.min)}</td><td>${c(r.max)}</td>` +
+      `<td>${c(r.mean)}</td><td>${c(r.std)}</td><td>${c(r.rms)}</td>`;
+  };
+  let rows = `<tr><td><b>time</b></td><td class="range-start">${a == null ? "—" : fmtTime(a)}</td>` +
+    `<td>${b == null ? "—" : fmtTime(b)}</td>` +
+    `<td>${a == null || b == null ? "—" : fmtDelta(b - a) + " s"}</td>` +
+    `<td colspan="6" class="range-start none">—</td></tr>`;
   for (const s of state.selected) {
     const key = favSig(s);
     const ra = va[key], rb = vb[key];
@@ -368,9 +390,10 @@ async function refreshCursorReadout() {
     const bv = rb ? fmtVal(rb) : "—";
     const na = num(ra), nb = num(rb);
     const dv = (na != null && nb != null) ? fmtDelta(nb - na) + (s.unit ? " " + s.unit : "") : "—";
-    rows += tRow(`<span style="color:${s.color}">${esc(s.message)}.${esc(s.signal)}</span>`, av, bv, esc(dv));
+    rows += `<tr><td><span style="color:${s.color}">${esc(s.message)}.${esc(s.signal)}</span></td>` +
+      `<td class="range-start">${av}</td><td>${bv}</td><td>${esc(dv)}</td>` +
+      `${statsCells(statsBySignal.get(key))}</tr>`;
   }
   box.querySelector("thead").innerHTML = head;
   box.querySelector("tbody").innerHTML = rows;
 }
-

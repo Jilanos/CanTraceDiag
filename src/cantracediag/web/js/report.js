@@ -2,15 +2,8 @@
 /* CanTraceDiag UI — report domain. Range statistics, diagnostic report and export. */
 
 /* ---- range statistics between A and B (AC3) ---------------------------- */
-async function refreshStats() {
-  const box = $("statsReadout");
-  const { a, b } = state.cursor;
-  if (!state.selected.length || a == null || b == null) { box.classList.add("empty"); return; }
-  box.classList.remove("empty");
-  const start = Math.min(a, b), end = Math.max(a, b);
-  $("statsMsg").textContent = `${fmtTime(start)} – ${fmtTime(end)}`;
-
-  const results = await Promise.all(state.selected.map(async (s) => {
+async function loadRangeStats(start, end) {
+  return Promise.all(state.selected.map(async (s) => {
     try {
       const r = await api(
         `/api/signal-stats?message=${encodeURIComponent(s.message)}` +
@@ -21,27 +14,9 @@ async function refreshStats() {
       return { s, r: null };
     }
   }));
-
-  const head = `<tr><th>Signal</th><th>n</th><th>min</th><th>max</th><th>mean</th><th>std</th><th>rms</th></tr>`;
-  let rows = "";
-  for (const { s, r } of results) {
-    const label = `<span style="color:${s.color}">${esc(s.message)}.${esc(s.signal)}</span>`;
-    if (!r) { rows += `<tr><td>${label}</td><td colspan="6" class="none">stats unavailable</td></tr>`; continue; }
-    const unit = r.unit ? ` ${r.unit}` : "";
-    if (r.kind === "empty") {
-      rows += `<tr><td>${label}</td><td>0</td><td colspan="5" class="none">no samples in range</td></tr>`;
-    } else if (r.kind === "text") {
-      const dist = (r.distribution || []).map((d) => `${esc(d.value)}×${d.count}`).join(", ");
-      rows += `<tr><td>${label}</td><td>${r.count}</td><td colspan="5" class="dist">${dist || "—"}</td></tr>`;
-    } else {
-      const c = (v) => v == null ? "—" : esc(fmtNum(v) + unit);
-      rows += `<tr><td>${label}</td><td>${r.count}</td><td>${c(r.min)}</td><td>${c(r.max)}</td>` +
-        `<td>${c(r.mean)}</td><td>${c(r.std)}</td><td>${c(r.rms)}</td></tr>`;
-    }
-  }
-  box.querySelector("thead").innerHTML = head;
-  box.querySelector("tbody").innerHTML = rows;
 }
+
+function refreshStats() { return refreshCursorReadout(); }
 
 /* ---- diagnostic report tab (AC1, AC4) ---------------------------------- */
 async function loadReport() {
@@ -166,4 +141,3 @@ async function locateInTrace(t) {
     reportError(err, "Trace locate failed");
   }
 }
-

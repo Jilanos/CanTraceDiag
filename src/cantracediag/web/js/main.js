@@ -73,43 +73,45 @@ $("exportCancel").addEventListener("click", () => $("exportDialog").close());
 $("exportRun").addEventListener("click", runExport);
 window.addEventListener("resize", debounce(() => { refreshTheme(); renderPlot(); scheduleSeriesRefresh(); }, 150));
 
-/* ---- workspace tabs: Analysis / Trace / Report (AC4) ------------------- */
-// Panels keep their DOM (and state) when hidden, so switching tabs never loses
-// the current selection, cursors, filters or report. The signal explorer,
-// inspector and session status live outside the tabs and persist across them.
-const TABS = ["analysis", "trace", "report"];
-function showTab(name) {
-  if (!TABS.includes(name)) name = "analysis";
-  for (const btn of document.querySelectorAll(".tab")) {
-    const on = btn.dataset.tab === name;
+/* ---- workspace views (AC4) -------------------------------------------- */
+// One control owns both navigation and layout. The split view restores the
+// plot + trace workspace while preserving selection, cursors and filters.
+const WORKSPACE_VIEWS = ["plots", "split", "trace", "report"];
+function showWorkspace(name) {
+  if (!WORKSPACE_VIEWS.includes(name)) name = "plots";
+  for (const btn of document.querySelectorAll(".workspace-view")) {
+    const on = btn.dataset.view === name;
     btn.classList.toggle("active", on);
-    btn.setAttribute("aria-selected", on ? "true" : "false");
-    btn.tabIndex = on ? 0 : -1;
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
   }
-  for (const panel of document.querySelectorAll(".tabpanel")) {
-    panel.hidden = panel.dataset.panel !== name;
+  $("center").dataset.view = name;
+  $("plotArea").hidden = name !== "plots" && name !== "split";
+  $("splitDivider").hidden = name !== "split";
+  $("traceWrap").hidden = name !== "trace" && name !== "split";
+  $("reportPanel").hidden = name !== "report";
+  if (name === "split") {
+    const traceH = store.get("layout", {}).traceH;
+    $("traceWrap").style.height = traceH ? traceH + "px" : "40%";
+  } else {
+    $("traceWrap").style.height = "";
   }
-  store.set("tab", name);
-  if (name === "analysis") { renderPlot(); scheduleSeriesRefresh(); }
+  store.set("workspaceView", name);
+  if (name === "plots" || name === "split") { renderPlot(); scheduleSeriesRefresh(); }
   if (name === "report") loadReport();
 }
-for (const btn of document.querySelectorAll(".tab")) {
-  btn.addEventListener("click", () => showTab(btn.dataset.tab));
+for (const btn of document.querySelectorAll(".workspace-view")) {
+  btn.addEventListener("click", () => showWorkspace(btn.dataset.view));
   btn.addEventListener("keydown", (e) => {
-    const i = TABS.indexOf(btn.dataset.tab);
+    const i = WORKSPACE_VIEWS.indexOf(btn.dataset.view);
     let next = null;
-    if (e.key === "ArrowRight") next = TABS[(i + 1) % TABS.length];
-    else if (e.key === "ArrowLeft") next = TABS[(i - 1 + TABS.length) % TABS.length];
+    if (e.key === "ArrowRight") next = WORKSPACE_VIEWS[(i + 1) % WORKSPACE_VIEWS.length];
+    else if (e.key === "ArrowLeft") next = WORKSPACE_VIEWS[(i - 1 + WORKSPACE_VIEWS.length) % WORKSPACE_VIEWS.length];
     else return;
     e.preventDefault();
-    showTab(next);
-    $("tab" + next[0].toUpperCase() + next.slice(1)).focus();
+    showWorkspace(next);
+    document.querySelector(`[data-view="${next}"]`).focus();
   });
 }
-// Layout presets restore a persisted view (AC4).
-$("presetPlots").addEventListener("click", () => showTab("analysis"));
-$("presetTrace").addEventListener("click", () => showTab("trace"));
-$("presetFull").addEventListener("click", () => showTab("report"));
 
 // Collapsible secondary filters (AC7): value is kept even while collapsed.
 $("moreFilters").addEventListener("click", () => {
@@ -137,6 +139,7 @@ wireCollapse("explorer", "explorerToggle", "explorerCollapsed", "‹", "›");
 wireCollapse("inspector", "inspectorToggle", "inspectorCollapsed", "›", "‹");
 wireSideResize("explorerResizer", "explorer", "explorerToggle", "left", "explorerW", "explorerCollapsed", "‹", "›");
 wireSideResize("inspectorResizer", "inspector", "inspectorToggle", "right", "inspectorW", "inspectorCollapsed", "›", "‹");
+wireSplitResize();
 
 (async function init() {
   refreshTheme();
@@ -148,7 +151,8 @@ wireSideResize("inspectorResizer", "inspector", "inspectorToggle", "right", "ins
   restoreFilters();
   armButtons();
   if (store.get("moreFilters", false)) $("moreFilters").click();
-  showTab(store.get("tab", "analysis"));
+  const legacyView = { analysis: "plots", trace: "trace", report: "report" }[store.get("tab", "")];
+  showWorkspace(store.get("workspaceView", legacyView || "plots"));
   updateTraceEmpty(0, false);   // "No trace loaded" until an import lands
   try {
     const st = await api("/api/status");

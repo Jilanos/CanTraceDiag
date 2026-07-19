@@ -181,7 +181,6 @@ function applyLayout() {
   const L = store.get("layout", {});
   if (L.explorerW) $("explorer").style.width = L.explorerW + "px";
   if (L.inspectorW) $("inspector").style.width = L.inspectorW + "px";
-  if (L.traceH) $("traceWrap").style.height = L.traceH + "px";
   setCollapsed("explorer", "explorerToggle", !!L.explorerCollapsed, "‹", "›");
   setCollapsed("inspector", "inspectorToggle", !!L.inspectorCollapsed, "›", "‹");
 }
@@ -266,6 +265,44 @@ function wireSideResize(resizerId, panelId, btnId, side, key, collapsedKey, open
     if (e.key === grow) { applyWidth(width + 24); persist(); }
     else if (e.key === shrink) { applyWidth(width - 24); persist(); }
     else if (e.key === "Enter" || e.key === " ") { $(btnId).click(); }
+    else return;
+    e.preventDefault();
+  });
+}
+
+function wireSplitResize() {
+  const resizer = $("splitDivider"), trace = $("traceWrap"), center = $("center");
+  resizer.setAttribute("role", "separator");
+  resizer.setAttribute("aria-orientation", "horizontal");
+  resizer.setAttribute("tabindex", "0");
+  resizer.setAttribute("aria-label", "Resize plots and trace panels (arrow keys)");
+  let dragging = false;
+
+  const applyHeight = (raw) => {
+    const available = center.clientHeight - $("center").querySelector(".workspace-bar").offsetHeight;
+    const height = Math.min(Math.max(raw, 150), Math.max(150, available - 150));
+    trace.style.height = height + "px";
+    patchLayout({ traceH: height });
+    renderPlot();
+  };
+  resizer.addEventListener("pointerdown", (e) => {
+    dragging = true; e.preventDefault(); document.body.style.userSelect = "none";
+    if (e.pointerId != null && resizer.setPointerCapture) {
+      try { resizer.setPointerCapture(e.pointerId); } catch { /* best-effort */ }
+    }
+  });
+  window.addEventListener("pointerup", () => {
+    if (!dragging) return;
+    dragging = false; document.body.style.userSelect = "";
+  });
+  window.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+    applyHeight(center.getBoundingClientRect().bottom - e.clientY);
+  });
+  resizer.addEventListener("keydown", (e) => {
+    const height = trace.getBoundingClientRect().height;
+    if (e.key === "ArrowUp") applyHeight(height + 24);
+    else if (e.key === "ArrowDown") applyHeight(height - 24);
     else return;
     e.preventDefault();
   });

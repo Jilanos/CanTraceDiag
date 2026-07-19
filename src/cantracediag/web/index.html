@@ -54,21 +54,18 @@
   </aside>
   <div class="side-resizer" id="explorerResizer"></div>
 
-  <!-- Area: tabbed workspace (Analysis / Trace / Report) -->
+  <!-- Area: workspace views -->
   <section id="center">
-    <div class="tabs" role="tablist" aria-label="Workspace views">
-      <button class="tab active" role="tab" id="tabAnalysis" data-tab="analysis" aria-selected="true">Analysis</button>
-      <button class="tab" role="tab" id="tabTrace" data-tab="trace" aria-selected="false">Trace</button>
-      <button class="tab" role="tab" id="tabReport" data-tab="report" aria-selected="false">Report</button>
-      <span class="tab-spacer"></span>
-      <span class="lbl">Layout</span>
-      <div class="seg">
-        <button id="presetPlots" title="Plots layout">Plots</button>
-        <button id="presetTrace" title="Trace layout">Trace</button>
-        <button id="presetFull" title="Full diagnostic layout">Full diagnostic</button>
+    <div class="workspace-bar">
+      <span class="lbl">View</span>
+      <div class="seg" role="group" aria-label="Workspace view">
+        <button class="workspace-view active" id="viewPlots" data-view="plots" aria-pressed="true">Plots</button>
+        <button class="workspace-view" id="viewSplit" data-view="split" aria-pressed="false">Plots + trace</button>
+        <button class="workspace-view" id="viewTrace" data-view="trace" aria-pressed="false">Trace</button>
+        <button class="workspace-view" id="viewReport" data-view="report" aria-pressed="false">Report</button>
       </div>
     </div>
-    <div id="plotArea" class="tabpanel" data-panel="analysis" role="tabpanel" aria-labelledby="tabAnalysis">
+    <div id="plotArea" class="workspace-panel" role="region" aria-label="Signal plots">
       <div class="plotbar">
         <div class="seg">
           <button id="fitBtn" title="Fit all data (double-click plot)">Fit</button>
@@ -93,14 +90,14 @@
         <canvas id="plot" tabindex="0" role="img" aria-label="Signal plot. Use arrow keys to move the armed cursor when data is loaded."></canvas>
         <div id="plotHint">Select signals to plot.</div>
       </div>
-      <div id="cursorReadout" class="empty"><table><thead></thead><tbody></tbody></table></div>
-      <div id="statsReadout" class="empty">
-        <div class="stats-head"><span class="lbl">Range statistics (A–B)</span><span class="stats-msg" id="statsMsg"></span></div>
-        <table><thead></thead><tbody></tbody></table>
+      <div id="cursorReadout" class="empty">
+        <div class="measurement-head"><span class="lbl">Cursor measurements</span><span class="measurement-range" id="statsMsg"></span></div>
+        <div class="measurement-scroll"><table><thead></thead><tbody></tbody></table></div>
       </div>
       <div id="plotError" class="comp-error" hidden></div>
     </div>
-    <div id="traceWrap" class="tabpanel" data-panel="trace" role="tabpanel" aria-labelledby="tabTrace" hidden>
+    <div class="divider" id="splitDivider" hidden></div>
+    <div id="traceWrap" class="workspace-panel" role="region" aria-label="CAN trace" hidden>
       <div class="tracebar">
         <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" aria-label="Filter by arbitration id (hex)" />
         <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" aria-label="Filter by message or event name" />
@@ -129,7 +126,7 @@
       <div id="traceError" class="comp-error" hidden></div>
     </div>
 
-    <div id="reportPanel" class="tabpanel" data-panel="report" role="tabpanel" aria-labelledby="tabReport" hidden>
+    <div id="reportPanel" class="workspace-panel" role="region" aria-label="Diagnostic report" hidden>
       <div class="report-bar">
         <strong>Diagnostic report</strong>
         <span class="tab-spacer"></span>
