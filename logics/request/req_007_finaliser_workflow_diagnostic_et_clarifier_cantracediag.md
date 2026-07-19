@@ -1,9 +1,9 @@
 ## req_007_finaliser_workflow_diagnostic_et_clarifier_cantracediag - Finaliser le workflow diagnostic et clarifier CanTraceDiag
 > From version: 0.1.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 100%
-> Confidence: 95%
+> Confidence: 100%
 > Complexity: high
 > Theme: product-clarity-and-diagnostic-completeness
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
