@@ -9,6 +9,8 @@ supplied either as uploads from the browser's native file picker
 
 from __future__ import annotations
 
+import hashlib
+import os
 import re
 import shutil
 import tempfile
@@ -18,20 +20,48 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import cantools
-from fastapi import FastAPI, File, Form, HTTPException, UploadFile
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
+from cantracediag import export
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
 from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
-from cantracediag.store import TraceStore
+from cantracediag.security import SecurityConfig
+from cantracediag.store import TraceStore, _id_hex
 from cantracediag.workspace import Workspace
 
 _WEB_DIR = Path(__file__).parent / "web"
+_TOKEN_HEADER = "x-ctd-token"
+
+# Rewrite same-origin references to a bundled script/stylesheet so we can append
+# the asset version below (e.g. ``src="/static/js/main.js"`` -> ``...?v=<token>``).
+_ASSET_REF = re.compile(r'((?:href|src)=")(/static/[^"?]+\.(?:js|css))(")')
+
+
+def _asset_version() -> str:
+    """Short token that changes whenever any bundled UI asset changes.
+
+    The shell (``index.html``) is served dynamically and is therefore always
+    fresh, but the browser caches ``/static/*.js`` and ``/static/*.css`` under
+    heuristic freshness. That let a *fresh* shell load *stale* scripts after an
+    edit, and the mismatch silently broke event wiring (a removed element id in
+    the old script threw during bootstrap, killing panel resize/collapse and the
+    view controls). Stamping the version into each asset URL means a changed file
+    always gets a new URL, so the browser can never pair new HTML with old JS.
+    """
+    digest = hashlib.sha1()
+    for path in sorted(_WEB_DIR.rglob("*")):
+        if path.suffix in {".js", ".css", ".html"} and path.is_file():
+            stat = path.stat()
+            digest.update(path.name.encode("utf-8"))
+            digest.update(str(stat.st_mtime_ns).encode("utf-8"))
+            digest.update(str(stat.st_size).encode("utf-8"))
+    return digest.hexdigest()[:12]
 
 
 class Pending:
@@ -156,13 +186,91 @@ class ResolveRequest(BaseModel):
     resolution: dict[str, str] = {}
 
 
-def create_app(workspace: Workspace | None = None) -> FastAPI:
+class ExportSignal(BaseModel):
+    message: str
+    signal: str
+
+
+class CursorBatchRequest(BaseModel):
+    signals: list[ExportSignal] = []
+    a: float | None = None
+    b: float | None = None
+
+
+class ExportRequest(BaseModel):
+    signals: list[ExportSignal] = []
+    # "between_ab" and "visible" require start/end; "full" ignores them.
+    scope: str = "between_ab"
+    start: float | None = None
+    end: float | None = None
+    # "csv" and "parquet" use the canonical long schema; "csv_wide" pivots by
+    # timestamp without interpolation.
+    format: str = "csv"
+
+
+_EXPORT_FORMATS = {
+    "csv": ("text/csv", "csv"),
+    "csv_wide": ("text/csv", "csv"),
+    "parquet": ("application/vnd.apache.parquet", "parquet"),
+}
+
+
+def _trace_cursor_offset(cursor: str | None) -> int:
+    if cursor in (None, ""):
+        return 0
+    try:
+        offset = int(cursor)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("Invalid trace cursor.") from exc
+    if offset < 0:
+        raise ValueError("Invalid trace cursor.")
+    return offset
+
+
+def _trace_page_payload(page: dict, offset: int, limit: int) -> dict:
+    total = int(page.get("total") or 0)
+    rows = page.get("rows") or []
+    start_index = min(offset, total)
+    next_offset = offset + len(rows)
+    prev_offset = max(0, offset - limit)
+    return {
+        **page,
+        "offset": offset,
+        "limit": limit,
+        "start_index": start_index,
+        "next_cursor": str(next_offset) if next_offset < total else None,
+        "prev_cursor": str(prev_offset) if offset > 0 and total else None,
+    }
+
+
+def create_app(
+    workspace: Workspace | None = None,
+    security: SecurityConfig | None = None,
+) -> FastAPI:
     app = FastAPI(title="CanTraceDiag", version="0.1.0")
     session = Session()
     session.workspace = workspace or Workspace.from_env()
+    cfg = security or SecurityConfig.from_env()
     # Exposed so a test (or an embedding process) can reach the live session,
-    # e.g. to close the store connection when simulating a server restart.
+    # e.g. to close the store connection when simulating a server restart, and
+    # read the per-process session token.
     app.state.ctd_session = session
+    app.state.ctd_security = cfg
+
+    @app.middleware("http")
+    async def _guard(request: Request, call_next):
+        # DNS-rebinding and cross-site defences run before any handler (AC10).
+        if not cfg.host_allowed(request.headers.get("host")):
+            return JSONResponse({"detail": "Host not allowed."}, status_code=403)
+        if not cfg.origin_allowed(request.headers.get("origin")):
+            return JSONResponse({"detail": "Origin not allowed."}, status_code=403)
+        if cfg.requires_token(request.url.path, request.method):
+            provided = request.headers.get(_TOKEN_HEADER) or request.query_params.get("token")
+            if not cfg.token_ok(provided):
+                return JSONResponse(
+                    {"detail": "Missing or invalid session token."}, status_code=401
+                )
+        return await call_next(request)
 
     def _prepare(
         trace: Path,
@@ -399,14 +507,21 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
 
     @app.post("/api/import")
     def api_import(req: ImportRequest) -> dict:
-        """Import by server-side path (CLI/power users; accepts Windows/UNC paths)."""
+        """Import by server-side path (CLI/power users; accepts Windows/UNC paths).
+
+        Reading an arbitrary server path is disabled outside loopback unless
+        explicitly re-enabled, so ``--lan`` never exposes the filesystem (AC11).
+        Error messages never echo the resolved local path (AC10).
+        """
+        if not cfg.allow_server_import:
+            raise HTTPException(403, "Server-side path import is disabled.")
         trace = Path(normalize_local_path(req.trace_path)).expanduser()
         if not trace.is_file():
-            raise HTTPException(404, f"Trace not found: {trace}")
+            raise HTTPException(404, "Trace file not found.")
         dbc_paths = [Path(normalize_local_path(d)).expanduser() for d in req.dbc_paths]
         for dbc in dbc_paths:
             if not dbc.is_file():
-                raise HTTPException(404, f"DBC not found: {dbc}")
+                raise HTTPException(404, "DBC file not found.")
         try:
             return _prepare(
                 trace, dbc_paths, str(trace), [str(p) for p in dbc_paths],
@@ -417,6 +532,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
 
     @app.post("/api/import-files")
     async def api_import_files(
+        request: Request,
         trace: UploadFile = File(...),
         dbcs: list[UploadFile] = File(default=[]),
         library: list[str] = Form(default=[]),
@@ -438,11 +554,17 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
         if not (trace.filename or "").lower().endswith(".asc"):
             raise HTTPException(400, "Trace file must be a .asc file.")
 
+        # Reject oversized uploads early via the declared length, then enforce
+        # the cap while streaming so a lying Content-Length cannot bypass it (AC10).
+        declared = request.headers.get("content-length")
+        if declared is not None and declared.isdigit() and int(declared) > cfg.max_upload_bytes:
+            raise HTTPException(413, "Upload exceeds the configured size limit.")
+
         tmpdir = Path(tempfile.mkdtemp(prefix="ctd_"))
         keep_tmpdir = False
         try:
             trace_path = tmpdir / _safe_name(trace.filename)
-            await _spool(trace, trace_path)
+            await _spool(trace, trace_path, cfg.max_upload_bytes)
 
             dbc_paths: list[Path] = []
             display_dbcs: list[str] = []
@@ -456,7 +578,7 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
                     raise HTTPException(400, f"Duplicate DBC basename: {safe}")
                 seen_names.add(safe)
                 dest = tmpdir / safe
-                await _spool(upload, dest)
+                await _spool(upload, dest, cfg.max_upload_bytes)
                 dbc_paths.append(dest)
                 display_dbcs.append(Path(name).name)
 
@@ -601,27 +723,53 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             _ensure_series_cached(store, message, signal, start, end)
             return store.signal_series(message, signal, start, end, max_points)
 
+    def _resolve_cursor(store: TraceStore, message: str, signal: str, at: float):
+        """Nearest sample for one signal at ``at`` (AC8): a cached sample if
+        present, else the signal decoded from the nearest frame on demand."""
+        sample = store.nearest_sample(message, signal, at)
+        if sample is not None:
+            return sample
+        info = _signal_info(message, signal)
+        frame = store.nearest_frame_for_signal(info.arbitration_id, at)
+        decoded = _decoder().decode_signal(frame, message, signal) if frame else None
+        if decoded is None:
+            return None
+        return {
+            "timestamp_s": decoded.timestamp_s,
+            "value": decoded.value,
+            "unit": decoded.unit,
+        }
+
     @app.get("/api/cursor")
     def api_cursor(message: str, signal: str, at: float) -> dict:
         with session.use_store() as store:
-            sample = store.nearest_sample(message, signal, at)
-            if sample is None:
-                info = _signal_info(message, signal)
-                frame = store.nearest_frame_for_signal(info.arbitration_id, at)
-                decoded = _decoder().decode_signal(frame, message, signal) if frame else None
-                if decoded is not None:
-                    sample = {
-                        "timestamp_s": decoded.timestamp_s,
-                        "value": decoded.value,
-                        "unit": decoded.unit,
-                    }
+            sample = _resolve_cursor(store, message, signal, at)
         if sample is None:
             raise HTTPException(404, "No sample for that signal.")
         return sample
 
+    @app.post("/api/cursors")
+    def api_cursors(req: CursorBatchRequest) -> dict:
+        """Nearest values for N signals at cursors A and B in one call (AC8).
+
+        Collapses the per-signal, per-cursor round-trips the readout used to fire
+        into a single bounded request; each lookup stays two bounded queries.
+        """
+        with session.use_store() as store:
+            out: dict[str, dict] = {}
+            for label, at in (("a", req.a), ("b", req.b)):
+                if at is None:
+                    out[label] = {}
+                    continue
+                out[label] = {
+                    f"{s.message}.{s.signal}": _resolve_cursor(store, s.message, s.signal, at)
+                    for s in req.signals
+                }
+        return out
+
     @app.get("/api/trace")
     def api_trace(
-        offset: int = 0,
+        cursor: str | None = None,
         limit: int = 200,
         start: float | None = None,
         end: float | None = None,
@@ -636,12 +784,18 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
     ) -> dict:
         limit = max(1, min(limit, 2000))
         with session.use_store() as store:
-            return store.trace_rows(
-                offset, limit, start, end, frames, events,
-                id_hex=id, message=message, direction=direction,
-                decode_status=status, event_type=event_type, signal=signal,
-                signal_ids=_signal_ids_matching(signal),
-            )
+            try:
+                offset = _trace_cursor_offset(cursor)
+                page = store.trace_rows(
+                    offset=offset, limit=limit, start_s=start, end_s=end,
+                    include_frames=frames, include_events=events,
+                    id_hex=id, message=message, direction=direction,
+                    decode_status=status, event_type=event_type, signal=signal,
+                    signal_ids=_signal_ids_matching(signal),
+                )
+                return _trace_page_payload(page, offset, limit)
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
 
     @app.get("/api/trace-locate")
     def api_trace_locate(
@@ -677,6 +831,140 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
             _, samples = _decoder().decode_frame(frame)
             return {"signals": [_sample_payload(sample) for sample in samples]}
 
+    @app.get("/api/report")
+    def api_report() -> dict:
+        """Import synthesis for the Report view (AC1).
+
+        Combines the analysed file and DBC selection with the acquisition
+        summary: time range and duration, volumes (frames, events, ids), the
+        DBCs actually credited with a decode, and anomalies grouped by type
+        (decode failures plus non-data ASC events).
+        """
+        with session.use_store() as store:
+            summary = store.summary()
+            usage = store.dbc_usage()
+        status = summary.get("decode_status", {})
+        start_s, end_s = summary.get("start_s"), summary.get("end_s")
+        duration = (
+            end_s - start_s if start_s is not None and end_s is not None else None
+        )
+        anomalies = {
+            "unknown_id": int(status.get("unknown_id", 0) or 0),
+            "ambiguous_id": int(status.get("ambiguous_id", 0) or 0),
+            "decode_error": int(status.get("decode_error", 0) or 0),
+            # Non-data ASC events (ErrorFrame, Status, Other, CANFD, …) are the
+            # trace-level anomalies distinct from decode failures.
+            "asc_events": {k: int(v) for k, v in summary.get("event_types", {}).items()},
+        }
+        return {
+            "trace_path": session.trace_path,
+            "asc_base": session.asc_base,
+            "dbc_paths": session.dbc_paths,
+            "dbcs_used": usage,
+            "start_s": start_s,
+            "end_s": end_s,
+            "duration_s": duration,
+            "frames": summary.get("frames", 0),
+            "events": summary.get("events", 0),
+            "decoded_frames": summary.get("decoded_frames", 0),
+            "unique_ids": summary.get("unique_ids", 0),
+            "decode_status": status,
+            "anomalies": anomalies,
+        }
+
+    @app.get("/api/signal-stats")
+    def api_signal_stats(
+        message: str,
+        signal: str,
+        start: float | None = None,
+        end: float | None = None,
+    ) -> dict:
+        """Range statistics for one signal between two bounds (AC3)."""
+        with session.use_store() as store:
+            _ensure_series_cached(store, message, signal, start, end)
+            return store.signal_stats(message, signal, start, end)
+
+    @app.post("/api/export")
+    def api_export(req: ExportRequest) -> StreamingResponse:
+        """Stream selected signals over a chosen range as CSV or Parquet (AC2).
+
+        The export is generated incrementally from DuckDB so memory does not
+        grow with the number of exported rows. ``scope`` selects the range:
+        ``between_ab`` and ``visible`` use the supplied ``start``/``end``;
+        ``full`` exports the whole trace.
+        """
+        if not req.signals:
+            raise HTTPException(400, "Select at least one signal to export.")
+        if req.format not in _EXPORT_FORMATS:
+            raise HTTPException(400, f"Unknown export format: {req.format}")
+        if req.scope not in {"between_ab", "visible", "full"}:
+            raise HTTPException(400, f"Unknown export scope: {req.scope}")
+        if req.scope == "full":
+            start, end = None, None
+        else:
+            if req.start is None or req.end is None:
+                raise HTTPException(400, f"Scope '{req.scope}' requires start and end.")
+            start, end = min(req.start, req.end), max(req.start, req.end)
+
+        pairs = [(s.message, s.signal) for s in req.signals]
+        media_type, suffix = _EXPORT_FORMATS[req.format]
+
+        # Hold the store for the whole response: the streaming body is consumed
+        # after this function returns, so it is released in the generators'
+        # finally clauses (or after the Parquet file is fully written).
+        with session._lock:
+            store = session.store
+        if store is None or not store.acquire():
+            raise HTTPException(409, "No trace loaded. POST /api/import first.")
+        try:
+            for message, signal in pairs:
+                _ensure_series_cached(store, message, signal, start, end)
+        except Exception:
+            store.release()
+            raise
+
+        filename = f"cantracediag_export.{suffix}"
+        headers = {"Content-Disposition": f'attachment; filename="{filename}"'}
+
+        if req.format == "parquet":
+            # Parquet needs a seekable sink, so it is written to a temp file
+            # (one batch at a time, bounded memory) and then streamed out.
+            fd, tmp_path = tempfile.mkstemp(prefix="ctd_export_", suffix=".parquet")
+            try:
+                with os.fdopen(fd, "wb") as sink:
+                    export.long_parquet(
+                        store.iter_export_batches(pairs, start, end), sink
+                    )
+            except Exception:
+                os.unlink(tmp_path)
+                raise
+            finally:
+                store.release()
+
+            def _file_iter():
+                try:
+                    with open(tmp_path, "rb") as handle:
+                        while chunk := handle.read(1 << 16):
+                            yield chunk
+                finally:
+                    os.unlink(tmp_path)
+
+            return StreamingResponse(_file_iter(), media_type=media_type, headers=headers)
+
+        if req.format == "csv_wide":
+            labels = [export.signal_label(m, s) for m, s in pairs]
+            body = export.wide_csv(store.iter_export_batches(pairs, start, end), labels)
+        else:
+            body = export.long_csv(store.iter_export_batches(pairs, start, end))
+
+        def _stream():
+            try:
+                yield from body
+            finally:
+                store.release()
+
+        return StreamingResponse(_stream(), media_type=media_type, headers=headers)
+
     @app.get("/api/import-job")
     def api_import_job() -> dict:
         return session.last_job or {
@@ -698,8 +986,22 @@ def create_app(workspace: Workspace | None = None) -> FastAPI:
         return {"cancelled": True}
 
     @app.get("/")
-    def index() -> FileResponse:
-        return FileResponse(_WEB_DIR / "index.html")
+    def index() -> HTMLResponse:
+        # Embed the session token in the shell so same-origin scripts can send it
+        # (AC10). Cross-origin pages cannot read this document, so the token is
+        # only exposed to a legitimately served UI. In LAN mode the middleware
+        # already required the token to reach this route.
+        html = (_WEB_DIR / "index.html").read_text(encoding="utf-8")
+        meta = f'<meta name="ctd-token" content="{cfg.token}" />'
+        html = html.replace("</head>", f"{meta}\n</head>", 1)
+        # Cache-bust bundled scripts/styles so a fresh shell can never load a
+        # stale cached asset (see _asset_version). The token rides on the URL, so
+        # the assets themselves stay cacheable until their content changes.
+        version = _asset_version()
+        html = _ASSET_REF.sub(rf"\g<1>\g<2>?v={version}\g<3>", html)
+        # The shell is dynamic (embeds the token and the asset version): never let
+        # the browser reuse a previously stored copy.
+        return HTMLResponse(html, headers={"Cache-Control": "no-store"})
 
     @app.get("/favicon.ico", include_in_schema=False)
     def favicon() -> FileResponse:
@@ -778,10 +1080,19 @@ def normalize_local_path(raw: str) -> str:
     return s
 
 
-async def _spool(upload: UploadFile, dest: Path) -> None:
-    """Stream an uploaded file to disk in chunks (handles large traces)."""
+async def _spool(upload: UploadFile, dest: Path, max_bytes: int | None = None) -> None:
+    """Stream an uploaded file to disk in chunks (handles large traces).
+
+    Enforces ``max_bytes`` while streaming so an upload cannot exceed the
+    configured cap even if it lies about its Content-Length (AC10).
+    """
+    written = 0
     with open(dest, "wb") as handle:
         while chunk := await upload.read(1 << 20):
+            written += len(chunk)
+            if max_bytes is not None and written > max_bytes:
+                await upload.close()
+                raise HTTPException(413, "Upload exceeds the configured size limit.")
             handle.write(chunk)
     await upload.close()
 
@@ -809,11 +1120,6 @@ def _discard_store(tmpdir: Path) -> None:
     (AC3).
     """
     shutil.rmtree(tmpdir, ignore_errors=True)
-
-
-def _id_hex(arbitration_id: int, is_extended: bool) -> str:
-    width = 8 if is_extended else 3
-    return f"{arbitration_id:0{width}X}"
 
 
 def _parse_resolution(raw: dict[str, str]) -> dict[int, str]:

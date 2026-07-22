@@ -336,6 +336,134 @@ class TraceStore:
     def sample_count(self) -> int:
         return int(self._one("SELECT count(*) FROM samples")[0] or 0)
 
+    def dbc_usage(self) -> list[dict]:
+        """DBCs that actually decoded at least one frame (AC1).
+
+        Reports only databases credited with a successful decode, so the report
+        distinguishes DBCs that were loaded from DBCs that were effectively used.
+        """
+        rows = self._all(
+            """
+            SELECT dbc_source, count(*)
+            FROM frames
+            WHERE decode_status = 'ok' AND dbc_source IS NOT NULL
+            GROUP BY dbc_source
+            ORDER BY dbc_source
+            """
+        )
+        return [{"source": r[0], "frames": int(r[1])} for r in rows]
+
+    def signal_stats(
+        self,
+        message_name: str,
+        signal_name: str,
+        start_s: float | None = None,
+        end_s: float | None = None,
+    ) -> dict:
+        """Range statistics for one signal between two bounds (AC3).
+
+        Numeric signals report count, min, max, mean, standard deviation and
+        RMS. Text/enum signals report the sample count and the distribution of
+        observed values instead of synthetic numeric statistics. An empty
+        window is reported explicitly (``kind = "empty"``) rather than as zeros.
+        """
+        clauses = ["message_name = ?", "signal_name = ?"]
+        params: list[object] = [message_name, signal_name]
+        self._time_clauses(start_s, end_s, clauses, params)
+        where = " AND ".join(clauses)
+
+        unit_row = self._one(
+            "SELECT unit FROM samples WHERE message_name = ? AND signal_name = ? "
+            "AND unit IS NOT NULL LIMIT 1",
+            [message_name, signal_name],
+        )
+        unit = unit_row[0] if unit_row else None
+
+        agg = self._one(
+            f"""
+            SELECT count(*), count(value_num),
+                   min(value_num), max(value_num), avg(value_num),
+                   stddev_samp(value_num), sqrt(avg(value_num * value_num))
+            FROM samples WHERE {where}
+            """,
+            params,
+        )
+        total = int(agg[0] or 0)
+        numeric = int(agg[1] or 0)
+        base = {
+            "message_name": message_name,
+            "signal_name": signal_name,
+            "unit": unit,
+            "count": total,
+        }
+        if total == 0:
+            return {**base, "kind": "empty"}
+        if numeric > 0:
+            return {
+                **base,
+                "kind": "numeric",
+                "count": numeric,
+                "min": _f(agg[2]),
+                "max": _f(agg[3]),
+                "mean": _f(agg[4]),
+                "std": _f(agg[5]),
+                "rms": _f(agg[6]),
+            }
+        dist = self._all(
+            f"""
+            SELECT value_text, count(*)
+            FROM samples WHERE {where} AND value_text IS NOT NULL
+            GROUP BY value_text
+            ORDER BY count(*) DESC, value_text
+            """,
+            params,
+        )
+        return {
+            **base,
+            "kind": "text",
+            "distribution": [{"value": r[0], "count": int(r[1])} for r in dist],
+        }
+
+    def iter_export_batches(
+        self,
+        pairs: list[tuple[str, str]],
+        start_s: float | None = None,
+        end_s: float | None = None,
+        batch_size: int = 8192,
+    ):
+        """Yield decoded samples as bounded Arrow record batches (AC2).
+
+        Streams the selected ``(message, signal)`` pairs over an optional window,
+        ordered by ``(timestamp_s, message, signal)`` so a wide export can align
+        by timestamp. DuckDB's record-batch cursor caps the resident rows at
+        ``batch_size`` regardless of the total exported, so peak memory does not
+        grow with the number of rows. The connection lock is held for the whole
+        stream because the cursor lives on the shared connection.
+        """
+        if not pairs:
+            return
+        pair_clause = " OR ".join(
+            "(message_name = ? AND signal_name = ?)" for _ in pairs
+        )
+        params: list[object] = []
+        for message_name, signal_name in pairs:
+            params.extend((message_name, signal_name))
+        clauses = [f"({pair_clause})"]
+        self._time_clauses(start_s, end_s, clauses, params)
+        where = " AND ".join(clauses)
+        sql = f"""
+            SELECT timestamp_s,
+                   message_name AS message,
+                   signal_name AS signal,
+                   coalesce(CAST(value_num AS VARCHAR), value_text) AS value,
+                   unit
+            FROM samples WHERE {where}
+            ORDER BY timestamp_s, message_name, signal_name
+        """
+        with self._lock:
+            reader = self.con.execute(sql, params).to_arrow_reader(max(1, batch_size))
+            yield from reader
+
     def present_arbitration_ids(self) -> set[int]:
         rows = self._all("SELECT DISTINCT arbitration_id FROM frames")
         return {int(r[0]) for r in rows}
@@ -815,6 +943,11 @@ class TraceStore:
             clauses.append("timestamp_s <= ?")
             params.append(end_s)
         return f"WHERE {' AND '.join(clauses)}" if clauses else ""
+
+
+def _f(value: object) -> float | None:
+    """Coerce a DuckDB aggregate result to a plain float (NULL -> None)."""
+    return None if value is None else float(value)
 
 
 def _id_hex(arbitration_id: int, is_extended: bool) -> str:

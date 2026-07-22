@@ -26,8 +26,14 @@ from pathlib import Path
 
 import pytest
 
-playwright_sync = pytest.importorskip("playwright.sync_api")
-from playwright.sync_api import sync_playwright  # noqa: E402
+# CI must run the E2E suite, so a missing Playwright is a hard failure there
+# rather than a silent skip (AC14); locally it self-skips.
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:  # pragma: no cover - depends on the environment
+    if os.environ.get("CI"):
+        raise
+    pytest.skip("playwright not installed", allow_module_level=True)
 
 REPO = Path(__file__).resolve().parents[1]
 
@@ -105,7 +111,10 @@ def live_url(tmp_path_factory):
                 "dbc_paths": [str(REPO / "tests" / "fixtures" / "sample.dbc")],
             }
         ).encode(),
-        headers={"Content-Type": "application/json"},
+        # Mutating endpoints require the session token (AC10); read it from the
+        # live app the server was built from.
+        headers={"Content-Type": "application/json",
+                 "X-CTD-Token": app.state.ctd_security.token},
     )
     summary = json.load(urllib.request.urlopen(req))["summary"]
     assert summary["frames"] == 8000
@@ -120,6 +129,10 @@ def browser():
         try:
             b = p.chromium.launch()
         except Exception as e:  # pragma: no cover - env without a usable browser
+            # In CI a browser that will not launch is a failure, not a silent
+            # skip, so viewport/accessibility coverage cannot quietly vanish (AC14).
+            if os.environ.get("CI"):
+                pytest.fail(f"Chromium must launch in CI (AC14): {e}")
             pytest.skip(f"Chromium unavailable: {e}")
         yield b
         b.close()
@@ -163,11 +176,34 @@ def _canvas_pt(pg, t, frac_y=0.5):
     return pg.evaluate(
         """({t, fy}) => {
             const r = document.getElementById('plot').getBoundingClientRect();
-            const g = plotGeom();
+            const g = window.__ctd.plotGeom();
             return { x: r.left + g.xOf(t), y: r.top + r.height * fy };
         }""",
         {"t": t, "fy": frac_y},
     )
+
+
+def _setup_view_cursor(pg, t0, t1, cursor_t=None, clear=False):
+    """Drive the plot into a known state through the __ctd surface (AC15)."""
+    pg.evaluate(
+        "({t0, t1, ct, clear}) => {"
+        " window.__ctd.setView(t0, t1);"
+        " if (ct !== null) window.__ctd.placeCursor(ct, 'a', false);"
+        " if (clear) { window.__ctd.state.cursor.a = null; window.__ctd.state.cursor.arm = 'a'; }"
+        " }",
+        {"t0": t0, "t1": t1, "ct": cursor_t, "clear": clear},
+    )
+
+
+def _view_and_a(pg):
+    return pg.evaluate(
+        "() => ({ view: [...window.__ctd.state.view],"
+        " a: window.__ctd.state.cursor.a })"
+    )
+
+
+def _cursor_a(pg):
+    return pg.evaluate("() => window.__ctd.state.cursor.a")
 
 
 def _drag(pg, x0, y0, x1, y1, steps=10):
@@ -180,14 +216,14 @@ def _drag(pg, x0, y0, x1, y1, steps=10):
 # --- tests ------------------------------------------------------------------
 def test_cursor_drag_moves_cursor_not_graph(page):
     """Pressing on cursor A and dragging must move A, not pan the view."""
-    page.evaluate("() => { setView(5, 15); placeCursor(10, 'a', false); }")
-    before = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    _setup_view_cursor(page, 5, 15, cursor_t=10)
+    before = _view_and_a(page)
 
     p_from = _canvas_pt(page, 10.0)
     p_to = _canvas_pt(page, 12.0)
     _drag(page, p_from["x"], p_from["y"], p_to["x"], p_from["y"])
 
-    after = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    after = _view_and_a(page)
     # Cursor A moved toward t=12...
     assert after["a"] == pytest.approx(12.0, abs=0.3), after
     assert after["a"] != before["a"]
@@ -198,13 +234,13 @@ def test_cursor_drag_moves_cursor_not_graph(page):
 
 def test_drag_off_cursor_pans_and_leaves_cursor(page):
     """Dragging on empty plot area pans the view but leaves cursor A put."""
-    page.evaluate("() => { setView(5, 15); placeCursor(10, 'a', false); }")
-    before = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    _setup_view_cursor(page, 5, 15, cursor_t=10)
+    before = _view_and_a(page)
 
     p_from = _canvas_pt(page, 7.0)   # >6px away from the cursor at t=10
     _drag(page, p_from["x"], p_from["y"], p_from["x"] - 120, p_from["y"])
 
-    after = page.evaluate("() => ({ view: [...state.view], a: state.cursor.a })")
+    after = _view_and_a(page)
     assert after["a"] == pytest.approx(before["a"], abs=1e-6), after   # cursor unmoved
     assert after["view"] != before["view"]                            # view panned
     assert not page._ctd_http_errors
@@ -212,22 +248,40 @@ def test_drag_off_cursor_pans_and_leaves_cursor(page):
 
 def test_click_places_cursor(page):
     """A click (no drag) on the plot places the armed cursor."""
-    page.evaluate("() => { setView(0, 20); state.cursor.a = null; state.cursor.arm = 'a'; }")
+    _setup_view_cursor(page, 0, 20, clear=True)
     pt = _canvas_pt(page, 8.0)
     page.mouse.click(pt["x"], pt["y"])
-    a = page.evaluate("() => state.cursor.a")
+    a = _cursor_a(page)
     assert a == pytest.approx(8.0, abs=0.4), a
 
 
 def test_keyboard_moves_armed_cursor(page):
-    page.evaluate("() => { setView(0, 20); state.cursor.a = null; state.cursor.arm = 'a'; }")
+    _setup_view_cursor(page, 0, 20, clear=True)
     page.focus("#plot")
     page.keyboard.press("ArrowRight")
-    a = page.evaluate("() => state.cursor.a")
+    a = _cursor_a(page)
     assert a is not None
     page.keyboard.press("ArrowRight")
-    b = page.evaluate("() => state.cursor.a")
+    b = _cursor_a(page)
     assert b > a
+
+
+def test_cursor_values_and_range_analysis_share_one_panel(page):
+    """A/B values and interval statistics render in one measurement table."""
+    page.evaluate(
+        "() => { window.__ctd.placeCursor(6, 'a', false);"
+        " window.__ctd.placeCursor(14, 'b', false); }"
+    )
+    panel = page.locator("#cursorReadout")
+    panel.locator("th", has_text="Range analysis A–B").wait_for()
+    assert panel.is_visible()
+    assert page.locator("#statsReadout").count() == 0
+    headings = panel.locator("thead").inner_text().lower()
+    assert "cursor values" in headings
+    assert "range analysis a–b" in headings
+    assert "mean" in headings
+    assert panel.locator("tbody tr").count() == 3  # time + two selected signals
+    assert not page._ctd_http_errors
 
 
 @pytest.mark.parametrize(
@@ -268,10 +322,13 @@ def test_rapid_zoom_pan_no_server_errors(page):
     This is the browser-side guard for the DuckDB concurrency fix: many
     overlapping /api/series (and /api/cursor) requests fired back-to-back.
     """
-    page.evaluate("() => { placeCursor(6, 'a', false); placeCursor(14, 'b', false); }")
+    page.evaluate(
+        "() => { window.__ctd.placeCursor(6, 'a', false);"
+        " window.__ctd.placeCursor(14, 'b', false); }"
+    )
     for _ in range(12):
-        page.evaluate("() => { const g = plotGeom(); zoomAt((g.t0+g.t1)/2, 0.7); }")
-        page.evaluate("() => { const g = plotGeom(); zoomAt((g.t0+g.t1)/2, 1.4); }")
+        page.evaluate("() => window.__ctd.zoomAt(10, 0.7)")
+        page.evaluate("() => window.__ctd.zoomAt(10, 1.4)")
         page.evaluate("() => refreshCursorReadout()")
     page.wait_for_timeout(600)   # let debounced series refreshes settle
     assert not page._ctd_http_errors, page._ctd_http_errors
@@ -308,7 +365,8 @@ def test_imported_text_does_not_execute_html(browser, live_url, tmp_path):
     pg.set_input_files("#traceFile", str(trace))
     pg.set_input_files("#dbcFiles", str(dbc))
     pg.click("#loadBtn")
-    pg.wait_for_function("() => typeof state !== 'undefined' && state.signals.length === 1")
+    pg.wait_for_function("() => window.__ctd && window.__ctd.state.signals.length === 1")
+    pg.locator("#viewTrace").click()  # the trace table lives in the Trace view
     pg.wait_for_selector("#traceTable tbody tr")
     pg.wait_for_timeout(200)
     assert pg.evaluate("() => window.__ctdXss") == 0
@@ -346,9 +404,150 @@ def test_narrow_viewport_keeps_critical_actions_reachable(browser, live_url):
     ctx = browser.new_context(viewport={"width": 390, "height": 844})
     pg = ctx.new_page()
     pg.goto(live_url)
-    for selector in ["#pickTraceBtn", "#pickDbcBtn", "#loadBtn", "#fitBtn", "#colBtn"]:
+    # Minimal 390x844 support: import, load, main filters, views and export
+    # stay reachable within the viewport (AC14).
+    # Plots is active by default; import/load/views/export stay reachable.
+    for selector in ["#pickTraceBtn", "#loadBtn", "#viewSplit", "#viewReport", "#exportBtn"]:
         box = pg.locator(selector).bounding_box()
         assert box is not None, selector
-        assert box["x"] >= 0
-        assert box["x"] + box["width"] <= 390
+        assert box["x"] >= 0, selector
+        assert box["x"] + box["width"] <= 390 + 1, selector
+    ctx.close()
+
+
+# The four viewports AC14 mandates; CI runs every one of them.
+_VIEWPORTS = [
+    (1024, 768),
+    (1280, 720),
+    (1600, 900),
+    (390, 844),
+]
+
+
+@pytest.mark.parametrize(("width", "height"), _VIEWPORTS)
+def test_no_horizontal_overflow_at_supported_viewports(browser, live_url, width, height):
+    ctx = browser.new_context(viewport={"width": width, "height": height})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    # No main control overflows horizontally: the document is not wider than the
+    # viewport (AC14).
+    overflow = pg.evaluate(
+        "() => document.documentElement.scrollWidth - window.innerWidth"
+    )
+    assert overflow <= 1, f"horizontal overflow of {overflow}px at {width}x{height}"
+    # Key controls sit within the viewport width at every desktop size.
+    if width >= 1024:
+        controls = [
+            "#loadBtn", "#exportBtn", "#viewPlots", "#viewSplit",
+            "#viewTrace", "#viewReport",
+        ]
+        for selector in controls:
+            box = pg.locator(selector).bounding_box()
+            assert box is not None, selector
+            assert box["x"] + box["width"] <= width + 1, f"{selector} overflows at {width}"
+    ctx.close()
+
+
+def test_main_controls_have_accessible_names(browser, live_url):
+    """Automated accessibility check over the main paths (AC13)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    unnamed = pg.evaluate(
+        """
+        () => {
+          const sel = 'button, input, select, [role=button], [role=separator]';
+          return [...document.querySelectorAll(sel)]
+            .filter(el => el.offsetParent !== null || el.tagName === 'CANVAS')
+            .filter(el => {
+              const name = (el.getAttribute('aria-label') || el.textContent
+                || el.getAttribute('title') || el.getAttribute('placeholder') || '').trim();
+              return !name;
+            })
+            .map(el => el.id || el.className || el.tagName);
+        }
+        """
+    )
+    assert unnamed == [], f"controls without an accessible name: {unnamed}"
+
+
+def test_favorite_toggles_via_keyboard(browser, live_url):
+    """A favorite star is operable from the keyboard (AC13)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    star = pg.locator(".sig .star").first
+    star.wait_for()
+    before = star.get_attribute("aria-pressed")
+    star.focus()
+    pg.keyboard.press("Enter")
+    pg.wait_for_timeout(50)
+    after = pg.locator(".sig .star").first.get_attribute("aria-pressed")
+    assert before != after
+    ctx.close()
+
+
+def test_trace_dialogs_close_with_escape(browser, live_url):
+    """Dialogs are keyboard-dismissable (AC13)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.locator("#viewTrace").click()  # column dialog lives in the Trace view
+    pg.locator("#colBtn").click()
+    assert pg.locator("#colDialog").evaluate("d => d.open") is True
+    pg.keyboard.press("Escape")
+    pg.wait_for_timeout(50)
+    assert pg.locator("#colDialog").evaluate("d => d.open") is False
+    ctx.close()
+
+
+def test_workspace_views_include_split_and_preserve_state(browser, live_url):
+    """One view control restores plots, split, trace and report layouts (AC4)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    # Plot a signal in the Plots view.
+    pg.locator(".sig input[type=checkbox]").first.check()
+    pg.wait_for_timeout(200)
+    selected_before = pg.evaluate("() => window.__ctd.selected.length")
+    assert selected_before > 0
+    # The combined view restores the plot and trace at the same time.
+    pg.locator("#viewSplit").click()
+    assert pg.locator("#plotArea").is_visible()
+    assert pg.locator("#traceWrap").is_visible()
+    assert pg.locator("#splitDivider").is_visible()
+    # Trace alone hides the plot.
+    pg.locator("#viewTrace").click()
+    assert pg.locator("#traceWrap").is_visible()
+    assert not pg.locator("#plotArea").is_visible()
+    assert pg.locator("#traceTable").is_visible()
+    # Switch to Report: it renders the synthesis.
+    pg.locator("#viewReport").click()
+    pg.wait_for_timeout(100)
+    assert pg.locator("#reportPanel").is_visible()
+    assert "frames" in pg.locator("#reportBody").inner_text().lower()
+    # Back to Plots: the plotted selection is intact (state preserved).
+    pg.locator("#viewPlots").click()
+    assert pg.locator("#plotArea").is_visible()
+    assert pg.evaluate("() => window.__ctd.selected.length") == selected_before
+    ctx.close()
+
+
+def test_trace_empty_state_for_no_matching_filter(browser, live_url):
+    """A filter with no matches shows a distinct empty state (AC7)."""
+    ctx = browser.new_context(viewport={"width": 1600, "height": 900})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.locator("#viewTrace").click()
+    pg.locator("#fId").fill("ZZZZ")  # no id matches
+    pg.wait_for_timeout(400)
+    empty = pg.locator("#traceEmpty")
+    assert empty.is_visible()
+    assert "No matching rows" in empty.inner_text()
+    # The active filter is shown as a removable chip that restores results.
+    chip = pg.locator("#filterChips .chip")
+    assert chip.count() >= 1
+    chip.first.locator("button").click()
+    pg.wait_for_timeout(400)
+    assert not pg.locator("#traceEmpty").is_visible()
     ctx.close()

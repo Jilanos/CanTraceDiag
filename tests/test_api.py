@@ -1,3 +1,4 @@
+import os
 import threading
 import time
 from pathlib import Path
@@ -15,7 +16,9 @@ FIX = Path(__file__).parent / "fixtures"
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(create_app())
+    client = TestClient(create_app())
+    client.headers.update({"X-CTD-Token": client.app.state.ctd_security.token})
+    return client
 
 
 def _import(client: TestClient):
@@ -46,6 +49,61 @@ def test_import_and_query_flow(client: TestClient) -> None:
 
     trace = client.get("/api/trace", params={"limit": 100}).json()
     assert trace["total"] == 8
+    assert trace["start_index"] == 0
+    assert trace["prev_cursor"] is None
+
+
+def test_trace_endpoint_first_load_and_cursor_pagination(client: TestClient) -> None:
+    assert _import(client).status_code == 200
+    first = client.get("/api/trace", params={"limit": 3}).json()
+    assert first["offset"] == 0
+    assert first["start_index"] == 0
+    assert len(first["rows"]) == 3
+    assert first["prev_cursor"] is None
+    assert first["next_cursor"] == "3"
+
+    second = client.get("/api/trace", params={"limit": 3, "cursor": first["next_cursor"]}).json()
+    assert second["offset"] == 3
+    assert second["start_index"] == 3
+    assert second["prev_cursor"] == "0"
+    assert len(second["rows"]) == 3
+
+
+def test_trace_endpoint_rejects_invalid_cursor(client: TestClient) -> None:
+    assert _import(client).status_code == 200
+    r = client.get("/api/trace", params={"cursor": "not-a-cursor"})
+    assert r.status_code == 400
+    assert "Invalid trace cursor" in r.json()["detail"]
+
+
+def test_cursor_batch_endpoint(client: TestClient) -> None:
+    assert _import(client).status_code == 200
+    r = client.post(
+        "/api/cursors",
+        json={
+            "a": 0.012,
+            "b": 0.022,
+            "signals": [{"message": "EngineData", "signal": "EngineSpeed"}],
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["a"]["EngineData.EngineSpeed"]["timestamp_s"] == 0.010
+    assert body["b"]["EngineData.EngineSpeed"]["timestamp_s"] == 0.020
+
+
+def test_testclient_host_is_allowed_and_host_guard_still_rejects() -> None:
+    client = TestClient(create_app())
+    assert client.get("/api/status").status_code == 200
+    hostile = client.get("/api/status", headers={"host": "evil.example"})
+    assert hostile.status_code == 403
+    assert hostile.json()["detail"] == "Host not allowed."
+
+
+def test_origin_guard_rejects_cross_site_origin(client: TestClient) -> None:
+    r = client.get("/api/status", headers={"origin": "https://evil.example"})
+    assert r.status_code == 403
+    assert r.json()["detail"] == "Origin not allowed."
 
 
 def test_series_is_decoded_on_demand_and_reuses_cache(
@@ -110,6 +168,54 @@ def test_index_page_served(client: TestClient) -> None:
     r = client.get("/")
     assert r.status_code == 200
     assert "CanTraceDiag" in r.text
+
+
+def test_index_versions_bundled_assets_and_forbids_shell_cache(client: TestClient) -> None:
+    """The shell must cache-bust every bundled script/style and never be stored.
+
+    Regression guard for the stale-asset mismatch: a fresh index.html loading a
+    cached (stale) main.js threw during bootstrap and killed panel resize,
+    collapse and the view controls. Versioned URLs + a non-cacheable shell make
+    that pairing impossible.
+    """
+    import re as _re
+
+    r = client.get("/")
+    assert r.status_code == 200
+
+    # The shell itself must not be reused from cache (it embeds the token and
+    # the asset version), so the browser always re-fetches matching assets.
+    assert "no-store" in r.headers.get("cache-control", "").lower()
+
+    # Every same-origin JS/CSS reference carries a ?v=<token> version.
+    refs = _re.findall(r'(?:href|src)="(/static/[^"]+\.(?:js|css))(\?v=[0-9a-f]+)?"', r.text)
+    assert refs, "expected bundled asset references in the shell"
+    assert refs == [(path, ver) for path, ver in refs if ver], (
+        "every bundled JS/CSS reference must be versioned; unversioned: "
+        f"{[p for p, v in refs if not v]}"
+    )
+    # main.js specifically (the file whose stale copy caused the regression).
+    assert any(path.endswith("/js/main.js") and ver for path, ver in refs)
+
+
+def test_asset_version_rotates_when_a_bundled_file_changes(tmp_path, monkeypatch) -> None:
+    """AC1: the version token must change when an asset's content changes."""
+    web = tmp_path / "web"
+    (web / "js").mkdir(parents=True)
+    (web / "styles.css").write_text("a{}", encoding="utf-8")
+    (web / "js" / "main.js").write_text("console.log(1);", encoding="utf-8")
+    (web / "index.html").write_text("<html></html>", encoding="utf-8")
+    monkeypatch.setattr(api_module, "_WEB_DIR", web)
+
+    before = api_module._asset_version()
+    # Rewrite a file with different content and a newer mtime.
+    js = web / "js" / "main.js"
+    js.write_text("console.log(2);console.log(3);", encoding="utf-8")
+    os.utime(js, (js.stat().st_atime + 5, js.stat().st_mtime + 5))
+    after = api_module._asset_version()
+
+    assert before != after
+    assert len(after) == 12 and all(c in "0123456789abcdef" for c in after)
 
 
 def test_favicon_served(client: TestClient) -> None:

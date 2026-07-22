@@ -7,270 +7,7 @@
 <title>CanTraceDiag</title>
 <link rel="icon" href="/static/app-icon.svg" type="image/svg+xml" />
 <link rel="alternate icon" href="/favicon.ico" />
-<style>
-  /* ====================================================================
-     CanTraceDiag — "measurement instrument" identity (docs/design-ui.md,
-     ADR 0005). Single dark theme. All colors live in tokens; canvas rendering
-     reads them through getComputedStyle (app.js).
-     ==================================================================== */
-  :root {
-    /* backgrounds and structure */
-    --bg: #090d12; --bg-deep: #05080c; --panel: #0e141b; --panel2: #131b24;
-    --line: #1c2733; --line-soft: #141d27; --grid: #0f1822;
-    /* text */
-    --fg: #d7e0e8; --muted: #7a8ba1; --faint: #4a5a6e;
-    /* accent + semantic */
-    --accent: #f0a63c; --accent-dim: #8a5f22;
-    --ok: #57c99a; --warn: #e0a44e; --err: #e05c6b;
-    --sel: #16233270;
-    /* trace channels (oscilloscope code) */
-    --ch1: #f5c542; --ch2: #3fc1e8; --ch3: #e86fc5; --ch4: #7bd88f;
-    --ch5: #e0a44e; --ch6: #9a8cf5; --ch7: #5fd4c4; --ch8: #e08baa;
-    /* typography */
-    --mono: ui-monospace, "Cascadia Code", "JetBrains Mono", "SF Mono", Menlo, Consolas, monospace;
-    --sans: "Segoe UI Variable", "Segoe UI", system-ui, -apple-system, sans-serif;
-  }
-  * { box-sizing: border-box; }
-  html, body { height: 100%; margin: 0; }
-  body {
-    background: var(--bg); color: var(--fg); font: 12.5px/1.45 var(--sans);
-    display: flex; flex-direction: column; height: 100vh; overflow: hidden;
-  }
-  ::selection { background: #2a3c52; }
-
-  /* instrument micro-label */
-  .lbl {
-    font: 600 9.5px/1 var(--sans); letter-spacing: .14em; text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  /* ---- buttons -------------------------------------------------------- */
-  button {
-    background: var(--accent); color: #14100a; border: 1px solid var(--accent);
-    padding: 5px 11px; border-radius: 2px; cursor: pointer; font: 700 12px var(--sans);
-    transition: background .12s, border-color .12s, color .12s;
-  }
-  button:hover { background: #f7b658; }
-  button.ghost {
-    background: var(--panel2); color: var(--fg); border: 1px solid var(--line); font-weight: 500;
-  }
-  button.ghost:hover { background: var(--panel2); border-color: var(--accent-dim); }
-  button.icon { display: inline-flex; align-items: center; gap: 6px; }
-  button.icon svg { width: 13px; height: 13px; }
-  button:disabled { opacity: .4; cursor: default; }
-  button.active, button.ghost.active { background: var(--accent); color: #14100a; border-color: var(--accent); font-weight: 700; }
-  button:focus-visible, input:focus-visible, select:focus-visible, canvas:focus-visible {
-    outline: 2px solid var(--accent); outline-offset: 2px;
-  }
-  input[type=text], input[type=number], select {
-    background: var(--bg-deep); border: 1px solid var(--line); color: var(--fg);
-    padding: 4px 7px; border-radius: 2px; font: 11.5px var(--mono);
-  }
-  input::placeholder { color: var(--faint); }
-
-  /* ================= HEADER: instrument strip ================= */
-  header {
-    background: linear-gradient(180deg, #101823, #0c1219);
-    border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 0; flex-wrap: wrap;
-    min-height: 46px; flex: 0 0 auto;
-  }
-  .brand {
-    display: flex; align-items: center; gap: 10px; padding: 0 14px; align-self: stretch;
-    border-right: 1px solid var(--line);
-  }
-  .brand .mark {
-    width: 22px; height: 22px; border: 1.5px solid var(--accent); border-radius: 3px;
-    display: grid; place-items: center; flex: 0 0 auto;
-  }
-  header h1 { font: 600 13px var(--mono); letter-spacing: .04em; margin: 0; color: var(--fg); }
-  header h1 em { font-style: normal; color: var(--accent); }
-
-  .import { display: flex; gap: 5px; align-items: center; flex-wrap: wrap; padding: 5px 12px; }
-  .picked {
-    color: var(--muted); font: 11px var(--mono); max-width: 260px;
-    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
-  }
-  .picked b { color: var(--fg); font-weight: 500; }
-
-  .hstatus { margin-left: auto; display: flex; align-items: center; gap: 14px; padding: 5px 14px; }
-  .summary { color: var(--muted); font: 11px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
-  .summary b { color: var(--fg); font-weight: 500; }
-  .warn { color: var(--warn); } .err { color: var(--err); } .ok { color: var(--ok); }
-
-  /* status LED */
-  .led { display: inline-flex; align-items: center; gap: 6px; font: 600 10px var(--mono); letter-spacing: .1em; color: var(--muted); flex: 0 0 auto; }
-  .led i { width: 7px; height: 7px; border-radius: 50%; background: var(--faint); }
-  .led.indexed i { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
-  .led.indexed { color: var(--ok); }
-  .led.importing i { background: var(--accent); box-shadow: 0 0 6px var(--accent); }
-  .led.importing { color: var(--accent); }
-
-  #progressWrap { flex-basis: 100%; height: 3px; background: var(--panel2); display: none; }
-  #progressWrap.on { display: block; }
-  #progressBar { height: 100%; width: 0%; background: var(--accent); transition: width .1s linear; }
-
-  main { flex: 1; display: flex; min-height: 0; }
-
-  /* ================= PANELS ================= */
-  .panel { background: var(--panel); display: flex; flex-direction: column; min-height: 0; }
-  #explorer { width: 264px; border-right: 1px solid var(--line); }
-  #inspector { width: 288px; border-left: 1px solid var(--line); }
-  .panel.collapsed { width: 30px; }
-  .panel .phead {
-    height: 32px; padding: 0 10px; border-bottom: 1px solid var(--line);
-    display: flex; align-items: center; gap: 6px; user-select: none; flex: 0 0 auto;
-  }
-  .panel .phead .title { flex: 1; font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
-  .panel.collapsed .phead { writing-mode: vertical-rl; height: 100%; border-bottom: 0; }
-  .panel.collapsed .pbody { display: none; }
-  .collapse-btn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 2px; font-weight: 700; }
-  .collapse-btn:hover { background: none; color: var(--fg); }
-  .kbd { color: var(--muted); font: 10px var(--mono); }
-  .side-resizer { width: 5px; cursor: col-resize; background: transparent; flex: 0 0 auto; }
-  .side-resizer:hover { background: var(--line); }
-
-  /* ---- signal explorer ---- */
-  #explorer .pbody { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #sigFilter { margin: 8px; }
-  #signalList { overflow: auto; flex: 1; padding: 2px 0; }
-  .grp {
-    position: sticky; top: 0; z-index: 1; background: var(--panel);
-    padding: 6px 10px 3px; border-bottom: 1px solid var(--line-soft);
-    font: 600 10px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
-  }
-  .sig {
-    display: flex; align-items: center; gap: 7px; padding: 3px 10px 3px 13px; cursor: pointer;
-    border-left: 2px solid transparent;
-  }
-  .sig:hover { background: var(--panel2); }
-  .sig.on { border-left-color: var(--sw, var(--accent)); background: #0f1720; }
-  .sig .name { flex: 1; font: 11.5px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .sig .unit { font: 10px var(--mono); color: var(--muted); }
-  .sig.absent { opacity: .45; }
-  .sig input { accent-color: var(--accent); }
-  .sig .swatch { width: 8px; height: 8px; border-radius: 1px; flex: 0 0 auto; background: var(--faint); }
-  .sig.on .swatch { box-shadow: 0 0 5px var(--sw); }
-  .star { cursor: pointer; color: var(--line); font-size: 13px; }
-  .star.on { color: var(--warn); }
-
-  /* ================= CENTER: plot + trace ================= */
-  #center { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-  #plotArea { flex: 1; display: flex; flex-direction: column; min-height: 120px; }
-  .plotbar {
-    display: flex; gap: 8px; align-items: center; padding: 5px 10px; flex-wrap: wrap;
-    border-bottom: 1px solid var(--line); background: var(--panel); min-height: 34px;
-  }
-  .plotbar .spacer { flex: 1; }
-  .plotbar .hint { color: var(--faint); font: 10.5px var(--sans); }
-  .seg { display: flex; border: 1px solid var(--line); border-radius: 2px; overflow: hidden; }
-  .seg button { border: 0; border-radius: 0; padding: 4px 10px; background: var(--panel2); color: var(--muted); font-weight: 500; }
-  .seg button + button { border-left: 1px solid var(--line); }
-  .seg button:hover { background: var(--panel2); color: var(--fg); }
-  .seg button.active { background: var(--accent); color: #14100a; font-weight: 700; }
-
-  /* scope-style measurement readouts */
-  .measure { display: flex; gap: 6px; flex-wrap: wrap; }
-  .measure.empty { display: none; }
-  .mbadge {
-    display: inline-flex; align-items: baseline; gap: 6px;
-    background: var(--bg-deep); border: 1px solid var(--line); border-radius: 2px;
-    padding: 3px 9px; font: 11px var(--mono);
-  }
-  .mbadge .k { font: 600 9.5px var(--mono); letter-spacing: .08em; color: var(--muted); }
-  .mbadge .v { color: var(--fg); font-variant-numeric: tabular-nums; }
-  .mbadge.a .k { color: var(--ch4); } .mbadge.a { border-color: #2f4a37; }
-  .mbadge.b .k { color: var(--accent); } .mbadge.b { border-color: #4f3a2a; }
-  .mbadge.d .k { color: var(--ch2); }
-
-  #plotWrap { flex: 1; min-height: 80px; position: relative; background: var(--bg-deep); }
-  #plot { width: 100%; height: 100%; display: block; cursor: crosshair; }
-  #plotHint { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); pointer-events: none; }
-  #cursorReadout { border-top: 1px solid var(--line); background: var(--panel); max-height: 130px; overflow: auto; }
-  #cursorReadout table { width: 100%; }
-  #cursorReadout.empty { display: none; }
-
-  .divider { height: 5px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
-
-  /* ---- trace view ---- */
-  #traceWrap { height: 40%; display: flex; flex-direction: column; min-height: 0; background: var(--panel); }
-  .tracebar {
-    display: flex; gap: 8px; align-items: center; padding: 5px 10px; flex-wrap: wrap;
-    border-bottom: 1px solid var(--line); min-height: 36px;
-  }
-  .tracebar strong { font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
-  .tracebar label { color: var(--muted); display: flex; gap: 4px; align-items: center; font-size: 11px; }
-  .tracebar input[type=text], .tracebar input[type=number] { width: 90px; }
-  .tracebar .tw { width: 68px; }
-  #tableScroll { overflow: auto; flex: 1; }
-  table { border-collapse: collapse; width: 100%; font: 11.5px var(--mono); font-variant-numeric: tabular-nums; }
-  th {
-    position: sticky; top: 0; z-index: 1; background: var(--panel2);
-    font: 600 9.5px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
-    text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; user-select: none;
-  }
-  td { text-align: left; padding: 3px 8px; border-bottom: 1px solid var(--line-soft); white-space: nowrap; }
-  tbody tr { border-left: 2px solid transparent; }
-  tr.expandable { cursor: pointer; }
-  tr:hover td { background: #0f1720; }
-  tr.event td { color: var(--warn); }
-  tr.selected td { background: var(--sel); box-shadow: inset 2px 0 0 var(--accent); }
-  tr.detail td { background: var(--panel2); color: var(--muted); white-space: normal; }
-  .pager { display: flex; gap: 6px; align-items: center; margin-left: auto; color: var(--muted); font: 11px var(--mono); }
-
-  /* decode statuses: labeled pills */
-  .st { display: inline-block; font: 600 9.5px var(--mono); letter-spacing: .04em; padding: 1px 7px; border-radius: 2px; border: 1px solid var(--line); color: var(--muted); }
-  .st.ok { color: var(--ok); border-color: #1e4436; background: #0d1f18; }
-  .st.decode_error { color: var(--err); border-color: #4a2028; background: #200b10; }
-  .st.ambiguous_id { color: var(--warn); border-color: #4a3820; background: #201808; }
-  .st.unknown_id, .st.no_database { color: var(--muted); border-color: var(--line); background: transparent; }
-
-  /* ---- inspector ---- */
-  #inspector .pbody { flex: 1; overflow: auto; padding: 12px 12px; }
-  .insp-empty { color: var(--muted); }
-  .insp-id { font: 600 15px var(--mono); color: var(--ch2); margin-bottom: 2px; }
-  .insp-msg { font: 12px var(--sans); color: var(--fg); margin-bottom: 12px; }
-  .insp-raw { font: 11px var(--mono); background: var(--bg-deep); border: 1px solid var(--line); border-radius: 2px; padding: 8px 10px; color: var(--muted); letter-spacing: .06em; margin-bottom: 12px; word-break: break-all; }
-  .insp-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin-bottom: 12px; }
-  .insp-grid dt { font: 10px var(--sans); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 1px; }
-  .insp-grid dd { margin: 0; font: 11.5px var(--mono); word-break: break-all; }
-  .insp-sec { font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin: 8px 0 6px; border-top: 1px solid var(--line); padding-top: 10px; }
-  .insp-sig { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; font: 11.5px var(--mono); }
-  .insp-sig .v { color: var(--accent); font-variant-numeric: tabular-nums; }
-
-  dialog { background: var(--panel); color: var(--fg); border: 1px solid var(--line); border-radius: 4px; max-width: 460px; padding: 16px 18px; }
-  dialog h3 { margin-top: 0; font: 600 14px var(--sans); }
-  .col-row { display: flex; align-items: center; gap: 8px; padding: 3px 0; }
-  .col-row .grab { cursor: grab; color: var(--muted); }
-  .lib-row { display: flex; align-items: center; gap: 8px; padding: 4px 0; border-top: 1px solid var(--line-soft); font: 11.5px var(--mono); }
-  .lib-row input { accent-color: var(--accent); }
-  .lib-row .lname { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .lib-row .lmeta { color: var(--muted); font-size: 10px; }
-  .lib-empty { color: var(--muted); padding: 8px 0; }
-  .conflict-row { padding: 6px 0; border-top: 1px solid var(--line); }
-  .conflict-row .cid { font: 600 12px var(--mono); color: var(--ch2); }
-  code { color: var(--accent); font-family: var(--mono); }
-
-  @media (prefers-reduced-motion: reduce) {
-    * { transition: none !important; }
-  }
-
-  @media (max-width: 700px) {
-    body { height: auto; min-height: 100vh; overflow: auto; }
-    header { align-items: flex-start; }
-    .hstatus { margin-left: 0; text-align: left; flex-basis: 100%; justify-content: flex-start; }
-    main { flex-direction: column; overflow: visible; min-height: auto; }
-    #explorer, #inspector, .panel.collapsed { width: 100% !important; max-height: 220px; border: 0; border-bottom: 1px solid var(--line); }
-    .panel.collapsed .phead { writing-mode: horizontal-tb; height: auto; }
-    .side-resizer, .divider { display: none; }
-    #center { min-height: 620px; overflow: visible; }
-    #plotArea { min-height: 320px; }
-    #traceWrap { height: auto; min-height: 280px; }
-    .tracebar input[type=text], .tracebar input[type=number], .tracebar select { width: 84px; }
-    .pager { margin-left: 0; }
-    #tableScroll { min-height: 220px; }
-  }
-</style>
+<link rel="stylesheet" href="/static/styles.css" />
 </head>
 <body>
 <header>
@@ -308,18 +45,27 @@
     <div class="phead">
       <button class="collapse-btn" id="explorerToggle" title="Collapse / expand">‹</button>
       <span class="title">Signals</span>
-      <label class="kbd" title="Show favorites only"><input type="checkbox" id="favOnly" /> fav</label>
+      <label class="kbd" title="Show favorites only"><input type="checkbox" id="favOnly" aria-label="Show favorite signals only" /> fav</label>
     </div>
     <div class="pbody">
-      <input id="sigFilter" type="text" placeholder="signal, message, ID, unit…" />
+      <input id="sigFilter" type="text" placeholder="signal, message, ID, unit…" aria-label="Filter the signal list" />
       <div id="signalList"></div>
     </div>
   </aside>
   <div class="side-resizer" id="explorerResizer"></div>
 
-  <!-- Area: plot + trace -->
+  <!-- Area: workspace views -->
   <section id="center">
-    <div id="plotArea">
+    <div class="workspace-bar">
+      <span class="lbl">View</span>
+      <div class="seg" role="group" aria-label="Workspace view">
+        <button class="workspace-view active" id="viewPlots" data-view="plots" aria-pressed="true">Plots</button>
+        <button class="workspace-view" id="viewSplit" data-view="split" aria-pressed="false">Plots + trace</button>
+        <button class="workspace-view" id="viewTrace" data-view="trace" aria-pressed="false">Trace</button>
+        <button class="workspace-view" id="viewReport" data-view="report" aria-pressed="false">Report</button>
+      </div>
+    </div>
+    <div id="plotArea" class="workspace-panel" role="region" aria-label="Signal plots">
       <div class="plotbar">
         <div class="seg">
           <button id="fitBtn" title="Fit all data (double-click plot)">Fit</button>
@@ -337,28 +83,28 @@
         <button class="ghost" id="curABtn" title="Click plot to place cursor A">Cursor A</button>
         <button class="ghost" id="curBBtn" title="Click plot to place cursor B">Cursor B</button>
         <button class="ghost" id="curClearBtn" title="Clear cursors">Clear</button>
+        <button class="ghost" id="exportBtn" title="Export selected signals">Export…</button>
         <span class="hint">wheel: zoom · drag: pan · click: set cursor · drag on cursor: move it</span>
       </div>
       <div id="plotWrap">
         <canvas id="plot" tabindex="0" role="img" aria-label="Signal plot. Use arrow keys to move the armed cursor when data is loaded."></canvas>
         <div id="plotHint">Select signals to plot.</div>
       </div>
-      <div id="cursorReadout" class="empty"><table><thead></thead><tbody></tbody></table></div>
+      <div id="cursorReadout" class="empty">
+        <div class="measurement-head"><span class="lbl">Cursor measurements</span><span class="measurement-range" id="statsMsg"></span></div>
+        <div class="measurement-scroll"><table><thead></thead><tbody></tbody></table></div>
+      </div>
+      <div id="plotError" class="comp-error" hidden></div>
     </div>
-    <div class="divider" id="divider"></div>
-    <div id="traceWrap">
+    <div class="divider" id="splitDivider" hidden></div>
+    <div id="traceWrap" class="workspace-panel" role="region" aria-label="CAN trace" hidden>
       <div class="tracebar">
-        <strong>Trace</strong>
-        <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" />
-        <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" />
-        <input type="text" id="fSignal" placeholder="Signal" title="Decoded signal name" />
-        <select id="fDir" title="Direction"><option value="">Dir</option><option>Rx</option><option>Tx</option></select>
-        <select id="fStatus" title="Decode status"><option value="">Status</option><option value="ok">ok</option><option value="unknown_id">unknown_id</option><option value="no_database">no_database</option><option value="ambiguous_id">ambiguous_id</option><option value="decode_error">decode_error</option></select>
-        <select id="fEvent" title="Event type"><option value="">Event</option></select>
-        <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" />
-        <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" />
-        <label><input type="checkbox" id="showFrames" checked /> frames</label>
-        <label><input type="checkbox" id="showEvents" checked /> events</label>
+        <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" aria-label="Filter by arbitration id (hex)" />
+        <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" aria-label="Filter by message or event name" />
+        <input type="text" id="fSignal" placeholder="Signal" title="Decoded signal name" aria-label="Filter by decoded signal name" />
+        <label><input type="checkbox" id="showFrames" checked aria-label="Show data frames" /> frames</label>
+        <label><input type="checkbox" id="showEvents" checked aria-label="Show non-data events" /> events</label>
+        <button class="ghost" id="moreFilters" aria-expanded="false" aria-controls="secondaryFilters" title="Show more filters">More filters ▾</button>
         <button class="ghost" id="clearFilters" title="Clear all filters">Reset</button>
         <button class="ghost" id="colBtn">Columns…</button>
         <div class="pager">
@@ -367,7 +113,27 @@
           <button class="ghost" id="nextBtn">Next</button>
         </div>
       </div>
+      <div class="tracebar secondary" id="secondaryFilters" hidden>
+        <select id="fDir" title="Direction" aria-label="Filter by direction"><option value="">Direction</option><option>Rx</option><option>Tx</option></select>
+        <select id="fStatus" title="Decode status" aria-label="Filter by decode status"><option value="">Decode status</option><option value="ok">OK</option><option value="unknown_id">Unknown ID</option><option value="no_database">No database</option><option value="ambiguous_id">Ambiguous ID</option><option value="decode_error">Decode error</option></select>
+        <select id="fEvent" title="Event type" aria-label="Filter by event type"><option value="">Event type</option></select>
+        <input type="number" id="fStart" placeholder="t≥ s" class="tw" step="0.001" title="Start time (s)" aria-label="Filter start time in seconds" />
+        <input type="number" id="fEnd" placeholder="t≤ s" class="tw" step="0.001" title="End time (s)" aria-label="Filter end time in seconds" />
+      </div>
+      <div id="filterChips" class="chips" hidden aria-label="Active filters"></div>
       <div id="tableScroll"><table id="traceTable"><thead></thead><tbody></tbody></table></div>
+      <div id="traceEmpty" class="empty-state" hidden></div>
+      <div id="traceError" class="comp-error" hidden></div>
+    </div>
+
+    <div id="reportPanel" class="workspace-panel" role="region" aria-label="Diagnostic report" hidden>
+      <div class="report-bar">
+        <strong>Diagnostic report</strong>
+        <span class="tab-spacer"></span>
+        <button class="ghost" id="reportRefresh" title="Reload report">Refresh</button>
+        <button id="reportExportBtn" title="Export selected signals">Export…</button>
+      </div>
+      <div id="reportBody" class="report-body"><p class="empty-state">Load a trace to see its diagnostic report.</p></div>
     </div>
   </section>
 
@@ -401,6 +167,34 @@
   </div>
 </dialog>
 
+<dialog id="exportDialog">
+  <h3>Export signals</h3>
+  <p class="summary" style="text-align:left; margin:0 0 10px">Export the selected signals over a chosen range. The long format has one
+    physical sample per row; the wide CSV aligns samples by timestamp without interpolation.</p>
+  <div class="col-row"><span class="lbl" style="width:70px">Signals</span><span id="exportSignals" class="picked" style="max-width:340px"></span></div>
+  <div class="col-row">
+    <span class="lbl" style="width:70px">Range</span>
+    <select id="exportScope">
+      <option value="between_ab">Between A and B</option>
+      <option value="visible">Visible window</option>
+      <option value="full">Full trace</option>
+    </select>
+  </div>
+  <div class="col-row">
+    <span class="lbl" style="width:70px">Format</span>
+    <select id="exportFormat">
+      <option value="csv">CSV (long)</option>
+      <option value="parquet">Parquet (long)</option>
+      <option value="csv_wide">CSV (wide)</option>
+    </select>
+  </div>
+  <p class="summary err" id="exportError" style="text-align:left; margin:8px 0 0" hidden></p>
+  <div style="display:flex; justify-content:space-between; align-items:center; margin-top:12px;">
+    <button class="ghost" id="exportCancel">Cancel</button>
+    <button id="exportRun">Export</button>
+  </div>
+</dialog>
+
 <dialog id="conflictDialog">
   <h3>DBC conflict: which database should be used?</h3>
   <p class="summary" style="text-align:left; margin:0 0 8px">Several DBC files define the same arbitration id. Choose which database decodes each one before the analysis is finalized.</p>
@@ -410,6 +204,13 @@
   </div>
 </dialog>
 
-<script src="/static/app.js"></script>
+<script src="/static/js/core.js"></script>
+<script src="/static/js/import.js"></script>
+<script src="/static/js/signals.js"></script>
+<script src="/static/js/plot.js"></script>
+<script src="/static/js/report.js"></script>
+<script src="/static/js/trace.js"></script>
+<script src="/static/js/inspector.js"></script>
+<script src="/static/js/main.js"></script>
 </body>
 </html>

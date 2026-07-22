@@ -17,7 +17,9 @@ FIX = Path(__file__).parent / "fixtures"
 
 @pytest.fixture
 def client() -> TestClient:
-    return TestClient(create_app())
+    client = TestClient(create_app())
+    client.headers.update({"X-CTD-Token": client.app.state.ctd_security.token})
+    return client
 
 
 # -- server-side downsampling (AC9) ---------------------------------------

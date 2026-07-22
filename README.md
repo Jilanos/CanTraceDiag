@@ -12,6 +12,9 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Multi-DBC decoding** with ambiguous arbitration ID detection.
 - **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
 - **Instant measurements** with cursor values and time/value deltas.
+- **Range statistics** (count, min, max, mean, std, RMS) between the A and B cursors, with value distributions for text/enum signals.
+- **Diagnostic report** summarizing the import: time range, volumes, DBCs used, and anomalies by type.
+- **Streamed export** of selected signals to CSV or Parquet over a chosen range, with bounded memory.
 - **Trace table** with pagination, filtering, and configurable columns.
 - **Frame inspector** with raw payload, decoded message, and physical signals.
 - **Local DBC library** to reuse databases without uploading them again.
@@ -147,8 +150,10 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 2. **Resolve DBC conflicts** when several databases define the same arbitration ID with non-equivalent messages.
 3. **Select signals** present in the trace or available in the DBC catalog.
 4. **Explore plots** with zoom, pan, grid, and A/B cursors.
-5. **Inspect the trace** with filters, pagination, frame details, and decoded signals.
-6. **Reopen later** and let the workspace restore the last analysis and DBC library.
+5. **Read range statistics** between cursors A and B for each selected signal.
+6. **Inspect the trace** with filters, pagination, frame details, and decoded signals.
+7. **Review the report** for the import synthesis and anomalies, then **export** the selected signals to CSV or Parquet over the range you choose (between A and B, the visible window, or the full trace).
+8. **Reopen later** and let the workspace restore the last analysis and DBC library.
 
 ## Command Line
 
@@ -174,6 +179,9 @@ CanTraceDiag exposes a local FastAPI API used by the UI:
 - `GET /api/signals`: signal catalog;
 - `GET /api/series`: windowed/downsampled series;
 - `GET /api/cursor`: nearest cursor value;
+- `GET /api/signal-stats`: range statistics for one signal between two bounds;
+- `GET /api/report`: import synthesis (volumes, DBCs used, anomalies by type);
+- `POST /api/export`: streamed CSV/Parquet export of selected signals over a range;
 - `GET /api/trace`: paginated and filtered trace view;
 - `GET /api/frame-signals`: decoded signals for one frame;
 - `GET /api/dbc-library`: DBC library;
