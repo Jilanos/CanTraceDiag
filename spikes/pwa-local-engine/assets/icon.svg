@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="CanTraceDiag">
+  <rect width="128" height="128" rx="24" fill="#0b6bcb"/>
+  <path d="M22 76h16l10-24 20 48 14-36h24" fill="none" stroke="#ffffff" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="34" cy="76" r="6" fill="#ffca3a"/>
+  <circle cx="106" cy="64" r="6" fill="#ffca3a"/>
+</svg>
