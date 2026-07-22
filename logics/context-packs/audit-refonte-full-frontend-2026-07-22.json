@@ -1,0 +1,385 @@
+{
+  "budgets": {
+    "max_docs": 32,
+    "max_docs_per_ref": 4
+  },
+  "changed_paths": [],
+  "command": "logics-manager sync context-pack req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22 item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement task_023_orchestrer_la_stabilisation_post_audit_full_frontend --mode summary-only --profile normal --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa",
+          "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur",
+          "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles",
+          "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes",
+          "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa",
+          "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/product/prod_003_gate_d_hebergement_pwa_full_frontend_post_audit.md",
+      "ref": "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit",
+      "status": "Proposed",
+      "title": "Gate d hebergement PWA full frontend post audit"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "request-chain-scaffold, lever les bloquants d hebergement pwa full frontend post audit 2026 07 22, development-ready",
+        "skip when": "The change is unrelated to this scaffolded request chain.",
+        "summary": "Lever les bloquants d hebergement PWA full frontend post audit 2026 07 22",
+        "use when": "You need to implement or review the scaffolded workflow for Lever les bloquants d hebergement PWA full frontend post audit 2026 07 22."
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa",
+          "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur",
+          "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles",
+          "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes",
+          "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa",
+          "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_020_pwa_statique_deployable_local_first",
+          "task_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp",
+          "task_022_rattraper_les_commits_ui_diagnostic_du_18_19_juillet_dans_la_pwa"
+        ]
+      },
+      "path": "logics/request/req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22.md",
+      "ref": "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22",
+      "schema_version": "1.0",
+      "status": "Draft",
+      "title": "Lever les bloquants d hebergement PWA full frontend post audit 2026 07 22"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, p0 etablir provenance et packaging de la refonte pwa, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "P0 etablir provenance et packaging de la refonte PWA",
+        "use when": "Implementing the scaffolded slice for P0 etablir provenance et packaging de la refonte PWA."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/backlog/item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa.md",
+      "ref": "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "P0 etablir provenance et packaging de la refonte PWA"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, p0 restaurer l oracle fastapi et les tests serveur, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "P0 restaurer l oracle FastAPI et les tests serveur",
+        "use when": "Implementing the scaffolded slice for P0 restaurer l oracle FastAPI et les tests serveur."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/backlog/item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur.md",
+      "ref": "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "P0 restaurer l oracle FastAPI et les tests serveur"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, p0 corriger la parite dbc navigateur sur traces reelles, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "P0 corriger la parite DBC navigateur sur traces reelles",
+        "use when": "Implementing the scaffolded slice for P0 corriger la parite DBC navigateur sur traces reelles."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/backlog/item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles.md",
+      "ref": "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "P0 corriger la parite DBC navigateur sur traces reelles"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-task, request-chain-scaffold, orchestration",
+        "skip when": "Working on one isolated sibling slice.",
+        "summary": "Orchestrer la stabilisation post audit full frontend",
+        "use when": "Coordinating implementation of a scaffolded request chain."
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa",
+          "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur",
+          "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles",
+          "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes",
+          "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa",
+          "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/tasks/task_023_orchestrer_la_stabilisation_post_audit_full_frontend.md",
+      "ref": "task_023_orchestrer_la_stabilisation_post_audit_full_frontend",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Orchestrer la stabilisation post audit full frontend"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa",
+          "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur",
+          "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles",
+          "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes",
+          "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa",
+          "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/product/prod_003_gate_d_hebergement_pwa_full_frontend_post_audit.md",
+      "ref": "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit",
+      "schema_version": "1.0",
+      "status": "Proposed",
+      "title": "Gate d hebergement PWA full frontend post audit"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, p1 aligner les divergences moteur navigateur non bloquantes, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "P1 aligner les divergences moteur navigateur non bloquantes",
+        "use when": "Implementing the scaffolded slice for P1 aligner les divergences moteur navigateur non bloquantes."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/backlog/item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes.md",
+      "ref": "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "P1 aligner les divergences moteur navigateur non bloquantes"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, p0 fiabiliser service worker cache et installabilite pwa, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "P0 fiabiliser service worker cache et installabilite PWA",
+        "use when": "Implementing the scaffolded slice for P0 fiabiliser service worker cache et installabilite PWA."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/backlog/item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa.md",
+      "ref": "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "P0 fiabiliser service worker cache et installabilite PWA"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, p1 produire le dossier de preuve go no go hebergement, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "P1 produire le dossier de preuve go no go hebergement",
+        "use when": "Implementing the scaffolded slice for P1 produire le dossier de preuve go no go hebergement."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement"
+        ],
+        "prod": [
+          "prod_003_gate_d_hebergement_pwa_full_frontend_post_audit"
+        ],
+        "req": [
+          "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22"
+        ],
+        "task": [
+          "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+        ]
+      },
+      "path": "logics/backlog/item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement.md",
+      "ref": "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "P1 produire le dossier de preuve go no go hebergement"
+    }
+  ],
+  "estimates": {
+    "char_count": 10728,
+    "companion_doc_count": 1,
+    "doc_count": 9
+  },
+  "generated_at": "2026-07-22T14:25:29Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22",
+      "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa",
+      "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur",
+      "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles",
+      "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes",
+      "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa",
+      "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement",
+      "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "summary-only",
+  "profile": "normal",
+  "ref": "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22,item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa,item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur,item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles,item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes,item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa,item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement,task_023_orchestrer_la_stabilisation_post_audit_full_frontend",
+  "refs": [
+    "req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22",
+    "item_023_p0_etablir_provenance_et_packaging_de_la_refonte_pwa",
+    "item_024_p0_restaurer_l_oracle_fastapi_et_les_tests_serveur",
+    "item_025_p0_corriger_la_parite_dbc_navigateur_sur_traces_reelles",
+    "item_026_p1_aligner_les_divergences_moteur_navigateur_non_bloquantes",
+    "item_027_p0_fiabiliser_service_worker_cache_et_installabilite_pwa",
+    "item_028_p1_produire_le_dossier_de_preuve_go_no_go_hebergement",
+    "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+  ],
+  "release": {
+    "blocking_reasons": [
+      "Missing logics/release/contract.json."
+    ],
+    "configured": false,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Run logics-manager release discover --write, then review and promote logics/release/contract.draft.json to logics/release/contract.json.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "not_configured",
+    "target_version": null
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- Run `python3 -m logics_manager lint --require-status`.",
+        "- Run scaffold command tests."
+      ],
+      "path": "logics/tasks/task_023_orchestrer_la_stabilisation_post_audit_full_frontend.md",
+      "ref": "task_023_orchestrer_la_stabilisation_post_audit_full_frontend"
+    }
+  ]
+}
