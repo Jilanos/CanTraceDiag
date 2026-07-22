@@ -32,10 +32,10 @@ export class LocalPwaBackend {
     const parsed = parseAscText(traceText);
     const messageIndex = this.catalog.messageIndex(resolution);
     const decoder = new Decoder(messageIndex, new Set(Object.keys(this.ambiguousIds).map(Number)));
-    this.ingestItems([
-      ...parsed.frames.map((frame) => ({ kind: "frame", frame } as AscItem)),
-      ...parsed.events.map((event) => ({ kind: "event", event } as AscItem)),
-    ], decoder);
+    const items: AscItem[] = [];
+    for (const frame of parsed.frames) items.push({ kind: "frame", frame });
+    for (const event of parsed.events) items.push({ kind: "event", event });
+    this.ingestItems(items, decoder);
     this.lastJob = { phase: "complete", progress: 1, cancellable: false };
     return {
       needs_resolution: false,
