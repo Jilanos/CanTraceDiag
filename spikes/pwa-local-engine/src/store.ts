@@ -57,11 +57,11 @@ export class LocalTraceStore {
   }
 
   ingestEvents(events: NonDataEvent[]): void {
-    this.events.push(...events);
+    for (const event of events) this.events.push(event);
   }
 
   ingestSamples(samples: DecodedSignalSample[]): void {
-    this.samples.push(...samples);
+    for (const sample of samples) this.samples.push(sample);
   }
 
   summary(): Record<string, number | null | Record<string, number> | string[]> {
@@ -83,9 +83,15 @@ export class LocalTraceStore {
   }
 
   timeBounds(): { start_s: number | null; end_s: number | null } {
-    const all = [...this.frameTs, ...this.events.map((event) => event.timestamp_s)];
-    if (!all.length) return { start_s: null, end_s: null };
-    return { start_s: Math.min(...all), end_s: Math.max(...all) };
+    const frameBounds = finiteBounds(this.frameTs);
+    const eventBounds = finiteBounds(this.events.map((event) => event.timestamp_s));
+    if (!frameBounds && !eventBounds) return { start_s: null, end_s: null };
+    if (!frameBounds) return { start_s: eventBounds!.min, end_s: eventBounds!.max };
+    if (!eventBounds) return { start_s: frameBounds.min, end_s: frameBounds.max };
+    return {
+      start_s: Math.min(frameBounds.min, eventBounds.min),
+      end_s: Math.max(frameBounds.max, eventBounds.max),
+    };
   }
 
   frameAt(timestamp_s: number, arbitration_id: number): RawCanFrame | null {
@@ -177,6 +183,7 @@ export class LocalTraceStore {
       .map((sample) => sample.value)
       .filter((value): value is number => typeof value === "number" && Number.isFinite(value));
     if (numeric.length) {
+      const bounds = finiteBounds(numeric);
       const sum = numeric.reduce((acc, value) => acc + value, 0);
       const mean = sum / numeric.length;
       const variance = numeric.length > 1
@@ -187,8 +194,8 @@ export class LocalTraceStore {
         ...base,
         kind: "numeric",
         count: numeric.length,
-        min: Math.min(...numeric),
-        max: Math.max(...numeric),
+        min: bounds!.min,
+        max: bounds!.max,
         mean,
         std: variance === null ? null : Math.sqrt(variance),
         rms: Math.sqrt(squareMean),
@@ -362,6 +369,17 @@ export class LocalTraceStore {
 
 function normalizeHex(value: string): string {
   return value.trim().replace(/^0x/i, "").replace(/^0+([0-9a-f])/i, "$1").toUpperCase();
+}
+
+function finiteBounds(values: number[]): { min: number; max: number } | null {
+  let min = Infinity;
+  let max = -Infinity;
+  for (const value of values) {
+    if (!Number.isFinite(value)) continue;
+    if (value < min) min = value;
+    if (value > max) max = value;
+  }
+  return min === Infinity ? null : { min, max };
 }
 
 function minMaxDownsample(rows: DecodedSignalSample[], maxPoints: number): DecodedSignalSample[] {

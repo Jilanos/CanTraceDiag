@@ -80,4 +80,27 @@ describe("LocalTraceStore parity behavior", () => {
     assert.equal(stats.signal, "Sig");
     assert.equal(stats.count, 2);
   });
+
+  it("summarizes and computes stats without spreading large arrays into Math", () => {
+    const store = new LocalTraceStore();
+    const count = 140_000;
+    const frames: RawCanFrame[] = [];
+    const samples: DecodedSignalSample[] = [];
+    for (let i = 0; i < count; i += 1) {
+      frames.push(frame(i / 1000));
+      samples.push(sample(i / 1000, i));
+    }
+    store.ingestFrames(frames);
+    store.ingestSamples(samples);
+
+    const summary = store.summary();
+    assert.equal(summary.frames, count);
+    assert.equal(summary.start_s, 0);
+    assert.equal(summary.end_s, (count - 1) / 1000);
+
+    const stats = store.signalStats("M", "Sig");
+    assert.equal(stats.count, count);
+    assert.equal(stats.min, 0);
+    assert.equal(stats.max, count - 1);
+  });
 });
