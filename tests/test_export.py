@@ -239,6 +239,23 @@ def test_export_wide_csv_does_not_interpolate() -> None:
     store.close()
 
 
+def test_export_csv_wide_endpoint(client: TestClient) -> None:
+    _import_sample(client)
+    r = client.post(
+        "/api/export",
+        json={
+            "signals": [{"message": "EngineData", "signal": "EngineSpeed"}],
+            "scope": "full",
+            "format": "csv_wide",
+        },
+    )
+    assert r.status_code == 200
+    assert r.headers["content-type"].startswith("text/csv")
+    text = r.content.decode("utf-8")
+    assert text.splitlines()[0].startswith("timestamp_s,EngineData.EngineSpeed")
+    assert "rpm" not in text.splitlines()[0]
+
+
 def test_export_endpoint_csv(client: TestClient) -> None:
     _import_sample(client)
     r = client.post(

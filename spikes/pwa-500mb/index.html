@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CanTraceDiag PWA 500 MB Spike</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p class="eyebrow">CanTraceDiag local-first spike</p>
+        <h1>ASC chunk scanner</h1>
+      </header>
+
+      <section class="controls" aria-label="Scan controls">
+        <label>
+          ASC file
+          <input id="trace" type="file" accept=".asc,text/plain">
+        </label>
+        <label>
+          Chunk size (MiB)
+          <input id="chunkSize" type="number" min="1" max="64" step="1" value="8">
+        </label>
+        <button id="start" type="button">Start scan</button>
+        <button id="cancel" type="button" disabled>Cancel</button>
+      </section>
+
+      <section class="status" aria-live="polite">
+        <p id="status">Choose a local ASC file to scan in a Web Worker.</p>
+        <progress id="progress" max="1" value="0"></progress>
+        <pre id="metrics"></pre>
+        <pre id="log"></pre>
+      </section>
+    </main>
+    <script type="module" src="./app.mjs"></script>
+  </body>
+</html>

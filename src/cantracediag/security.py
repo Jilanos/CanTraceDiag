@@ -23,8 +23,9 @@ import secrets
 from dataclasses import dataclass
 from urllib.parse import urlsplit
 
-# Hostnames that always denote this machine's loopback interface.
-LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "[::1]"})
+# Hostnames that always denote this machine's loopback interface, plus the
+# Starlette in-process host used by TestClient.
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "[::1]", "testserver"})
 
 _DEFAULT_MAX_UPLOAD_MB = 512.0
 

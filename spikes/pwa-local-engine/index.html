@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CanTraceDiag Local Engine Spike</title>
+    <meta name="theme-color" content="#0b6bcb">
+    <link rel="manifest" href="./manifest.webmanifest">
+    <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main>
+      <header>
+        <p>CanTraceDiag PWA milestone 0.3</p>
+        <h1>Local ASC + DBC PWA</h1>
+      </header>
+      <p id="appStatus" class="app-status">PWA shell starting.</p>
+      <section class="controls">
+        <label>ASC trace <input id="trace" type="file" accept=".asc,text/plain"></label>
+        <label>DBC files <input id="dbc" type="file" accept=".dbc,text/plain" multiple></label>
+        <label>Workspace name <input id="workspaceName" type="text" value="Local diagnostic"></label>
+        <button id="load" type="button">Import locally</button>
+        <button id="saveWorkspace" type="button">Save workspace</button>
+        <button id="exportWorkspace" type="button">Export</button>
+        <label>Workspace import <input id="workspaceImport" type="file" accept=".json,application/json"></label>
+        <button id="importWorkspace" type="button">Import workspace</button>
+        <button id="purge" type="button">Purge</button>
+      </section>
+      <section class="workspace-panel">
+        <h2>Workspaces</h2>
+        <p id="quota"></p>
+        <ul id="workspaceList"></ul>
+      </section>
+      <section class="grid">
+        <article><h2>Status</h2><pre id="summary"></pre></article>
+        <article><h2>Signals</h2><ul id="signals"></ul></article>
+        <article><h2>Trace</h2><pre id="traceRows"></pre></article>
+        <article><h2>First Series</h2><pre id="series"></pre></article>
+      </section>
+    </main>
+    <script type="module" src="./browser/app.mjs"></script>
+  </body>
+</html>

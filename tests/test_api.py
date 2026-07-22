@@ -41,6 +41,59 @@ def test_import_and_query_flow(client: TestClient) -> None:
 
     trace = client.get("/api/trace", params={"limit": 100}).json()
     assert trace["total"] == 8
+    assert trace["start_index"] == 0
+    assert trace["prev_cursor"] is None
+
+
+def test_trace_endpoint_first_load_and_cursor_pagination(client: TestClient) -> None:
+    assert _import(client).status_code == 200
+    first = client.get("/api/trace", params={"limit": 3}).json()
+    assert first["start_index"] == 0
+    assert len(first["rows"]) == 3
+    assert first["prev_cursor"] is None
+    assert first["next_cursor"]
+
+    second = client.get("/api/trace", params={"limit": 3, "cursor": first["next_cursor"]}).json()
+    assert second["start_index"] == 3
+    assert second["prev_cursor"]
+    assert len(second["rows"]) == 3
+
+
+def test_trace_endpoint_rejects_invalid_cursor(client: TestClient) -> None:
+    assert _import(client).status_code == 200
+    r = client.get("/api/trace", params={"cursor": "not-a-cursor"})
+    assert r.status_code == 400
+    assert "Invalid trace cursor" in r.json()["detail"]
+
+
+def test_cursor_batch_endpoint(client: TestClient) -> None:
+    assert _import(client).status_code == 200
+    r = client.post(
+        "/api/cursors",
+        json={
+            "a": 0.012,
+            "b": 0.022,
+            "signals": [{"message": "EngineData", "signal": "EngineSpeed"}],
+        },
+    )
+    assert r.status_code == 200
+    body = r.json()
+    assert body["a"]["EngineData.EngineSpeed"]["timestamp_s"] == 0.010
+    assert body["b"]["EngineData.EngineSpeed"]["timestamp_s"] == 0.020
+
+
+def test_testclient_host_is_allowed_and_host_guard_still_rejects() -> None:
+    client = TestClient(api_module.create_app())
+    assert client.get("/api/status").status_code == 200
+    hostile = client.get("/api/status", headers={"host": "evil.example"})
+    assert hostile.status_code == 403
+    assert hostile.json()["detail"] == "Host not allowed."
+
+
+def test_origin_guard_rejects_cross_site_origin(client: TestClient) -> None:
+    r = client.get("/api/status", headers={"origin": "https://evil.example"})
+    assert r.status_code == 403
+    assert r.json()["detail"] == "Origin not allowed."
 
 
 def test_series_is_decoded_on_demand_and_reuses_cache(

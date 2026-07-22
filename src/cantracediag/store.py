@@ -1078,6 +1078,11 @@ def _keyset_predicate(
     )
 
 
+def _f(value: object) -> float | None:
+    """Coerce a DuckDB aggregate result to a plain float (NULL -> None)."""
+    return None if value is None else float(value)
+
+
 def _id_hex(arbitration_id: int, is_extended: bool) -> str:
     width = 8 if is_extended else 3
     return f"{arbitration_id:0{width}X}"
