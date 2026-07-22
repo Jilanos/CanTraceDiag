@@ -25,8 +25,8 @@ conditionne a un point de gouvernance produit :
 - Provenance : `.gitignore` exclut `spikes/pwa-local-engine/browser/` et
   `spikes/pwa-local-engine/site/` comme artefacts generes ; la strategie
   source/build/commit est documentee.
-- FastAPI : `/api/trace` accepte le curseur UI sans 500, retourne
-  `start_index`, `next_cursor` et `prev_cursor`, et conserve `offset/limit`.
+- FastAPI : `/api/trace` accepte les curseurs keyset opaques de l'UI sans 500
+  et retourne `limit`, `start_index`, `next_cursor` et `prev_cursor`.
 - Securite : `testserver` est reconnu comme hote in-process TestClient ; les
   tests couvrent encore les refus Host et Origin hostiles.
 - Front legacy : `src/cantracediag/web/app.js` a ete supprime pour eviter toute
@@ -47,6 +47,23 @@ conditionne a un point de gouvernance produit :
 ```
 
 Resultat : 63 passed, 1 avertissement `StarletteDeprecationWarning`.
+
+Validation post-merge `feat/pwa-local-first` dans `main` :
+
+```bash
+.venv/bin/ruff check .
+.venv/bin/pytest
+```
+
+Resultat : lint OK, 147 passed, 1 avertissement `StarletteDeprecationWarning`.
+
+Validation CI post-merge :
+
+- `092f3cd` (`Merge branch 'feat/pwa-local-first'`) : GitHub Actions CI OK sur
+  Python 3.11 et 3.12.
+- `bdb08f7` (`ci: update GitHub Actions Node 24 runners`) : GitHub Actions CI
+  OK sur Python 3.11 et 3.12 avec `actions/checkout@v7.0.1` et
+  `actions/setup-python@v7.0.0`.
 
 ```bash
 node --test spikes/pwa-local-engine/tests/*.test.ts
