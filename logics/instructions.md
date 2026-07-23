@@ -20,7 +20,7 @@ Claude runtime artifacts are generated outside the repository from the integrate
 Do not edit generated runtime artifacts by hand unless you are deliberately repairing a generated artifact.
 
 Do not edit indicator lines, owner assignments, or workflow links by hand.
-During task execution, treat meaningful waves as ADR 009 checkpoints: update affected Logics docs inside the wave and leave the repo commit-ready. When the user asks the agent to execute a chain or a major project step, the agent must create the corresponding Git commits itself, split by coherent milestone, instead of leaving commit creation to the user.
+During task execution, treat meaningful waves as ADR 009 checkpoints: update affected Logics docs inside the wave and leave the repo commit-ready; actual commits stay under operator control.
 When grooming or creating backlog items, set a deliberate `# Priority` tier (`High`, `Medium`, or `Low`) with a one-line rationale instead of leaving the default unreviewed.
 Sequence delivery plans and roadmaps by status priority order before lower-priority work when dependencies allow.
 When delivery consumes a linked product brief, `flow closeout` should settle it; otherwise set the brief to `Settled` or `Superseded` through the CLI instead of leaving it `Proposed`.
