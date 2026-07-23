@@ -238,6 +238,20 @@ def _parse_data_frame(
 
     data = b""
     if not is_remote:
+        if dlc == 0:
+            return (
+                RawCanFrame(
+                    timestamp_s=timestamp,
+                    channel=channel,
+                    arbitration_id=arbitration_id,
+                    is_extended_id=is_extended,
+                    dlc=dlc,
+                    data=data,
+                    direction=tokens[2],
+                    is_remote=is_remote,
+                ),
+                None,
+            )
         # Leading numeric tokens are data bytes; the first non-numeric token
         # begins trailing metadata ("Length =/BitCount =") which is ignored.
         values: list[int] = []

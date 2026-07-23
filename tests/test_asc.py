@@ -48,6 +48,21 @@ def test_decimal_base_parses_ids_and_data() -> None:
     assert result.frames[1].data[0] == 231
 
 
+def test_dlc_zero_ignores_trailing_numeric_metadata(tmp_path: Path) -> None:
+    asc = tmp_path / "dlc_zero.asc"
+    asc.write_text(
+        "date Thu Jul 23 00:00:00.000 2026\n"
+        "base hex timestamps absolute\n"
+        "   0.000000 1 100 Rx d 0 8 64 Length = 0 BitCount = 42\n"
+    )
+    result = parse_asc(asc)
+    assert result.parsed_frames == 1
+    assert result.parsed_events == 0
+    frame = result.frames[0]
+    assert frame.dlc == 0
+    assert frame.data == b""
+
+
 # -- parsing integrity (AC12) ---------------------------------------------
 
 

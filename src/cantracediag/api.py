@@ -137,6 +137,14 @@ class Session:
         finally:
             store.release()
 
+    def borrow_store(self) -> TraceStore:
+        """Acquire the active store for a response body that outlives a handler."""
+        with self._lock:
+            store = self.store
+        if store is None or not store.acquire():
+            raise HTTPException(status_code=409, detail="No trace loaded. POST /api/import first.")
+        return store
+
     def clear_pending(self) -> None:
         if self.pending is not None:
             self.pending.cleanup()
@@ -215,6 +223,10 @@ _EXPORT_FORMATS = {
 }
 
 
+def _safe_failure(prefix: str) -> str:
+    return f"{prefix}. See server logs for technical details."
+
+
 def create_app(
     workspace: Workspace | None = None,
     security: SecurityConfig | None = None,
@@ -271,8 +283,9 @@ def create_app(
             for dbc in dbcs:
                 catalog.load(dbc)
         except (cantools.database.errors.Error, OSError, ValueError) as exc:
-            session.job("failed", 1.0, f"Invalid DBC: {exc}")
-            raise HTTPException(400, f"Invalid DBC: {exc}") from exc
+            detail = _safe_failure("Invalid DBC")
+            session.job("failed", 1.0, detail)
+            raise HTTPException(400, detail) from exc
         ambiguous = catalog.find_ambiguous_ids()
         _validate_resolution(catalog, ambiguous, resolution, require_complete=False)
 
@@ -332,8 +345,9 @@ def create_app(
             raise
         except Exception as exc:
             _discard_store(db_tmpdir)
-            session.job("failed", 1.0, str(exc))
-            raise
+            detail = _safe_failure("Import failed")
+            session.job("failed", 1.0, detail)
+            raise HTTPException(500, detail) from exc
 
         session.replace_store(store, db_tmpdir)
         session.catalog = catalog
@@ -380,8 +394,9 @@ def create_app(
             raise
         except Exception as exc:
             _discard_store(db_tmpdir)
-            session.job("failed", 1.0, str(exc))
-            raise
+            detail = _safe_failure("Import failed")
+            session.job("failed", 1.0, detail)
+            raise HTTPException(500, detail) from exc
 
         session.replace_store(store, db_tmpdir)
         session.catalog = catalog
@@ -526,17 +541,19 @@ def create_app(
         if not (trace.filename or "").lower().endswith(".asc"):
             raise HTTPException(400, "Trace file must be a .asc file.")
 
-        # Reject oversized uploads early via the declared length, then enforce
-        # the cap while streaming so a lying Content-Length cannot bypass it (AC10).
+        # Reject oversized requests early via the declared length, then enforce
+        # the same aggregate cap while streaming so a lying Content-Length cannot
+        # bypass it and N small files cannot fill the temp dir (AC10).
         declared = request.headers.get("content-length")
         if declared is not None and declared.isdigit() and int(declared) > cfg.max_upload_bytes:
             raise HTTPException(413, "Upload exceeds the configured size limit.")
 
         tmpdir = Path(tempfile.mkdtemp(prefix="ctd_"))
         keep_tmpdir = False
+        upload_budget = [0]
         try:
             trace_path = tmpdir / _safe_name(trace.filename)
-            await _spool(trace, trace_path, cfg.max_upload_bytes)
+            await _spool(trace, trace_path, cfg.max_upload_bytes, upload_budget)
 
             dbc_paths: list[Path] = []
             display_dbcs: list[str] = []
@@ -550,7 +567,7 @@ def create_app(
                     raise HTTPException(400, f"Duplicate DBC basename: {safe}")
                 seen_names.add(safe)
                 dest = tmpdir / safe
-                await _spool(upload, dest, cfg.max_upload_bytes)
+                await _spool(upload, dest, cfg.max_upload_bytes, upload_budget)
                 dbc_paths.append(dest)
                 display_dbcs.append(Path(name).name)
 
@@ -881,10 +898,7 @@ def create_app(
         # Hold the store for the whole response: the streaming body is consumed
         # after this function returns, so it is released in the generators'
         # finally clauses (or after the Parquet file is fully written).
-        with session._lock:
-            store = session.store
-        if store is None or not store.acquire():
-            raise HTTPException(409, "No trace loaded. POST /api/import first.")
+        store = session.borrow_store()
         try:
             for message, signal in pairs:
                 _ensure_series_cached(store, message, signal, start, end)
@@ -964,8 +978,7 @@ def create_app(
         meta = f'<meta name="ctd-token" content="{cfg.token}" />'
         html = html.replace("</head>", f"{meta}\n</head>", 1)
         # Cache-bust bundled scripts/styles so a fresh shell can never load a
-        # stale cached asset (see _asset_version). The token rides on the URL, so
-        # the assets themselves stay cacheable until their content changes.
+        # stale cached asset (see _asset_version).
         version = _asset_version()
         html = _ASSET_REF.sub(rf"\g<1>\g<2>?v={version}\g<3>", html)
         # The shell is dynamic (embeds the token and the asset version): never let
@@ -1049,7 +1062,12 @@ def normalize_local_path(raw: str) -> str:
     return s
 
 
-async def _spool(upload: UploadFile, dest: Path, max_bytes: int | None = None) -> None:
+async def _spool(
+    upload: UploadFile,
+    dest: Path,
+    max_bytes: int | None = None,
+    aggregate_written: list[int] | None = None,
+) -> None:
     """Stream an uploaded file to disk in chunks (handles large traces).
 
     Enforces ``max_bytes`` while streaming so an upload cannot exceed the
@@ -1059,7 +1077,15 @@ async def _spool(upload: UploadFile, dest: Path, max_bytes: int | None = None) -
     with open(dest, "wb") as handle:
         while chunk := await upload.read(1 << 20):
             written += len(chunk)
-            if max_bytes is not None and written > max_bytes:
+            if aggregate_written is not None:
+                aggregate_written[0] += len(chunk)
+            over_file = max_bytes is not None and written > max_bytes
+            over_request = (
+                max_bytes is not None
+                and aggregate_written is not None
+                and aggregate_written[0] > max_bytes
+            )
+            if over_file or over_request:
                 await upload.close()
                 raise HTTPException(413, "Upload exceeds the configured size limit.")
             handle.write(chunk)

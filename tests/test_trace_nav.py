@@ -112,6 +112,19 @@ def test_trace_endpoint_rejects_malformed_cursor(client: TestClient) -> None:
     assert client.get("/api/trace", params={"cursor": "not-a-cursor"}).status_code == 400
 
 
+def test_trace_signal_filter_without_catalog_match_returns_no_rows(client: TestClient) -> None:
+    client.post(
+        "/api/import",
+        json={"trace_path": str(FIX / "sample.asc"),
+              "dbc_paths": [str(FIX / "sample.dbc")]},
+    )
+    r = client.get("/api/trace", params={"signal": "DefinitelyMissingSignal"})
+    assert r.status_code == 200
+    body = r.json()
+    assert body["total"] == 0
+    assert body["rows"] == []
+
+
 # -- bounded nearest lookups + batch endpoint (AC8) -----------------------
 
 

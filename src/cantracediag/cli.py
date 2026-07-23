@@ -190,7 +190,13 @@ def serve(
         typer.echo("LAN mode: the whole API requires the session token above.")
     if open_ui:
         threading.Thread(target=_open_when_ready, args=(host, port, url), daemon=True).start()
-    uvicorn.run("cantracediag.api:app", host=host, port=port, log_level="info")
+    uvicorn.run(
+        "cantracediag.api:app",
+        host=host,
+        port=port,
+        log_level="warning" if lan else "info",
+        access_log=not lan,
+    )
 
 
 def main() -> None:

@@ -111,8 +111,7 @@ class SecurityConfig:
 
     def host_allowed(self, host_header: str | None) -> bool:
         host = host_of(host_header)
-        # A missing Host is only plausible for in-process/loopback callers.
-        return host is None or host in self.allowed_hosts
+        return host is not None and host in self.allowed_hosts
 
     def origin_allowed(self, origin_header: str | None) -> bool:
         if origin_header is None:

@@ -8,11 +8,15 @@ filesystem paths.
 
 from __future__ import annotations
 
+import asyncio
+import threading
 from pathlib import Path
 
+import pytest
 from conftest import make_client
 from starlette.testclient import TestClient
 
+import cantracediag.api as api_module
 from cantracediag.api import create_app
 from cantracediag.security import LOOPBACK_HOSTS, SecurityConfig
 
@@ -50,6 +54,11 @@ def test_disallowed_host_is_rejected() -> None:
     r = client.get("/api/status")
     assert r.status_code == 403
     assert r.json()["detail"] == "Host not allowed."
+
+
+def test_missing_host_is_rejected() -> None:
+    cfg = _config()
+    assert cfg.host_allowed(None) is False
 
 
 def test_cross_origin_request_is_rejected() -> None:
@@ -132,6 +141,32 @@ def test_upload_over_limit_is_rejected() -> None:
     assert "size limit" in r.json()["detail"]
 
 
+def _run_async(coro) -> None:
+    error: list[BaseException] = []
+
+    def runner() -> None:
+        try:
+            asyncio.run(coro)
+        except BaseException as exc:  # noqa: BLE001 - re-raised in caller thread
+            error.append(exc)
+
+    worker = threading.Thread(target=runner)
+    worker.start()
+    worker.join()
+    if error:
+        raise error[0]
+
+
+def test_spool_enforces_aggregate_upload_limit(tmp_path: Path) -> None:
+    first = UploadStub([b"a" * 40])
+    second = UploadStub([b"b" * 40])
+    budget = [0]
+    _run_async(api_module._spool(first, tmp_path / "first.asc", 64, budget))
+    with pytest.raises(Exception) as exc:
+        _run_async(api_module._spool(second, tmp_path / "second.dbc", 64, budget))
+    assert getattr(exc.value, "status_code", None) == 413
+
+
 # -- no path leakage (AC10) -----------------------------------------------
 
 
@@ -147,6 +182,43 @@ def test_missing_file_error_does_not_leak_paths() -> None:
     assert "trace.asc" not in detail
 
 
+def test_invalid_dbc_error_does_not_leak_paths(client: TestClient, tmp_path: Path) -> None:
+    bad = tmp_path / "secret_vehicle.dbc"
+    bad.write_text("not a dbc")
+    r = client.post(
+        "/api/import",
+        json={"trace_path": str(FIX / "sample.asc"), "dbc_paths": [str(bad)]},
+    )
+    assert r.status_code == 400
+    detail = r.json()["detail"]
+    job_detail = client.get("/api/import-job").json()["detail"]
+    for text in (detail, job_detail):
+        assert "Invalid DBC" in text
+        assert str(tmp_path) not in text
+        assert "secret_vehicle.dbc" not in text
+
+
+def test_import_failure_job_does_not_leak_paths(
+    client: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def fail_import(*args, **kwargs):
+        raise RuntimeError("/home/secret/vehicle/trace.asc failed")
+
+    monkeypatch.setattr(api_module, "import_trace", fail_import)
+    r = client.post(
+        "/api/import",
+        json={"trace_path": str(FIX / "sample.asc"), "dbc_paths": [str(FIX / "sample.dbc")]},
+    )
+    assert r.status_code == 500
+    detail = r.json()["detail"]
+    job_detail = client.get("/api/import-job").json()["detail"]
+    for text in (detail, job_detail):
+        assert "Import failed" in text
+        assert "/home/secret" not in text
+        assert "trace.asc failed" not in text
+
+
 # -- token delivery to the UI shell ---------------------------------------
 
 
@@ -154,3 +226,15 @@ def test_index_embeds_session_token_locally() -> None:
     app = create_app(security=_config())
     html = make_client(app).get("/").text
     assert '<meta name="ctd-token" content="secret-token" />' in html
+
+
+class UploadStub:
+    def __init__(self, chunks: list[bytes]) -> None:
+        self._chunks = chunks
+        self.closed = False
+
+    async def read(self, _size: int) -> bytes:
+        return self._chunks.pop(0) if self._chunks else b""
+
+    async def close(self) -> None:
+        self.closed = True

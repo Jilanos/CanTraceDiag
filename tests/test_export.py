@@ -7,6 +7,8 @@ memory) and AC3 (per-signal range statistics).
 from __future__ import annotations
 
 import io
+import math
+import threading
 import tracemalloc
 from pathlib import Path
 
@@ -111,6 +113,21 @@ def test_signal_stats_endpoint(client: TestClient) -> None:
     assert body["max"] >= body["min"]
 
 
+def test_signal_series_degenerate_timestamps_do_not_generate_bad_sql() -> None:
+    store = TraceStore()
+    store.ingest_samples(
+        [
+            DecodedSignalSample(0.0, "1", 0x100, "M", "Sig", 1.0, "rpm"),
+            DecodedSignalSample(math.inf, "1", 0x100, "M", "Sig", 2.0, "rpm"),
+            DecodedSignalSample(math.nan, "1", 0x100, "M", "Sig", 3.0, "rpm"),
+        ]
+    )
+    series = store.signal_series("M", "Sig", max_points=2)
+    assert series["raw_count"] == 3
+    assert series["downsampled"] is False
+    store.close()
+
+
 # -- report synthesis (AC1) -----------------------------------------------
 
 
@@ -139,10 +156,10 @@ def test_report_requires_loaded_trace(client: TestClient) -> None:
 
 
 def test_export_batches_are_memory_bounded() -> None:
-    """The resident batch never exceeds ``batch_size`` regardless of total rows.
+    """Each exported Arrow batch respects ``batch_size`` regardless of total rows.
 
-    This is the core AC2 property: peak memory is a function of the batch size,
-    not of the number of exported rows.
+    The batches may be materialized before HTTP streaming so the DuckDB lock is
+    released; each individual batch still stays bounded.
     """
     n = 200_000
     store = _numeric_store([float(i) for i in range(n)])
@@ -154,6 +171,31 @@ def test_export_batches_are_memory_bounded() -> None:
         total += batch.num_rows
     assert total == n
     assert max_batch <= batch_size
+    store.close()
+
+
+def test_export_batches_release_store_lock_while_consumed() -> None:
+    store = _numeric_store([float(i) for i in range(10)])
+    batches = store.iter_export_batches([("M", "Sig")], batch_size=1)
+    first = next(batches)
+    assert first.num_rows == 1
+
+    acquired = threading.Event()
+    release = threading.Event()
+
+    def borrow_lock() -> None:
+        with store._lock:
+            acquired.set()
+            release.wait(1.0)
+
+    worker = threading.Thread(target=borrow_lock)
+    worker.start()
+    assert acquired.wait(0.2)
+
+    release.set()
+    worker.join(timeout=1.0)
+    assert not worker.is_alive()
+    assert sum(batch.num_rows for batch in batches) == 9
     store.close()
 
 

@@ -11,6 +11,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import math
 import threading
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -244,6 +245,15 @@ class TraceStore:
             params.append(end_s)
         with self._lock:
             self.con.execute(f"DELETE FROM samples WHERE {' AND '.join(clauses)}", params)
+            self.con.execute(
+                """
+                DELETE FROM series_cache
+                WHERE message_name = ? AND signal_name = ?
+                  AND (? IS NULL OR end_s IS NULL OR end_s >= ?)
+                  AND (? IS NULL OR start_s IS NULL OR start_s <= ?)
+                """,
+                [message_name, signal_name, start_s, start_s, end_s, end_s],
+            )
         return self.ingest_samples(samples)
 
     def mark_series_cached(
@@ -452,12 +462,11 @@ class TraceStore:
     ):
         """Yield decoded samples as bounded Arrow record batches (AC2).
 
-        Streams the selected ``(message, signal)`` pairs over an optional window,
+        Selects the chosen ``(message, signal)`` pairs over an optional window,
         ordered by ``(timestamp_s, message, signal)`` so a wide export can align
-        by timestamp. DuckDB's record-batch cursor caps the resident rows at
-        ``batch_size`` regardless of the total exported, so peak memory does not
-        grow with the number of rows. The connection lock is held for the whole
-        stream because the cursor lives on the shared connection.
+        by timestamp. DuckDB's Arrow reader lives on the shared connection, so
+        batches are drained under the connection lock and yielded afterwards:
+        slow HTTP clients must not hold the store lock for the whole download.
         """
         if not pairs:
             return
@@ -481,7 +490,8 @@ class TraceStore:
         """
         with self._lock:
             reader = self.con.execute(sql, params).to_arrow_reader(max(1, batch_size))
-            yield from reader
+            batches = list(reader)
+        yield from batches
 
     def present_arbitration_ids(self) -> set[int]:
         rows = self._all("SELECT DISTINCT arbitration_id FROM frames")
@@ -608,7 +618,11 @@ class TraceStore:
         t_lo, t_hi = stats[1], stats[2]
 
         max_points = max(2, int(max_points))
-        downsampled = raw_count > max_points and t_hi is not None and t_hi > t_lo
+        finite_bounds = (
+            t_lo is not None and t_hi is not None
+            and math.isfinite(float(t_lo)) and math.isfinite(float(t_hi))
+        )
+        downsampled = raw_count > max_points and finite_bounds and t_hi > t_lo
         if downsampled:
             df = self._decimate(where, params, max_points, t_lo, t_hi)
         else:
@@ -651,7 +665,7 @@ class TraceStore:
             WITH win AS (
                 SELECT timestamp_s, value_num,
                        least({nbuckets - 1},
-                             CAST((timestamp_s - {t_lo!r}) / {span!r}
+                             CAST((timestamp_s - ?) / ?
                                   * {nbuckets} AS BIGINT)) AS bucket
                 FROM samples WHERE {where}
             ),
@@ -668,7 +682,7 @@ class TraceStore:
             )
             SELECT DISTINCT timestamp_s, value_num FROM pts ORDER BY timestamp_s
             """,
-            params,
+            [t_lo, span, *params],
         )
         return df
 
@@ -934,6 +948,9 @@ class TraceStore:
         clauses: list[str] = []
         params: list[object] = []
         self._time_clauses(start_s, end_s, clauses, params)
+        if signal_ids == []:
+            clauses.append("FALSE")
+            return clauses, params
         if id_hex:
             clauses.append("lower(id_hex) LIKE ?")
             params.append(f"%{id_hex.lower().removeprefix('0x')}%")
@@ -1025,11 +1042,6 @@ class TraceStore:
             [timestamp_s, arbitration_id],
         )
         return _records(df)
-
-
-def _f(value: object) -> float | None:
-    """Coerce a DuckDB aggregate result to a plain float (NULL -> None)."""
-    return None if value is None else float(value)
 
 
 # -- opaque keyset cursors (AC9) ------------------------------------------

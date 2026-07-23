@@ -213,9 +213,10 @@ The repository ignores real traces, real DBC files, and caches to avoid versioni
 CanTraceDiag follows a local-first, Jupyter-style security model:
 
 - it binds to loopback by default and rejects requests whose `Host` is not on an allowlist (DNS-rebinding defence) or whose `Origin` is cross-site;
-- a per-process **session token** is generated at startup, embedded in the served page, and required on mutating endpoints locally and on **every** endpoint in `--lan` mode (the token is printed in the launch URL);
-- uploads are capped by a documented limit;
-- server-side path import is disabled in `--lan` mode so exposing the UI never grants arbitrary file reads;
+- a per-process **session token** is generated at startup, embedded in the served page, and required on mutating endpoints locally and on **every** endpoint in `--lan` mode;
+- in `--lan` mode the browser entry URL carries the token so a stock browser can load the protected shell; access logs are disabled and Uvicorn logs run at `warning` to avoid logging token-bearing URLs;
+- uploads are capped by a documented aggregate request limit covering the trace plus all uploaded DBC files;
+- server-side path import can read any file path accessible to the backend process by design for local CLI/power-user workflows, and is disabled in `--lan` mode so exposing the UI never grants arbitrary file reads;
 - error messages never echo local filesystem paths.
 
 Security variables:
