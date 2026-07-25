@@ -1,13 +1,14 @@
 ## task_034_retablir_la_gouvernance_logics_et_la_securite_de_la_release - Retablir la gouvernance Logics et la securite de la release
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
 > Progress: 0%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Owner: codex
 
 # Definition of Done (DoD)
 - [ ] The backlog scope is implemented.

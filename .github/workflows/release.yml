@@ -52,8 +52,13 @@ jobs:
         with:
           context: .
           push: true
+          provenance: true
+          sbom: true
           tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          labels: |
+            ${{ steps.meta.outputs.labels }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
 
   deploy:
     needs: publish
