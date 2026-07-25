@@ -1,5 +1,14 @@
 # CanTraceDiag
 
+## Production architecture
+
+The deployed product is the static PWA generated from
+`spikes/pwa-local-engine/`. It is the canonical user path and is validated by
+the Node 22 PWA tests and build in every pull request. The Python/FastAPI path
+is retained as a local/API reference implementation and compatibility suite;
+it is not the artifact served by the production Docker image. See
+`docs/architecture-pwa-canonique.md` for the boundary and validation contract.
+
 **CanTraceDiag turns a CANalyzer `.asc` trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
 
 The goal is direct: inspect real CAN acquisitions away from the vehicle, without a remote server, without keeping a proprietary tool open, and without loading the whole trace into the browser.

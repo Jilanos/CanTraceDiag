@@ -4,7 +4,7 @@
 > Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 33%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
@@ -41,6 +41,8 @@
 # Validation
 - Run `python3 -m logics_manager lint --require-status`.
 - Run scaffold command tests.
+- Lot 1 valide: CI distante verte, publication image reussie, tag v1.0.0 pousse. Blocage de cloture: le workflow de deploiement echoue avant connexion avec ; aucun secret GitHub n'est configure. Reprendre apres ajout de VPS_HOST, VPS_USER, VPS_SSH_KEY et VPS_SSH_PORT puis reexecuter le workflow de release.
+- Precision: le workflow de deploiement echoue avant connexion avec l erreur "missing server host"; aucun secret GitHub n est configure.
 
 # Report
 - Implementation complete.

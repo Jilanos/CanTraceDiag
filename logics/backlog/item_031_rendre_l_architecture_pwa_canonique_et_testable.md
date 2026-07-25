@@ -1,10 +1,10 @@
 ## item_031_rendre_l_architecture_pwa_canonique_et_testable - Rendre l'architecture PWA canonique et testable
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 5%
+> Progress: 100%
 > Complexity: High
 > Theme: architecture
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -50,3 +50,6 @@
 
 # Tasks
 - `task_033_rendre_l_architecture_pwa_canonique_et_testable`
+
+# Notes
+- Task `task_033_rendre_l_architecture_pwa_canonique_et_testable` was finished via `logics-manager flow finish task` on 2026-07-25.
