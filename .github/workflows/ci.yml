@@ -5,6 +5,32 @@ on:
   pull_request:
 
 jobs:
+  pwa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: 22
+      - name: Validate PWA engine
+        run: |
+          node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts
+          node spikes/pwa-local-engine/build-browser.mjs
+          test -f spikes/pwa-local-engine/site/index.html
+          test -f spikes/pwa-local-engine/site/sw.js
+      - name: Static delivery smoke test
+        run: |
+          python3 -m http.server 8770 --bind 127.0.0.1 --directory spikes/pwa-local-engine/site >/tmp/cantracediag-pwa-http.log 2>&1 &
+          server_pid=$!
+          trap 'kill "$server_pid"' EXIT
+          python3 - <<'PY'
+          import urllib.request
+
+          for path in ("/", "/index.html", "/manifest.webmanifest", "/sw.js"):
+              with urllib.request.urlopen("http://127.0.0.1:8770" + path) as response:
+                  assert response.status == 200, (path, response.status)
+          PY
+
   test:
     runs-on: ubuntu-latest
     strategy:
