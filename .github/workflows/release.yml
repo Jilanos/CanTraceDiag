@@ -68,13 +68,15 @@ jobs:
     steps:
       - name: Deploy exact image and verify health
         uses: appleboy/ssh-action@v1.2.2
+        env:
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_SSH_PORT || 22 }}
           envs: GHCR_USERNAME,GHCR_TOKEN
-          script_stop: true
           script: |
             set -euo pipefail
             cd /home/deploy/paulmondou-infra
