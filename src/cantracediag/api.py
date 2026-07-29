@@ -231,7 +231,7 @@ def create_app(
     workspace: Workspace | None = None,
     security: SecurityConfig | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="CanTraceDiag", version="0.1.0")
+    app = FastAPI(title="CanTraceDiag", version="1.0.4")
     session = Session()
     session.workspace = workspace or Workspace.from_env()
     cfg = security or SecurityConfig.from_env()

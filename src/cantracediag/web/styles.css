@@ -120,6 +120,7 @@
   .panel .phead .title { flex: 1; font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
   .panel.collapsed .phead { writing-mode: vertical-rl; height: 100%; border-bottom: 0; }
   .panel.collapsed .pbody { display: none; }
+  #explorer.collapsed .kbd { display: none; }
   .collapse-btn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 2px; font-weight: 700; }
   .collapse-btn:hover { background: none; color: var(--fg); }
   .kbd { color: var(--muted); font: 10px var(--mono); }

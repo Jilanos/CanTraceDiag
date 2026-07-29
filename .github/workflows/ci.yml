@@ -30,6 +30,16 @@ jobs:
               with urllib.request.urlopen("http://127.0.0.1:8770" + path) as response:
                   assert response.status == 200, (path, response.status)
           PY
+      - name: Container MIME smoke test
+        run: |
+          docker build -t cantracediag-pwa-smoke .
+          docker run --detach --rm --name cantracediag-pwa-smoke -p 18080:8080 cantracediag-pwa-smoke
+          trap 'docker stop cantracediag-pwa-smoke' EXIT
+          for _ in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:18080/ >/dev/null; then break; fi
+            sleep 1
+          done
+          test "$(curl --fail --silent --head http://127.0.0.1:18080/browser/product-app.mjs | tr -d '\r' | awk -F': ' 'tolower($1) == "content-type" { print tolower($2) }')" = "application/javascript"
 
   test:
     runs-on: ubuntu-latest
