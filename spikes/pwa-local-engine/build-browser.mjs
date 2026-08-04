@@ -42,6 +42,7 @@ for (const entry of fs.readdirSync(path.resolve("spikes/pwa-local-engine/assets"
   );
 }
 fs.copyFileSync(path.resolve("src/cantracediag/web/app-icon.svg"), path.join(siteDir, "assets", "app-icon.svg"));
+fs.copyFileSync(path.resolve("src/cantracediag/web/paulmondou-emblem.png"), path.join(siteDir, "assets", "paulmondou-emblem.png"));
 
 console.log(`Built browser modules in ${path.relative(process.cwd(), distDir)}`);
 console.log(`Built static site in ${path.relative(process.cwd(), siteDir)}`);
@@ -50,7 +51,9 @@ function buildProductIndex() {
   let html = fs.readFileSync(path.resolve("src/cantracediag/web/index.html"), "utf8")
     .replace('<link rel="icon" href="/static/app-icon.svg" type="image/svg+xml" />', '<link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml" />')
     .replace('<link rel="alternate icon" href="/favicon.ico" />', '<link rel="manifest" href="./manifest.webmanifest" />')
-    .replace('<link rel="stylesheet" href="/static/styles.css" />', '<link rel="stylesheet" href="./styles.css" />');
+    .replace('<link rel="stylesheet" href="/static/styles.css" />', '<link rel="stylesheet" href="./styles.css" />')
+    .replace('src="/static/paulmondou-emblem.png"', 'src="./assets/paulmondou-emblem.png"')
+    .replaceAll("__CTD_APP_VERSION__", appVersion());
   html = html.replace(
     /<script src="\/static\/js\/[^"]+"><\/script>\n?/g,
     "",
@@ -82,6 +85,8 @@ function buildVersionInputs() {
     path.resolve("src/cantracediag/web/index.html"),
     path.resolve("src/cantracediag/web/styles.css"),
     path.resolve("src/cantracediag/web/app-icon.svg"),
+    path.resolve("src/cantracediag/web/paulmondou-emblem.png"),
+    path.resolve("pyproject.toml"),
   ];
   for (const entry of fs.readdirSync(srcDir).filter((entry) => entry.endsWith(".ts")).sort()) {
     files.push(path.join(srcDir, entry));
@@ -93,6 +98,13 @@ function buildVersionInputs() {
     files.push(path.resolve("spikes/pwa-local-engine/assets", entry));
   }
   return files;
+}
+
+function appVersion() {
+  const pyproject = fs.readFileSync(path.resolve("pyproject.toml"), "utf8");
+  const match = pyproject.match(/^version = "([^"]+)"$/m);
+  if (!match) throw new Error("Unable to read project version from pyproject.toml");
+  return match[1];
 }
 
 function buildProductAppSource() {

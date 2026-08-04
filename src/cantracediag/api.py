@@ -26,7 +26,7 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 
-from cantracediag import export
+from cantracediag import __version__, export
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
 from cantracediag.models import DecodedSignalSample
@@ -38,9 +38,9 @@ from cantracediag.workspace import Workspace
 _WEB_DIR = Path(__file__).parent / "web"
 _TOKEN_HEADER = "x-ctd-token"
 
-# Rewrite same-origin references to a bundled script/stylesheet so we can append
-# the asset version below (e.g. ``src="/static/js/main.js"`` -> ``...?v=<token>``).
-_ASSET_REF = re.compile(r'((?:href|src)=")(/static/[^"?]+\.(?:js|css))(")')
+# Rewrite same-origin references to bundled assets so we can append the asset
+# version below (e.g. ``src="/static/js/main.js"`` -> ``...?v=<token>``).
+_ASSET_REF = re.compile(r'((?:href|src)=")(/static/[^"?]+\.(?:js|css|png|svg))(")')
 
 
 def _asset_version() -> str:
@@ -56,7 +56,7 @@ def _asset_version() -> str:
     """
     digest = hashlib.sha1()
     for path in sorted(_WEB_DIR.rglob("*")):
-        if path.suffix in {".js", ".css", ".html"} and path.is_file():
+        if path.suffix in {".js", ".css", ".html", ".png", ".svg"} and path.is_file():
             stat = path.stat()
             digest.update(path.name.encode("utf-8"))
             digest.update(str(stat.st_mtime_ns).encode("utf-8"))
@@ -231,7 +231,7 @@ def create_app(
     workspace: Workspace | None = None,
     security: SecurityConfig | None = None,
 ) -> FastAPI:
-    app = FastAPI(title="CanTraceDiag", version="1.0.4")
+    app = FastAPI(title="CanTraceDiag", version=__version__)
     session = Session()
     session.workspace = workspace or Workspace.from_env()
     cfg = security or SecurityConfig.from_env()
@@ -975,6 +975,7 @@ def create_app(
         # only exposed to a legitimately served UI. In LAN mode the middleware
         # already required the token to reach this route.
         html = (_WEB_DIR / "index.html").read_text(encoding="utf-8")
+        html = html.replace("__CTD_APP_VERSION__", __version__)
         meta = f'<meta name="ctd-token" content="{cfg.token}" />'
         html = html.replace("</head>", f"{meta}\n</head>", 1)
         # Cache-bust bundled scripts/styles so a fresh shell can never load a

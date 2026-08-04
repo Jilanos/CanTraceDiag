@@ -93,6 +93,18 @@
   .summary { color: var(--muted); font: 11px var(--mono); font-variant-numeric: tabular-nums; text-align: right; }
   .summary b { color: var(--fg); font-weight: 500; }
   .warn { color: var(--warn); } .err { color: var(--err); } .ok { color: var(--ok); }
+  .app-version {
+    color: var(--muted); font: 600 10px var(--mono); letter-spacing: .08em;
+    border: 1px solid var(--line); border-radius: 2px; padding: 3px 7px;
+    background: var(--bg-deep); white-space: nowrap;
+  }
+  .parent-link {
+    width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 auto;
+    border: 1px solid var(--line); border-radius: 3px; background: var(--panel2);
+  }
+  .parent-link:hover { border-color: var(--accent-dim); background: #17212c; }
+  .parent-link:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .parent-link img { width: 22px; height: 22px; display: block; object-fit: contain; }
 
   /* status LED */
   .led { display: inline-flex; align-items: center; gap: 6px; font: 600 10px var(--mono); letter-spacing: .1em; color: var(--muted); flex: 0 0 auto; }
@@ -264,7 +276,7 @@
   @media (max-width: 700px) {
     body { height: auto; min-height: 100vh; overflow: auto; }
     header { align-items: flex-start; }
-    .hstatus { margin-left: 0; text-align: left; flex-basis: 100%; justify-content: flex-start; }
+    .hstatus { margin-left: 0; text-align: left; flex-basis: 100%; justify-content: flex-start; flex-wrap: wrap; }
     main { flex-direction: column; overflow: visible; min-height: auto; }
     #explorer, #inspector, .panel.collapsed { width: 100% !important; max-height: 220px; border: 0; border-bottom: 1px solid var(--line); }
     .panel.collapsed .phead { writing-mode: horizontal-tb; height: auto; }

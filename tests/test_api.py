@@ -7,6 +7,7 @@ import pytest
 from starlette.testclient import TestClient
 
 import cantracediag.api as api_module
+from cantracediag import __version__
 from cantracediag.decode import Decoder
 from cantracediag.pipeline import import_trace
 
@@ -158,10 +159,14 @@ def test_index_page_served(client: TestClient) -> None:
     r = client.get("/")
     assert r.status_code == 200
     assert "CanTraceDiag" in r.text
+    assert f"v{__version__}" in r.text
+    assert 'href="https://paulmondou.fr/"' in r.text
+    assert 'aria-label="Back to paulmondou.fr"' in r.text
+    assert "/static/paulmondou-emblem.png?v=" in r.text
 
 
 def test_index_versions_bundled_assets_and_forbids_shell_cache(client: TestClient) -> None:
-    """The shell must cache-bust every bundled script/style and never be stored.
+    """The shell must cache-bust every bundled UI asset and never be stored.
 
     Regression guard for the stale-asset mismatch: a fresh index.html loading a
     cached (stale) main.js threw during bootstrap and killed panel resize,
@@ -177,15 +182,19 @@ def test_index_versions_bundled_assets_and_forbids_shell_cache(client: TestClien
     # the asset version), so the browser always re-fetches matching assets.
     assert "no-store" in r.headers.get("cache-control", "").lower()
 
-    # Every same-origin JS/CSS reference carries a ?v=<token> version.
-    refs = _re.findall(r'(?:href|src)="(/static/[^"]+\.(?:js|css))(\?v=[0-9a-f]+)?"', r.text)
+    # Every same-origin bundled UI asset reference carries a ?v=<token> version.
+    refs = _re.findall(
+        r'(?:href|src)="(/static/[^"]+\.(?:js|css|png|svg))(\?v=[0-9a-f]+)?"',
+        r.text,
+    )
     assert refs, "expected bundled asset references in the shell"
     assert refs == [(path, ver) for path, ver in refs if ver], (
-        "every bundled JS/CSS reference must be versioned; unversioned: "
+        "every bundled UI asset reference must be versioned; unversioned: "
         f"{[p for p, v in refs if not v]}"
     )
     # main.js specifically (the file whose stale copy caused the regression).
     assert any(path.endswith("/js/main.js") and ver for path, ver in refs)
+    assert any(path.endswith("/paulmondou-emblem.png") and ver for path, ver in refs)
 
 
 def test_asset_version_rotates_when_a_bundled_file_changes(tmp_path, monkeypatch) -> None:
@@ -193,6 +202,7 @@ def test_asset_version_rotates_when_a_bundled_file_changes(tmp_path, monkeypatch
     web = tmp_path / "web"
     (web / "js").mkdir(parents=True)
     (web / "styles.css").write_text("a{}", encoding="utf-8")
+    (web / "app-icon.svg").write_text("<svg></svg>", encoding="utf-8")
     (web / "js" / "main.js").write_text("console.log(1);", encoding="utf-8")
     (web / "index.html").write_text("<html></html>", encoding="utf-8")
     monkeypatch.setattr(api_module, "_WEB_DIR", web)

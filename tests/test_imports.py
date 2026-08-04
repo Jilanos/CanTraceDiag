@@ -1,9 +1,13 @@
+import tomllib
+from pathlib import Path
+
 from cantracediag import __version__
 from cantracediag.models import DecodedSignalSample, RawCanFrame
 
 
 def test_package_imports() -> None:
-    assert __version__ == "0.1.0"
+    pyproject = tomllib.loads((Path(__file__).parents[1] / "pyproject.toml").read_text())
+    assert __version__ == pyproject["project"]["version"]
 
 
 def test_models_are_instantiable() -> None:
