@@ -24,3 +24,13 @@ During task execution, treat meaningful waves as ADR 009 checkpoints: update aff
 When grooming or creating backlog items, set a deliberate `# Priority` tier (`High`, `Medium`, or `Low`) with a one-line rationale instead of leaving the default unreviewed.
 Sequence delivery plans and roadmaps by status priority order before lower-priority work when dependencies allow.
 When delivery consumes a linked product brief, `flow closeout` should settle it; otherwise set the brief to `Settled` or `Superseded` through the CLI instead of leaving it `Proposed`.
+
+## Delivery and release reflex
+
+For every functional change intended for release, the delivery sequence is mandatory unless the
+operator explicitly narrows it: validate locally, create the implementation commit, prepare the
+appropriate next SemVer version in every canonical version surface, create the version-preparation
+commit, push, wait for CI to pass on that exact version-preparation commit, then create and push an
+annotated `vX.Y.Z` tag and verify the tag-triggered release workflow. Never tag before the required
+CI succeeds, force-push a release commit, or retag an existing release. Record the commit SHA, CI
+run, tag, and release outcome in the Logics task closeout.
