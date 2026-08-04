@@ -1,7 +1,7 @@
 ## req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre - Ajouter le lien parent et la version dans la top barre
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: Medium

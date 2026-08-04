@@ -1,10 +1,10 @@
 ## item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre - Ajouter le lien parent et la version dans la top barre
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 80%
+> Progress: 100%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -62,8 +62,8 @@ qualification et la verification apres deploiement.
 # Links
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
-- Request: `logics/request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md`
-- Primary task(s): (none yet)
+- Request: `req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre`
+- Primary task(s): `task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre`
 
 # AI Context
 - Summary: Ajouter le lien parent et la version dans la top barre
@@ -80,6 +80,7 @@ qualification et la verification apres deploiement.
 - Hybrid rationale: Derived from request `req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre` and kept bounded to one coherent delivery slice.
 - Source file: `logics/request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md`.
 - Generated locally by logics-manager.
+- Task `task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre` was finished via `logics-manager flow finish task` on 2026-08-04.
 
 # Tasks
 - `task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre`
