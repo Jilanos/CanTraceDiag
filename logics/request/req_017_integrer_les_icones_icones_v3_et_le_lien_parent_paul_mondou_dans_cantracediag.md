@@ -1,7 +1,7 @@
 ## req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag - Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: Medium

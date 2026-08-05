@@ -1,10 +1,10 @@
 ## item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3 - Remplacer favicon et embleme CanTraceDiag par Icones V3
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 10%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Branding
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -50,3 +50,9 @@
 # Priority
 - Priority: High - les assets d'identite sont visibles dans la PWA et le navigateur
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_036_orchestrer_l_integration_icones_v3_dans_cantracediag`
+
+# Notes
+- Task `task_036_orchestrer_l_integration_icones_v3_dans_cantracediag` was finished via `logics-manager flow finish task` on 2026-08-05.
