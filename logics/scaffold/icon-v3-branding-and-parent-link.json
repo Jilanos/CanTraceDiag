@@ -1,0 +1,112 @@
+{
+  "title": "Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag",
+  "references": [
+    "Corpus externe Icones V3/cantracediag/",
+    "Corpus externe Icones V3/paulmondou/",
+    "logics/request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md",
+    "logics/backlog/item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md"
+  ],
+  "request": {
+    "complexity": "Medium",
+    "theme": "Branding",
+    "needs": [
+      "Utiliser les assets CanTraceDiag du corpus Icones V3 pour l'icone d'onglet et l'embleme.",
+      "Utiliser les assets Paul Mondou du corpus Icones V3 pour le lien parent."
+    ],
+    "context": [
+      "Le dossier source est le corpus local Icones V3 fourni par l'operateur; les chemins references ici sont internes a ce corpus pour respecter les regles Logics.",
+      "Assets attendus: cantracediag/cantracediag-icon-light.svg, cantracediag/cantracediag-icon-dark.svg, cantracediag/cantracediag-emblem-light.svg, cantracediag/cantracediag-emblem-dark.svg, puis les assets paulmondou pour le lien parent.",
+      "CanTraceDiag a deja une demande autour du lien parent et de la version dans la top bar; ce corpus precise le remplacement Icones V3."
+    ],
+    "acceptance_criteria": [
+      "AC1: L'icone d'onglet CanTraceDiag utilise l'asset CanTraceDiag Icones V3.",
+      "AC2: L'embleme CanTraceDiag visible dans l'interface utilise l'asset CanTraceDiag Icones V3.",
+      "AC3: Le lien vers Paul Mondou utilise l'identite Paul Mondou Icones V3 et conserve sa destination parent.",
+      "AC4: Les assets necessaires sont integres au repo CanTraceDiag et ne dependent pas du dossier local au runtime."
+    ]
+  },
+  "product": {
+    "title": "Identite CanTraceDiag alignee sur Icones V3",
+    "overview": "CanTraceDiag remplace son favicon, son embleme et son lien parent par les assets Icones V3.",
+    "goals": [
+      "Aligner la top bar et les metadata d'onglet sur Icones V3.",
+      "Preserver le fonctionnement PWA local-first et les validations existantes.",
+      "Rendre le lien parent Paul Mondou coherent avec les autres sites enfants."
+    ],
+    "non_goals": [
+      "Modifier le moteur ASC/DBC ou les workflows diagnostic.",
+      "Changer la strategie PWA, service worker ou packaging hors references d'assets."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Remplacer favicon et embleme CanTraceDiag par Icones V3",
+      "priority": "High - les assets d'identite sont visibles dans la PWA et le navigateur",
+      "complexity": "Medium",
+      "theme": "Branding",
+      "request_acs": [
+        "AC1",
+        "AC2",
+        "AC4"
+      ],
+      "problem": [
+        "La PWA doit afficher les nouveaux assets CanTraceDiag sans reference runtime au dossier local Icones V3."
+      ],
+      "scope_in": [
+        "Identifier favicon, manifest PWA, metadata et embleme dans la top bar.",
+        "Copier les SVG CanTraceDiag Icones V3 dans les assets du repo.",
+        "Mettre a jour les references light/dark et verifier le cache PWA si applicable."
+      ],
+      "scope_out": [
+        "Changer le moteur de diagnostic ou les formats d'import.",
+        "Modifier la logique service worker hors invalidation des assets remplaces si necessaire."
+      ],
+      "acceptance_criteria": [
+        "AC1: Le favicon et le manifest PWA resolvent l'icone CanTraceDiag Icones V3.",
+        "AC2: L'embleme de top bar utilise l'asset CanTraceDiag Icones V3.",
+        "AC3: La validation PWA ou build confirme la presence des assets references."
+      ]
+    },
+    {
+      "title": "Mettre le lien parent Paul Mondou aux couleurs Icones V3",
+      "priority": "High - le lien parent fait partie de la navigation produit attendue",
+      "complexity": "Low",
+      "theme": "Navigation",
+      "request_acs": [
+        "AC3",
+        "AC4"
+      ],
+      "problem": [
+        "Le lien parent doit etre coherent avec le systeme Icones V3 et rester compatible avec la top bar existante."
+      ],
+      "scope_in": [
+        "Localiser ou finaliser le lien parent dans la top bar.",
+        "Copier l'asset Paul Mondou Icones V3 dans le repo.",
+        "Preserver la cible, le libelle accessible, les etats clavier et le rendu responsive."
+      ],
+      "scope_out": [
+        "Ajouter des liens vers d'autres sites enfants depuis CanTraceDiag.",
+        "Changer la presentation de version au-dela des besoins de cohabitation dans la top bar."
+      ],
+      "acceptance_criteria": [
+        "AC1: Le lien Paul Mondou utilise un visuel Paul Mondou Icones V3.",
+        "AC2: Le lien conserve sa destination parent et son accessibilite.",
+        "AC3: Le lien ne perturbe pas la top bar sur mobile, desktop et mode installe PWA."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Orchestrer l'integration Icones V3 dans CanTraceDiag",
+    "plan": [
+      "Inventorier favicon, manifest PWA, embleme top bar et lien parent existants.",
+      "Copier les assets CanTraceDiag et Paul Mondou Icones V3 dans le repo.",
+      "Mettre a jour les references, verifier cache PWA, accessibilite et responsive.",
+      "Executer la validation locale PWA/build et preparer la preuve de livraison release."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/icon-v3-branding-and-parent-link.json",
+    "mode": "summary-only",
+    "profile": "normal"
+  }
+}

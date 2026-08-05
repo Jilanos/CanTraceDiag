@@ -13,6 +13,7 @@
 | [prod_002_product_brief_cantracediag_mvp](product/prod_002_product_brief_cantracediag_mvp.md) | Product brief CanTraceDiag MVP | Proposed |  |  | product/prod_002_product_brief_cantracediag_mvp.md |
 | [prod_003_gate_d_hebergement_pwa_full_frontend_post_audit](product/prod_003_gate_d_hebergement_pwa_full_frontend_post_audit.md) | Gate d hebergement PWA full frontend post audit | Proposed |  |  | product/prod_003_gate_d_hebergement_pwa_full_frontend_post_audit.md |
 | [prod_004_fiabilisation_du_produit_cantracediag](product/prod_004_fiabilisation_du_produit_cantracediag.md) | Fiabilisation du produit CanTraceDiag | Proposed |  |  | product/prod_004_fiabilisation_du_produit_cantracediag.md |
+| [prod_005_identite_cantracediag_alignee_sur_icones_v3](product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md) | Identite CanTraceDiag alignee sur Icones V3 | Proposed |  |  | product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md |
 
 ## Roadmaps
 
@@ -43,6 +44,7 @@
 | [req_014_repondre_a_l_audit_code_du_23_juillet_2026](request/req_014_repondre_a_l_audit_code_du_23_juillet_2026.md) | Repondre a l audit code du 23 juillet 2026 | Done |  |  | request/req_014_repondre_a_l_audit_code_du_23_juillet_2026.md |
 | [req_015_remedier_aux_constats_de_l_audit_technique_2026_07_25](request/req_015_remedier_aux_constats_de_l_audit_technique_2026_07_25.md) | Remedier aux constats de l'audit technique 2026-07-25 | Draft |  |  | request/req_015_remedier_aux_constats_de_l_audit_technique_2026_07_25.md |
 | [req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre](request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md) | Ajouter le lien parent et la version dans la top barre | Done |  |  | request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md |
+| [req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag](request/req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag.md) | Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag | Draft |  |  | request/req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag.md |
 
 ## Backlog
 
@@ -89,6 +91,8 @@
 | [item_031_rendre_l_architecture_pwa_canonique_et_testable](backlog/item_031_rendre_l_architecture_pwa_canonique_et_testable.md) | Rendre l'architecture PWA canonique et testable | Done |  | 100% | backlog/item_031_rendre_l_architecture_pwa_canonique_et_testable.md |
 | [item_032_retablir_la_gouvernance_logics_et_la_securite_de_la_release](backlog/item_032_retablir_la_gouvernance_logics_et_la_securite_de_la_release.md) | Retablir la gouvernance Logics et la securite de la release | In progress |  | 22% | backlog/item_032_retablir_la_gouvernance_logics_et_la_securite_de_la_release.md |
 | [item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre](backlog/item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md) | Ajouter le lien parent et la version dans la top barre | Done |  | 100% | backlog/item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md |
+| [item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3](backlog/item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3.md) | Remplacer favicon et embleme CanTraceDiag par Icones V3 | Ready |  | 0% | backlog/item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3.md |
+| [item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3](backlog/item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3.md) | Mettre le lien parent Paul Mondou aux couleurs Icones V3 | Ready |  | 0% | backlog/item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3.md |
 
 ## Tasks
 
@@ -137,3 +141,4 @@
 | [task_033_rendre_l_architecture_pwa_canonique_et_testable](tasks/task_033_rendre_l_architecture_pwa_canonique_et_testable.md) | Rendre l'architecture PWA canonique et testable | Done | codex | 100% | tasks/task_033_rendre_l_architecture_pwa_canonique_et_testable.md |
 | [task_034_retablir_la_gouvernance_logics_et_la_securite_de_la_release](tasks/task_034_retablir_la_gouvernance_logics_et_la_securite_de_la_release.md) | Retablir la gouvernance Logics et la securite de la release | In progress | codex | 0% | tasks/task_034_retablir_la_gouvernance_logics_et_la_securite_de_la_release.md |
 | [task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre](tasks/task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md) | Ajouter le lien parent et la version dans la top barre | Done | codex | 100% | tasks/task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md |
+| [task_036_orchestrer_l_integration_icones_v3_dans_cantracediag](tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md) | Orchestrer l'integration Icones V3 dans CanTraceDiag | Ready |  | 0% | tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md |

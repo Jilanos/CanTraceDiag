@@ -1,0 +1,292 @@
+{
+  "budgets": {
+    "max_docs": 16,
+    "max_docs_per_ref": 4
+  },
+  "changed_paths": [],
+  "command": "logics-manager sync context-pack req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3 item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3 task_036_orchestrer_l_integration_icones_v3_dans_cantracediag --mode summary-only --profile normal --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3",
+          "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3"
+        ],
+        "prod": [
+          "prod_005_identite_cantracediag_alignee_sur_icones_v3"
+        ],
+        "req": [
+          "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag"
+        ],
+        "task": [
+          "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+        ]
+      },
+      "path": "logics/product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md",
+      "ref": "prod_005_identite_cantracediag_alignee_sur_icones_v3",
+      "status": "Proposed",
+      "title": "Identite CanTraceDiag alignee sur Icones V3"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "request-chain-scaffold, integrer les icones icones v3 et le lien parent paul mondou dans cantracediag, development-ready",
+        "skip when": "The change is unrelated to this scaffolded request chain.",
+        "summary": "Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag",
+        "use when": "You need to implement or review the scaffolded workflow for Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag."
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre",
+          "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3",
+          "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3"
+        ],
+        "prod": [
+          "prod_005_identite_cantracediag_alignee_sur_icones_v3"
+        ],
+        "req": [
+          "req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre",
+          "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag"
+        ]
+      },
+      "path": "logics/request/req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag.md",
+      "ref": "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag",
+      "schema_version": "1.0",
+      "status": "Draft",
+      "title": "Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag"
+    },
+    {
+      "ai_context": {
+        "keywords": "request-draft, logics-manager, python runtime, bundled CLI",
+        "skip when": "The work already has an existing request or should go straight to a backlog slice.",
+        "summary": "Draft a bounded request for ajouter le lien parent et la version dans la top barre.",
+        "use when": "You need a new bounded request doc for the Logics workflow."
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre"
+        ],
+        "req": [
+          "req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre"
+        ]
+      },
+      "path": "logics/request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md",
+      "ref": "req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre",
+      "schema_version": "1.0",
+      "status": "Done",
+      "title": "Ajouter le lien parent et la version dans la top barre"
+    },
+    {
+      "ai_context": {
+        "keywords": "backlog-groom, request, ajouter le lien parent et la version dans la top barre, bounded slice",
+        "skip when": "Skip when the change is unrelated to this delivery slice or its linked request.",
+        "summary": "Ajouter le lien parent et la version dans la top barre",
+        "use when": "Use when implementing or reviewing the delivery slice for Ajouter le lien parent et la version dans la top barre."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre"
+        ],
+        "req": [
+          "req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre"
+        ],
+        "task": [
+          "task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre"
+        ]
+      },
+      "path": "logics/backlog/item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md",
+      "ref": "item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre",
+      "schema_version": "1.0",
+      "status": "Done",
+      "title": "Ajouter le lien parent et la version dans la top barre"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, remplacer favicon et embleme cantracediag par icones v3, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "Remplacer favicon et embleme CanTraceDiag par Icones V3",
+        "use when": "Implementing the scaffolded slice for Remplacer favicon et embleme CanTraceDiag par Icones V3."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3"
+        ],
+        "prod": [
+          "prod_005_identite_cantracediag_alignee_sur_icones_v3"
+        ],
+        "req": [
+          "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag"
+        ],
+        "task": [
+          "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+        ]
+      },
+      "path": "logics/backlog/item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3.md",
+      "ref": "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Remplacer favicon et embleme CanTraceDiag par Icones V3"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-task, request-chain-scaffold, orchestration",
+        "skip when": "Working on one isolated sibling slice.",
+        "summary": "Orchestrer l'integration Icones V3 dans CanTraceDiag",
+        "use when": "Coordinating implementation of a scaffolded request chain."
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3",
+          "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3"
+        ],
+        "prod": [
+          "prod_005_identite_cantracediag_alignee_sur_icones_v3"
+        ],
+        "req": [
+          "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag"
+        ],
+        "task": [
+          "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+        ]
+      },
+      "path": "logics/tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md",
+      "ref": "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Orchestrer l'integration Icones V3 dans CanTraceDiag"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3",
+          "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3"
+        ],
+        "prod": [
+          "prod_005_identite_cantracediag_alignee_sur_icones_v3"
+        ],
+        "req": [
+          "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag"
+        ],
+        "task": [
+          "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+        ]
+      },
+      "path": "logics/product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md",
+      "ref": "prod_005_identite_cantracediag_alignee_sur_icones_v3",
+      "schema_version": "1.0",
+      "status": "Proposed",
+      "title": "Identite CanTraceDiag alignee sur Icones V3"
+    },
+    {
+      "ai_context": {
+        "keywords": "scaffolded-backlog, mettre le lien parent paul mondou aux couleurs icones v3, implementation-ready",
+        "skip when": "The change belongs to another backlog slice.",
+        "summary": "Mettre le lien parent Paul Mondou aux couleurs Icones V3",
+        "use when": "Implementing the scaffolded slice for Mettre le lien parent Paul Mondou aux couleurs Icones V3."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3"
+        ],
+        "prod": [
+          "prod_005_identite_cantracediag_alignee_sur_icones_v3"
+        ],
+        "req": [
+          "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag"
+        ],
+        "task": [
+          "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+        ]
+      },
+      "path": "logics/backlog/item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3.md",
+      "ref": "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Mettre le lien parent Paul Mondou aux couleurs Icones V3"
+    }
+  ],
+  "estimates": {
+    "char_count": 7402,
+    "companion_doc_count": 1,
+    "doc_count": 7
+  },
+  "generated_at": "2026-08-05T14:47:49Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag",
+      "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3",
+      "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3",
+      "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "summary-only",
+  "profile": "normal",
+  "ref": "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag,item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3,item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3,task_036_orchestrer_l_integration_icones_v3_dans_cantracediag",
+  "refs": [
+    "req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag",
+    "item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3",
+    "item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3",
+    "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+  ],
+  "release": {
+    "blocking_reasons": [
+      "Missing logics/release/contract.json."
+    ],
+    "configured": false,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Run logics-manager release discover --write, then review and promote logics/release/contract.draft.json to logics/release/contract.json.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "not_configured",
+    "target_version": null
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md",
+      "ref": "task_036_orchestrer_l_integration_icones_v3_dans_cantracediag"
+    }
+  ]
+}
