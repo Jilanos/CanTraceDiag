@@ -1,10 +1,10 @@
 ## item_038_remplacer_les_assets_web_et_l_ico_cantracediag - Remplacer les assets web et l'ICO CanTraceDiag
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 60%
 > Complexity: High
 > Theme: Brand asset integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.

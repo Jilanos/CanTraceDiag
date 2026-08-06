@@ -1,10 +1,10 @@
 ## item_039_publier_la_version_1_0_8_apres_remplacement_des_assets - Publier la version 1.0.8 apres remplacement des assets
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 60%
 > Complexity: Low
 > Theme: Release delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.

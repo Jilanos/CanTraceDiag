@@ -202,7 +202,7 @@ def test_asset_version_rotates_when_a_bundled_file_changes(tmp_path, monkeypatch
     web = tmp_path / "web"
     (web / "js").mkdir(parents=True)
     (web / "styles.css").write_text("a{}", encoding="utf-8")
-    (web / "app-icon.svg").write_text("<svg></svg>", encoding="utf-8")
+    (web / "app-icon.png").write_bytes(b"\x89PNG\r\n\x1a\n")
     (web / "js" / "main.js").write_text("console.log(1);", encoding="utf-8")
     (web / "index.html").write_text("<html></html>", encoding="utf-8")
     monkeypatch.setattr(api_module, "_WEB_DIR", web)

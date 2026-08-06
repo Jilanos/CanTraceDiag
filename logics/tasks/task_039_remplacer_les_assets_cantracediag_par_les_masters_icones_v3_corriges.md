@@ -1,13 +1,14 @@
 ## task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges - Remplacer les assets CanTraceDiag par les masters Icones V3 corriges
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 60%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Owner: Claude
 
 # Context
 - Orchestrate the scaffolded request chain and keep sibling implementation slices linked.
