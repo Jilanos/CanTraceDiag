@@ -1,0 +1,121 @@
+{
+  "title": "Remplacer les assets CanTraceDiag par les masters Icones V3 corriges",
+  "references": [
+    "WORK/perso/Icones V3/"
+  ],
+  "request": {
+    "complexity": "High",
+    "theme": "Brand asset integration",
+    "needs": [
+      "Remplacer l'icone et l'embleme SVG et l'ICO par les masters PNG corriges, variantes `-dark`."
+    ],
+    "context": [
+      "Les masters approuves sont dans `WORK/perso/Icones V3`, tous en PNG RGBA 1024x1024.",
+      "Le suffixe de variante designe le contour: `-dark` porte un lisere pale et se pose sur fond sombre, `-light` porte un contour navy et se pose sur fond clair.",
+      "Le lot Icones V3 precedemment integre reposait sur de mauvaises images: ce corpus corrige la source, pas la demarche.",
+      "Certaines marques n'ont qu'un ou deux masters (Gnosis, Paul Mondou, Kapsule, F1 Datas). Consigne operateur: reutiliser ce master unique pour l'embleme comme pour l'icone.",
+      "Les quatorze masters sont a fond transparent: coins a alpha=0 et 28% a 87% de pixels transparents selon l'asset. Consigne operateur: ne rien ajouter derriere, ni en favicon ni en embleme.",
+      "L'interface est sombre (`--bg-deep: #05080c`) et sans bascule de theme: les variantes `-dark` sont celles qui conviennent.",
+      "`app-icon.svg` et `app-emblem.svg` n'ont pas d'equivalent SVG dans les masters: le passage au PNG impose de modifier `web/index.html`.",
+      "`app-icon.ico` est servi par `api.py` et doit etre regenere depuis le master icone."
+    ],
+    "acceptance_criteria": [
+      "AC1: Chaque fichier d'icone livre est octet pour octet le master correspondant de Icones V3.",
+      "AC2: Aucune reference d'asset n'est cassee apres remplacement, extensions et types MIME inclus.",
+      "AC3: Le rendu est verifie visuellement sur le theme reellement servi par l'application.",
+      "AC4: La transparence des masters est preservee: aucun fond, plaque ou cartouche n'est ajoute derriere l'asset, favicon et embleme compris.",
+      "AC5: La livraison se termine par un commit de version X.Y.Z+1, un push, puis un tag annote vX.Y.Z+1 dont le workflow release est vert."
+    ]
+  },
+  "product": {
+    "title": "Identite CanTraceDiag alignee sur Icones V3 corrige",
+    "overview": "Servir les masters approuves sur l'interface web et le favicon ICO.",
+    "goals": [
+      "Une source unique pour l'icone, l'embleme et l'ICO.",
+      "Des references coherentes avec le format reellement servi."
+    ],
+    "non_goals": [
+      "Introduire un theme clair."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Remplacer les assets web et l'ICO CanTraceDiag",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Brand asset integration",
+      "request_acs": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC4"
+      ],
+      "problem": [
+        "L'icone, l'embleme et l'ICO proviennent d'un lot errone."
+      ],
+      "scope_in": [
+        "`web/app-icon.svg` -> `app-icon.png` depuis `cantracediag/cantracediag-icon-dark.png`",
+        "`web/app-emblem.svg` -> `app-emblem.png` depuis `cantracediag/cantracediag-emblem-dark.png`",
+        "`web/app-icon.ico` regenere depuis `cantracediag/cantracediag-icon-dark.png`",
+        "`web/paulmondou-emblem.png` depuis `paulmondou/paulmondou-emblem.png`",
+        "Mise a jour des references et des types dans `web/index.html` et `api.py`"
+      ],
+      "scope_out": [
+        "Toucher a `spikes/pwa-local-engine/`: bac a sable hors production.",
+        "Modifier les captures de `docs/assets/`.",
+        "Ajouter un fond, une plaque de couleur ou un cartouche derriere un asset transparent."
+      ],
+      "acceptance_criteria": [
+        "AC1: Les trois PNG et l'ICO derivent des masters attendus.",
+        "AC2: `web/index.html` et `api.py` ne referencent plus de SVG pour ces assets.",
+        "AC3: Favicon et embleme s'affichent correctement sur le fond sombre."
+      ]
+    },
+    {
+      "title": "Publier la version 1.0.8 apres remplacement des assets",
+      "priority": "High",
+      "complexity": "Low",
+      "theme": "Release delivery",
+      "request_acs": [
+        "AC5"
+      ],
+      "problem": [
+        "Sans commit de version ni tag, les nouveaux assets restent non deployes: le tag `v1.0.8` est le seul declencheur du deploiement."
+      ],
+      "scope_in": [
+        "Incrementer `pyproject.toml` et `src/cantracediag/__init__.py` de `1.0.7` vers `1.0.8`",
+        "Commit `Prepare ... v1.0.8` puis push sur `main`",
+        "Attente du CI vert sur ce commit exact avant tout tag",
+        "Tag annote `v1.0.8` pousse, puis verification des jobs validate, publish, deploy et release"
+      ],
+      "scope_out": [
+        "Taguer avant que le CI requis ne soit vert.",
+        "Retaguer une release existante ou forcer un push sur la branche de release."
+      ],
+      "acceptance_criteria": [
+        "AC1: Toutes les surfaces canoniques declarent `1.0.8`.",
+        "AC2: Le tag annote `v1.0.8` pointe sur le commit de version pousse sur `main`.",
+        "AC3: Le workflow release est vert sur validate, publish, deploy et release.",
+        "AC4: Le SHA, le tag et l'URL du run sont consignes dans le closeout de la tache."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Remplacer les assets CanTraceDiag par les masters Icones V3 corriges",
+    "plan": [
+      "Copier les masters vers `src/cantracediag/web/` au format PNG.",
+      "Regenerer `app-icon.ico` depuis le master icone.",
+      "Mettre a jour les references dans `web/index.html` et `api.py`.",
+      "Retirer les SVG orphelins puis controler le rendu.",
+      "Preparer la version `1.0.7` -> `1.0.8` dans `pyproject.toml` et `src/cantracediag/__init__.py`.",
+      "Committer `Prepare ... v1.0.8`, pousser sur `main` et attendre le CI vert sur ce commit.",
+      "Creer et pousser le tag annote `v1.0.8`, puis verifier les quatre jobs du workflow release.",
+      "Consigner SHA, tag et URL du run dans le closeout."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/icones_v3_correction.md",
+    "mode": "diff-first",
+    "profile": "normal"
+  }
+}
