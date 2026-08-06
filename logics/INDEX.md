@@ -14,6 +14,7 @@
 | [prod_003_gate_d_hebergement_pwa_full_frontend_post_audit](product/prod_003_gate_d_hebergement_pwa_full_frontend_post_audit.md) | Gate d hebergement PWA full frontend post audit | Proposed |  |  | product/prod_003_gate_d_hebergement_pwa_full_frontend_post_audit.md |
 | [prod_004_fiabilisation_du_produit_cantracediag](product/prod_004_fiabilisation_du_produit_cantracediag.md) | Fiabilisation du produit CanTraceDiag | Proposed |  |  | product/prod_004_fiabilisation_du_produit_cantracediag.md |
 | [prod_005_identite_cantracediag_alignee_sur_icones_v3](product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md) | Identite CanTraceDiag alignee sur Icones V3 | Settled |  |  | product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md |
+| [prod_006_publier_les_derniers_assets_icones_v3_cantracediag](product/prod_006_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Proposed |  |  | product/prod_006_publier_les_derniers_assets_icones_v3_cantracediag.md |
 
 ## Roadmaps
 
@@ -45,6 +46,8 @@
 | [req_015_remedier_aux_constats_de_l_audit_technique_2026_07_25](request/req_015_remedier_aux_constats_de_l_audit_technique_2026_07_25.md) | Remedier aux constats de l'audit technique 2026-07-25 | Draft |  |  | request/req_015_remedier_aux_constats_de_l_audit_technique_2026_07_25.md |
 | [req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre](request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md) | Ajouter le lien parent et la version dans la top barre | Done |  |  | request/req_016_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md |
 | [req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag](request/req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag.md) | Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag | Done |  |  | request/req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag.md |
+| [req_018_publier_les_derniers_assets_icones_v3_cantracediag](request/req_018_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Done |  |  | request/req_018_publier_les_derniers_assets_icones_v3_cantracediag.md |
+| [req_019_publier_la_release_patch_v1_0_7_de_cantracediag](request/req_019_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done |  |  | request/req_019_publier_la_release_patch_v1_0_7_de_cantracediag.md |
 
 ## Backlog
 
@@ -93,6 +96,8 @@
 | [item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre](backlog/item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md) | Ajouter le lien parent et la version dans la top barre | Done |  | 100% | backlog/item_033_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md |
 | [item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3](backlog/item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3.md) | Remplacer favicon et embleme CanTraceDiag par Icones V3 | Done |  | 100% | backlog/item_034_remplacer_favicon_et_embleme_cantracediag_par_icones_v3.md |
 | [item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3](backlog/item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3.md) | Mettre le lien parent Paul Mondou aux couleurs Icones V3 | Done |  | 100% | backlog/item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3.md |
+| [item_036_publier_les_derniers_assets_icones_v3_cantracediag](backlog/item_036_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Done |  | 100% | backlog/item_036_publier_les_derniers_assets_icones_v3_cantracediag.md |
+| [item_037_publier_la_release_patch_v1_0_7_de_cantracediag](backlog/item_037_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done |  | 100% | backlog/item_037_publier_la_release_patch_v1_0_7_de_cantracediag.md |
 
 ## Tasks
 
@@ -142,3 +147,5 @@
 | [task_034_retablir_la_gouvernance_logics_et_la_securite_de_la_release](tasks/task_034_retablir_la_gouvernance_logics_et_la_securite_de_la_release.md) | Retablir la gouvernance Logics et la securite de la release | In progress | codex | 0% | tasks/task_034_retablir_la_gouvernance_logics_et_la_securite_de_la_release.md |
 | [task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre](tasks/task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md) | Ajouter le lien parent et la version dans la top barre | Done | codex | 100% | tasks/task_035_ajouter_le_lien_parent_et_la_version_dans_la_top_barre.md |
 | [task_036_orchestrer_l_integration_icones_v3_dans_cantracediag](tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md) | Orchestrer l'integration Icones V3 dans CanTraceDiag | Done | Codex | 100% | tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md |
+| [task_037_publier_les_derniers_assets_icones_v3_cantracediag](tasks/task_037_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Done | codex | 100% | tasks/task_037_publier_les_derniers_assets_icones_v3_cantracediag.md |
+| [task_038_publier_la_release_patch_v1_0_7_de_cantracediag](tasks/task_038_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done | Claude | 100% | tasks/task_038_publier_la_release_patch_v1_0_7_de_cantracediag.md |
