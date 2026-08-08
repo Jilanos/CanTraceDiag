@@ -2,9 +2,9 @@
 > From version: 1.0.0
 > Schema version: 1.0
 > Status: In progress
-> Understanding: 90%
-> Confidence: 85%
-> Progress: 60%
+> Understanding: 95%
+> Confidence: 92%
+> Progress: 90%
 > Complexity: High
 > Theme: Brand asset integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -14,19 +14,18 @@
 
 # Scope
 - In:
-  - `web/app-icon.svg` -> `app-icon.png` depuis `cantracediag/cantracediag-icon-dark.png`
-  - `web/app-emblem.svg` -> `app-emblem.png` depuis `cantracediag/cantracediag-emblem-dark.png`
-  - `web/app-icon.ico` regenere depuis `cantracediag/cantracediag-icon-dark.png`
-  - `web/paulmondou-emblem.png` depuis `paulmondou/paulmondou-emblem.png`
-  - Mise a jour des references et des types dans `web/index.html` et `api.py`
+  - `web/app-icon.svg` et `web/app-emblem.svg` depuis `a black/SVG upgraded/cantracediag-emblem-dark.svg`
+  - `web/paulmondou-emblem.svg` depuis `a black/SVG upgraded/paulmondou-emblem.svg`
+  - `web/app-icon.ico` regenere depuis le master SVG (16/32/48/64/128/256)
+  - Retrait des PNG d'identite orphelins de `src/cantracediag/web/`
+  - Mise a jour des references et des types dans `web/index.html`, `pyproject.toml` et la chaine PWA (`build-browser.mjs`, `manifest.webmanifest`, `sw.js`)
 - Out:
-  - Toucher a `spikes/pwa-local-engine/`: bac a sable hors production.
   - Modifier les captures de `docs/assets/`.
   - Ajouter un fond, une plaque de couleur ou un cartouche derriere un asset transparent.
 
 # Acceptance criteria
-- AC1: Les trois PNG et l'ICO derivent des masters attendus.
-- AC2: `web/index.html` et `api.py` ne referencent plus de SVG pour ces assets.
+- AC1: Les trois SVG servis sont les masters `SVG upgraded`, octet pour octet; l'ICO et les icones PWA 192/512 en derivent.
+- AC2: `web/index.html`, le manifest et le service worker referencent ces assets avec le bon type MIME, sans reference cassee.
 - AC3: Favicon et embleme s'affichent correctement sur le fond sombre.
 
 # AC Traceability

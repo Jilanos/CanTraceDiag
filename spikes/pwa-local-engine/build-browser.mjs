@@ -41,20 +41,20 @@ for (const entry of fs.readdirSync(path.resolve("spikes/pwa-local-engine/assets"
     path.join(siteDir, "assets", entry),
   );
 }
-fs.copyFileSync(path.resolve("src/cantracediag/web/app-icon.png"), path.join(siteDir, "assets", "app-icon.png"));
-fs.copyFileSync(path.resolve("src/cantracediag/web/app-emblem.png"), path.join(siteDir, "assets", "app-emblem.png"));
-fs.copyFileSync(path.resolve("src/cantracediag/web/paulmondou-emblem.png"), path.join(siteDir, "assets", "paulmondou-emblem.png"));
+fs.copyFileSync(path.resolve("src/cantracediag/web/app-icon.svg"), path.join(siteDir, "assets", "app-icon.svg"));
+fs.copyFileSync(path.resolve("src/cantracediag/web/app-emblem.svg"), path.join(siteDir, "assets", "app-emblem.svg"));
+fs.copyFileSync(path.resolve("src/cantracediag/web/paulmondou-emblem.svg"), path.join(siteDir, "assets", "paulmondou-emblem.svg"));
 
 console.log(`Built browser modules in ${path.relative(process.cwd(), distDir)}`);
 console.log(`Built static site in ${path.relative(process.cwd(), siteDir)}`);
 
 function buildProductIndex() {
   let html = fs.readFileSync(path.resolve("src/cantracediag/web/index.html"), "utf8")
-    .replace('<link rel="icon" href="/static/app-icon.png" type="image/png" />', '<link rel="icon" href="./assets/app-icon.png" type="image/png" />')
+    .replace('<link rel="icon" href="/static/app-icon.svg" type="image/svg+xml" />', '<link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml" />')
     .replace('<link rel="alternate icon" href="/favicon.ico" />', '<link rel="manifest" href="./manifest.webmanifest" />')
     .replace('<link rel="stylesheet" href="/static/styles.css" />', '<link rel="stylesheet" href="./styles.css" />')
-    .replace('src="/static/app-emblem.png"', 'src="./assets/app-emblem.png"')
-    .replace('src="/static/paulmondou-emblem.png"', 'src="./assets/paulmondou-emblem.png"')
+    .replace('src="/static/app-emblem.svg"', 'src="./assets/app-emblem.svg"')
+    .replace('src="/static/paulmondou-emblem.svg"', 'src="./assets/paulmondou-emblem.svg"')
     .replaceAll("__CTD_APP_VERSION__", appVersion());
   html = html.replace(
     /<script src="\/static\/js\/[^"]+"><\/script>\n?/g,
@@ -86,9 +86,9 @@ function buildVersionInputs() {
     path.resolve("spikes/pwa-local-engine/sw.js"),
     path.resolve("src/cantracediag/web/index.html"),
     path.resolve("src/cantracediag/web/styles.css"),
-    path.resolve("src/cantracediag/web/app-icon.png"),
-    path.resolve("src/cantracediag/web/app-emblem.png"),
-    path.resolve("src/cantracediag/web/paulmondou-emblem.png"),
+    path.resolve("src/cantracediag/web/app-icon.svg"),
+    path.resolve("src/cantracediag/web/app-emblem.svg"),
+    path.resolve("src/cantracediag/web/paulmondou-emblem.svg"),
     path.resolve("pyproject.toml"),
   ];
   for (const entry of fs.readdirSync(srcDir).filter((entry) => entry.endsWith(".ts")).sort()) {

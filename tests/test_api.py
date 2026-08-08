@@ -162,7 +162,7 @@ def test_index_page_served(client: TestClient) -> None:
     assert f"v{__version__}" in r.text
     assert 'href="https://paulmondou.fr/"' in r.text
     assert 'aria-label="Back to paulmondou.fr"' in r.text
-    assert "/static/paulmondou-emblem.png?v=" in r.text
+    assert "/static/paulmondou-emblem.svg?v=" in r.text
 
 
 def test_index_versions_bundled_assets_and_forbids_shell_cache(client: TestClient) -> None:
@@ -194,7 +194,7 @@ def test_index_versions_bundled_assets_and_forbids_shell_cache(client: TestClien
     )
     # main.js specifically (the file whose stale copy caused the regression).
     assert any(path.endswith("/js/main.js") and ver for path, ver in refs)
-    assert any(path.endswith("/paulmondou-emblem.png") and ver for path, ver in refs)
+    assert any(path.endswith("/paulmondou-emblem.svg") and ver for path, ver in refs)
 
 
 def test_asset_version_rotates_when_a_bundled_file_changes(tmp_path, monkeypatch) -> None:
@@ -202,7 +202,7 @@ def test_asset_version_rotates_when_a_bundled_file_changes(tmp_path, monkeypatch
     web = tmp_path / "web"
     (web / "js").mkdir(parents=True)
     (web / "styles.css").write_text("a{}", encoding="utf-8")
-    (web / "app-icon.png").write_bytes(b"\x89PNG\r\n\x1a\n")
+    (web / "app-icon.svg").write_text("<svg></svg>", encoding="utf-8")
     (web / "js" / "main.js").write_text("console.log(1);", encoding="utf-8")
     (web / "index.html").write_text("<html></html>", encoding="utf-8")
     monkeypatch.setattr(api_module, "_WEB_DIR", web)

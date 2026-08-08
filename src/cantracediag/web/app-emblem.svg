@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024" role="img" aria-label="CanTraceDiag emblem">
+  <title>CanTraceDiag</title>
+  <defs>
+    <clipPath id="ct-clip">
+      <rect x="80" y="80" width="864" height="864" rx="182"/>
+    </clipPath>
+
+    <linearGradient id="ct-plate" x1="0" y1="80" x2="0" y2="944" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#1A2740"/>
+      <stop offset=".45" stop-color="#111B2D"/>
+      <stop offset="1" stop-color="#080F1C"/>
+    </linearGradient>
+    <linearGradient id="ct-frame" x1="0" y1="80" x2="0" y2="944" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A8BCD4"/>
+      <stop offset=".5" stop-color="#7B92B0"/>
+      <stop offset="1" stop-color="#546C8E"/>
+    </linearGradient>
+    <linearGradient id="ct-bevel" x1="0" y1="94" x2="0" y2="930" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#B6C8DE" stop-opacity=".5"/>
+      <stop offset=".3" stop-color="#B6C8DE" stop-opacity="0"/>
+      <stop offset=".72" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".38"/>
+    </linearGradient>
+    <radialGradient id="ct-gloss" cx="512" cy="120" r="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".11"/>
+      <stop offset=".6" stop-color="#FFFFFF" stop-opacity=".03"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ct-vignette" cx="512" cy="1010" r="560" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity=".4"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+
+    <linearGradient id="ct-wave" x1="201" y1="0" x2="821" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8D362"/>
+      <stop offset=".22" stop-color="#F4C141"/>
+      <stop offset=".45" stop-color="#F2A63D"/>
+      <stop offset=".62" stop-color="#F0A03E"/>
+      <stop offset="1" stop-color="#35C6EF"/>
+    </linearGradient>
+    <linearGradient id="ct-casing" x1="180" y1="250" x2="700" y2="720" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset=".55" stop-color="#DCE7F2"/>
+      <stop offset="1" stop-color="#A9BACE"/>
+    </linearGradient>
+    <linearGradient id="ct-sheen" x1="0" y1="250" x2="0" y2="700" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity=".3"/>
+      <stop offset=".5" stop-color="#FFFFFF" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#000000" stop-opacity=".12"/>
+    </linearGradient>
+
+    <radialGradient id="ct-dot1" cx=".32" cy=".26" r=".9">
+      <stop offset="0" stop-color="#FFF3B8"/>
+      <stop offset=".55" stop-color="#FBD164"/>
+      <stop offset="1" stop-color="#E9A62A"/>
+    </radialGradient>
+    <radialGradient id="ct-dot2" cx=".32" cy=".26" r=".9">
+      <stop offset="0" stop-color="#FFC489"/>
+      <stop offset=".55" stop-color="#F79242"/>
+      <stop offset="1" stop-color="#DE6A14"/>
+    </radialGradient>
+    <radialGradient id="ct-dot3" cx=".32" cy=".26" r=".9">
+      <stop offset="0" stop-color="#A9EEFF"/>
+      <stop offset=".55" stop-color="#43C6EE"/>
+      <stop offset="1" stop-color="#1497CD"/>
+    </radialGradient>
+    <linearGradient id="ct-bar" x1="0" y1="744" x2="0" y2="772" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6D7C91"/>
+      <stop offset="1" stop-color="#404C5C"/>
+    </linearGradient>
+
+    <path id="ct-path" fill="none" d="M201 526H326L381 294L493 670L563 411L604 526H821"/>
+  </defs>
+
+  <!-- badge -->
+  <rect x="75.5" y="75.5" width="873" height="873" rx="186" fill="url(#ct-plate)" stroke="url(#ct-frame)" stroke-width="9"/>
+  <g clip-path="url(#ct-clip)">
+    <rect x="80" y="80" width="864" height="864" fill="url(#ct-vignette)"/>
+    <rect x="80" y="80" width="864" height="864" fill="url(#ct-gloss)"/>
+  </g>
+  <rect x="94" y="94" width="836" height="836" rx="172" fill="none" stroke="url(#ct-bevel)" stroke-width="4"/>
+  <rect x="105" y="105" width="814" height="814" rx="158" fill="none" stroke="#2B3E58" stroke-width="3"/>
+
+  <!-- ECG trace, lifted off the plate -->
+  <g clip-path="url(#ct-clip)">
+    <use href="#ct-path" transform="translate(0 12)" stroke="#000000" stroke-opacity=".45" stroke-width="86" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <use href="#ct-path" stroke="url(#ct-casing)" stroke-width="80" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#ct-path" stroke="url(#ct-wave)" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+  <use href="#ct-path" stroke="url(#ct-sheen)" stroke-width="56" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- node markers -->
+  <g>
+    <circle cx="381" cy="294" r="31" fill="url(#ct-dot1)"/>
+    <ellipse cx="371" cy="282" rx="12" ry="8" transform="rotate(-40 371 282)" fill="#FFFFFF" opacity=".6"/>
+    <circle cx="563" cy="411" r="31" fill="url(#ct-dot2)"/>
+    <ellipse cx="553" cy="399" rx="12" ry="8" transform="rotate(-40 553 399)" fill="#FFFFFF" opacity=".55"/>
+    <circle cx="821" cy="526" r="31" fill="url(#ct-dot3)"/>
+    <ellipse cx="811" cy="514" rx="12" ry="8" transform="rotate(-40 811 514)" fill="#FFFFFF" opacity=".6"/>
+  </g>
+
+  <!-- baseline -->
+  <rect x="258" y="752" width="504" height="28" rx="14" fill="#000000" opacity=".4"/>
+  <rect x="258" y="744" width="504" height="28" rx="14" fill="url(#ct-bar)"/>
+  <rect x="266" y="748" width="488" height="7" rx="3.5" fill="#93A1B4" opacity=".55"/>
+</svg>

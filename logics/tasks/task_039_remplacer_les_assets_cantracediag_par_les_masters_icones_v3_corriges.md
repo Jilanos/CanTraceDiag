@@ -2,9 +2,9 @@
 > From version: 1.0.0
 > Schema version: 1.0
 > Status: In progress
-> Understanding: 90%
-> Confidence: 85%
-> Progress: 60%
+> Understanding: 95%
+> Confidence: 92%
+> Progress: 70%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
@@ -14,13 +14,13 @@
 - Orchestrate the scaffolded request chain and keep sibling implementation slices linked.
 
 # Plan
-- [ ] 1. Copier les masters vers `src/cantracediag/web/` au format PNG.
-- [ ] 2. Regenerer `app-icon.ico` depuis le master icone.
-- [ ] 3. Mettre a jour les references dans `web/index.html` et `api.py`.
-- [ ] 4. Retirer les SVG orphelins puis controler le rendu.
-- [ ] 5. Preparer la version `1.0.7` -> `1.0.8` dans `pyproject.toml` et `src/cantracediag/__init__.py`.
-- [ ] 6. Committer `Prepare ... v1.0.8`, pousser sur `main` et attendre le CI vert sur ce commit.
-- [ ] 7. Creer et pousser le tag annote `v1.0.8`, puis verifier les quatre jobs du workflow release.
+- [x] 1. Copier les masters `Icones V3/a black/SVG upgraded` vers `src/cantracediag/web/` au format SVG (app-icon, app-emblem, paulmondou-emblem).
+- [x] 2. Regenerer `app-icon.ico` (16/32/48/64/128/256) depuis le master SVG.
+- [x] 3. Mettre a jour les references dans `web/index.html`, le build PWA, `sw.js`, le manifest et `pyproject.toml`.
+- [x] 4. Retirer les PNG orphelins puis controler le rendu.
+- [x] 5. Preparer la version `1.0.8` -> `1.0.9` dans `pyproject.toml` et `src/cantracediag/__init__.py`.
+- [ ] 6. Committer, pousser sur `main` et attendre le CI vert sur ce commit.
+- [ ] 7. Creer et pousser le tag annote `v1.0.9`, puis verifier les quatre jobs du workflow release.
 - [ ] 8. Consigner SHA, tag et URL du run dans le closeout.
 - [ ] ADR 009 checkpoint: update affected Logics docs during each meaningful wave and leave the repo commit-ready.
 - [ ] Keep commit creation under operator control; do not force one commit per micro-step.
@@ -41,10 +41,17 @@
 - request-AC5 -> `item_039_publier_la_version_1_0_8_apres_remplacement_des_assets`. Proof deferred to slice closeout.
 
 # Validation
-- (no validation recorded yet)
+- `pytest` : 134 passed, 21 skipped.
+- `ruff check .` : All checks passed.
+- `node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts` : 20 passed.
+- `node spikes/pwa-local-engine/build-browser.mjs` : site rebati, `site/assets/` ne contient plus de PNG d'identite orphelin.
 
 # Report
-- Not started.
+- Les livraisons v1.0.8 utilisaient les mauvais masters (PNG du dossier `Icones V3/cantracediag`).
+  Les masters corrects sont les SVG de `Icones V3/a black/SVG upgraded`.
+- `app-icon.svg`, `app-emblem.svg` et `paulmondou-emblem.svg` remplacent les PNG dans `src/cantracediag/web/`.
+- `app-icon.ico` et les icones PWA 192/512 sont rasterises depuis le nouveau master SVG.
+- Le manifest reprend l'entree SVG `sizes: any` et garde les deux PNG maskables exiges par le smoke test.
 
 # AI Context
 - Summary: Remplacer les assets CanTraceDiag par les masters Icones V3 corriges

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cantracediag"
-version = "1.0.8"
+version = "1.0.9"
 description = "Local CANalyzer trace diagnostics with DBC decoding."
 readme = "README.md"
 requires-python = ">=3.11"
@@ -37,7 +37,7 @@ dev = [
 where = ["src"]
 
 [tool.setuptools.package-data]
-cantracediag = ["web/*.html", "web/*.js", "web/js/*.js", "web/*.css", "web/*.ico", "web/*.png"]
+cantracediag = ["web/*.html", "web/*.js", "web/js/*.js", "web/*.css", "web/*.svg", "web/*.ico", "web/*.png"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

@@ -2,34 +2,34 @@
 > From version: 1.0.0
 > Schema version: 1.0
 > Status: In progress
-> Understanding: 90%
-> Confidence: 85%
-> Progress: 60%
+> Understanding: 95%
+> Confidence: 90%
+> Progress: 40%
 > Complexity: Low
 > Theme: Release delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
 
 # Problem
-- Sans commit de version ni tag, les nouveaux assets restent non deployes: le tag `v1.0.8` est le seul declencheur du deploiement.
+- Sans commit de version ni tag, les nouveaux assets restent non deployes: le tag `vX.Y.Z` est le seul declencheur du deploiement.
 
 # Scope
 - In:
-  - Incrementer `pyproject.toml` et `src/cantracediag/__init__.py` de `1.0.7` vers `1.0.8`
-  - Commit `Prepare ... v1.0.8` puis push sur `main`
+  - Incrementer `pyproject.toml` et `src/cantracediag/__init__.py` de `1.0.8` vers `1.0.9`
+  - Commit de correction et de version puis push sur `main`
   - Attente du CI vert sur ce commit exact avant tout tag
-  - Tag annote `v1.0.8` pousse, puis verification des jobs validate, publish, deploy et release
+  - Tag annote `v1.0.9` pousse, puis verification des jobs validate, publish, deploy et release
 - Out:
   - Taguer avant que le CI requis ne soit vert.
   - Retaguer une release existante ou forcer un push sur la branche de release.
 
 # Acceptance criteria
-- AC1: Toutes les surfaces canoniques declarent `1.0.8`.
-- AC2: Le tag annote `v1.0.8` pointe sur le commit de version pousse sur `main`.
+- AC1: Toutes les surfaces canoniques declarent `1.0.9`.
+- AC2: Le tag annote `v1.0.9` pointe sur le commit de version pousse sur `main`.
 - AC3: Le workflow release est vert sur validate, publish, deploy et release.
 - AC4: Le SHA, le tag et l'URL du run sont consignes dans le closeout de la tache.
 
 # AC Traceability
-- request-AC5 -> This backlog slice. Proof: AC1: Toutes les surfaces canoniques declarent `1.0.8`.
+- request-AC5 -> This backlog slice. Proof: AC1: Toutes les surfaces canoniques declarent `1.0.9`.
 
 # Decision framing
 - Product framing: Not needed
