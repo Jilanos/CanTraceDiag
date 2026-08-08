@@ -1,8 +1,8 @@
 ## prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige - Identite CanTraceDiag alignee sur Icones V3 corrige
 > Date: 2026-08-06
-> Status: Proposed
+> Status: Settled
 > Related request: `req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges`
-> Related backlog: `item_038_remplacer_les_assets_web_et_l_ico_cantracediag`, `item_039_publier_la_version_1_0_8_apres_remplacement_des_assets`
+> Related backlog: `item_038_remplacer_les_assets_web_et_l_ico_cantracediag`
 > Related task: `task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
@@ -30,5 +30,5 @@ Servir les masters approuves sur l'interface web et le favicon ICO.
 - Context-pack output can be handed to an implementation agent directly.
 
 # References
-- Product back-reference: `req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges`
+- Product back-reference: `item_038_remplacer_les_assets_web_et_l_ico_cantracediag`
 - Task back-reference: `task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges`

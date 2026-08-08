@@ -1,10 +1,10 @@
 ## item_038_remplacer_les_assets_web_et_l_ico_cantracediag - Remplacer les assets web et l'ICO CanTraceDiag
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 95%
 > Confidence: 92%
-> Progress: 90%
+> Progress: 100%
 > Complexity: High
 > Theme: Brand asset integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
@@ -33,6 +33,7 @@
 - request-AC2 -> This backlog slice. Proof: AC2: `web/index.html` et `api.py` ne referencent plus de SVG pour ces assets.
 - request-AC3 -> This backlog slice. Proof: AC3: Favicon et embleme s'affichent correctement sur le fond sombre.
 - request-AC4 -> This backlog slice. Proof: AC3: Favicon et embleme s'affichent correctement sur le fond sombre.
+- request-AC5 -> This backlog slice. Evidence needed: La livraison se termine par un commit de version X.Y.Z+1, un push, puis un tag annote vX.Y.Z+1 dont le workflow release est vert.
 
 # Decision framing
 - Product framing: Not needed
@@ -53,3 +54,9 @@
 # Priority
 - Priority: High
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges`
+
+# Notes
+- Task `task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges` was finished via `logics-manager flow finish task` on 2026-08-08.
