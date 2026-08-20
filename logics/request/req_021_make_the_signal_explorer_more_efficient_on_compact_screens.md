@@ -1,12 +1,13 @@
 ## req_021_make_the_signal_explorer_more_efficient_on_compact_screens - Make the signal explorer more efficient on compact screens
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: Medium
 > Theme: Signal explorer usability
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-08-20 11:09:10
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)

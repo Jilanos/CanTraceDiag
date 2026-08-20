@@ -1,14 +1,14 @@
 ## item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace - Add a resilient browser fullscreen control for the diagnostic workspace
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 25%
+> Progress: 100%
 > Complexity: Low
 > Theme: Compact-screen workspace
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-20 10:55:00
+> Indicators reviewed: 2026-08-20 11:09:11
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -53,3 +53,9 @@
 # Priority
 - Priority: Medium
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen`
+
+# Notes
+- Task `task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen` was finished via `logics-manager flow finish task` on 2026-08-20.
