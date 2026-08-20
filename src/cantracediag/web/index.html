@@ -112,8 +112,8 @@
         <input type="text" id="fId" placeholder="ID" class="tw" title="Arbitration id (hex)" aria-label="Filter by arbitration id (hex)" />
         <input type="text" id="fMsg" placeholder="Message" title="Decoded message / event name" aria-label="Filter by message or event name" />
         <input type="text" id="fSignal" placeholder="Signal" title="Decoded signal name" aria-label="Filter by decoded signal name" />
-        <label><input type="checkbox" id="showFrames" checked aria-label="Show data frames" /> frames</label>
-        <label><input type="checkbox" id="showEvents" checked aria-label="Show non-data events" /> events</label>
+        <label class="filter-chip"><input type="checkbox" id="showFrames" checked aria-label="Show data frames" /><span>frames</span></label>
+        <label class="filter-chip"><input type="checkbox" id="showEvents" checked aria-label="Show non-data events" /><span>events</span></label>
         <button class="ghost" id="moreFilters" aria-expanded="false" aria-controls="secondaryFilters" title="Show more filters">More filters ▾</button>
         <button class="ghost" id="clearFilters" title="Clear all filters">Reset</button>
         <button class="ghost" id="colBtn">Columns…</button>

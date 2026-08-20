@@ -209,7 +209,19 @@
   .sig .name { flex: 1; font: 11.5px var(--mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .sig .unit { font: 10px var(--mono); color: var(--muted); }
   .sig.absent { opacity: .45; }
-  .sig input { accent-color: var(--accent); }
+  /* The plot toggle is a state square, not a native checkbox: hollow when off
+     (the native white box fought the dark rows) and accent-filled when on, the
+     same "engaged" language as the filter chips. Channel identity stays with
+     the swatch, the left rule and the trace. */
+  .sig input[type=checkbox] {
+    appearance: none; -webkit-appearance: none; margin: 0; flex: 0 0 auto;
+    width: 10px; height: 10px; border: 1px solid var(--faint); border-radius: 1px;
+    background: transparent; cursor: pointer;
+    transition: background .12s, border-color .12s;
+  }
+  .sig:hover input[type=checkbox] { border-color: var(--muted); }
+  .sig input[type=checkbox]:checked { background: var(--accent); border-color: var(--accent); }
+  .sig input[type=checkbox]:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
   .sig .swatch { width: 8px; height: 8px; border-radius: 1px; flex: 0 0 auto; background: var(--faint); }
   .sig.on .swatch { box-shadow: 0 0 5px var(--sw); }
   .star { cursor: pointer; color: var(--line); font-size: 13px; }
@@ -269,7 +281,7 @@
     border-bottom: 1px solid var(--line); min-height: 36px;
   }
   .tracebar strong { font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
-  .tracebar label { color: var(--muted); display: flex; gap: 4px; align-items: center; font-size: 11px; }
+  .tracebar label:not(.filter-chip) { color: var(--muted); display: flex; gap: 4px; align-items: center; font-size: 11px; }
   .tracebar input[type=text], .tracebar input[type=number] { width: 90px; }
   .tracebar .tw { width: 68px; }
   #tableScroll { overflow: auto; flex: 1; min-width: 0; }

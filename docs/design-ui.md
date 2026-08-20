@@ -164,6 +164,8 @@ bordure `--line`, clé en micro-label coloré (A = `--ch4`, B = `--accent`,
 
 ### Table de trace
 
+- Barre de filtres : `frames` et `events` en chips `.filter-chip`, identiques aux
+  filtres de l'explorateur — aucune checkbox native blanche dans les barres.
 - En-têtes sticky : micro-labels sur fond `--panel-2`.
 - Lignes : mono 11.5 px, séparateurs `--line-soft`, hover `#0f1720`.
 - Sélection : fond translucide + **liseré gauche 2 px accent**
@@ -187,8 +189,11 @@ bordure `--line`, clé en micro-label coloré (A = `--ch4`, B = `--accent`,
   rempli `--accent` une fois actif, chip bordée `--accent-dim` sur fond `#17212c`.
   La checkbox native est neutralisée (`appearance: none`) : son blanc par défaut
   jure avec les panneaux sombres. Focus visible porté par la chip entière.
-- Ligne signal : swatch 8 px carré (gris `--faint` si non coché, couleur de
-  canal + lueur si coché), nom mono, unité mono 10 px `--muted`.
+- Ligne signal : carré d'état 10 px (creux bordé `--faint` si non coché, rempli
+  `--accent` si coché — même langage « engagé » que les chips), swatch 8 px carré
+  (gris `--faint` si non coché, couleur de canal + lueur si coché), nom mono,
+  unité mono 10 px `--muted`. L'identité de canal reste portée par le swatch, le
+  liseré et le tracé, jamais par la case.
 - Signal coché : liseré gauche 2 px de sa couleur de canal, fond `#0f1720`.
 - Signal absent de la trace (DBC seul) : opacité .45.
 - Recherche : champ fond `--bg-deep` avec icône loupe inline.
