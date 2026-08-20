@@ -1,0 +1,372 @@
+{
+  "budgets": {
+    "max_docs": 12,
+    "max_docs_per_ref": 4
+  },
+  "changed_paths": [
+    "logics/backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md",
+    "logics/product/prod_009_efficient_multi_dbc_signal_exploration.md",
+    "logics/request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md",
+    "logics/scaffold/compact_multi_dbc_signal_explorer.json",
+    "logics/tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md"
+  ],
+  "command": "logics-manager sync context-pack req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation task_041_deliver_concise_multi_dbc_explorer_navigation --mode diff-first --profile normal --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ],
+        "task": [
+          "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+        ]
+      },
+      "path": "logics/product/prod_008_compact_signal_exploration_for_cantracediag.md",
+      "ref": "prod_008_compact_signal_exploration_for_cantracediag",
+      "sections": {
+        "Goals": [
+          "- Make already plotted signals immediately discoverable.",
+          "- Keep every imported DBC discoverable without permanently consuming explorer height.",
+          "- Offer application-controlled document fullscreen with truthful browser state."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Improve selection and navigation of multi-DBC signal catalogs while recovering workspace area on small displays.",
+          "```mermaid",
+          "%% logics-kind: product",
+          "%% logics-signature: product|compact_signal_exploration_for_cantracediag|generated",
+          "flowchart TD",
+          "    Need[Compact multi DBC exploration] --> Explorer[Explorer: displayed filter and DBC groups]"
+        ],
+        "References": [
+          "- Product back-reference: `item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer`",
+          "- Task back-reference: `task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen`"
+        ]
+      },
+      "status": "Settled",
+      "title": "Compact signal exploration for CanTraceDiag"
+    },
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation"
+        ],
+        "prod": [
+          "prod_009_efficient_multi_dbc_signal_exploration"
+        ],
+        "req": [
+          "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs"
+        ],
+        "task": [
+          "task_041_deliver_concise_multi_dbc_explorer_navigation"
+        ]
+      },
+      "path": "logics/product/prod_009_efficient_multi_dbc_signal_exploration.md",
+      "ref": "prod_009_efficient_multi_dbc_signal_exploration",
+      "sections": {
+        "Goals": [
+          "- Make used and active DBCs immediately useful while preserving access to the entire imported catalog.",
+          "- Turn a global signal search into a concise, result-oriented navigation surface.",
+          "- Provide message-level structure for dense DBCs without disrupting plots or saved explorer preferences."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Refine the signal explorer so large imported DBC catalogs prioritize live diagnostic relevance and remain fast to navigate during targeted signal searches."
+        ],
+        "References": [
+          "- Product back-reference: `req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs`",
+          "- Task back-reference: `task_041_deliver_concise_multi_dbc_explorer_navigation`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Efficient multi-DBC signal exploration"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "streamline, navigation, large, multi, dbc, signal, catalogs",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag",
+          "prod_009_efficient_multi_dbc_signal_exploration"
+        ],
+        "req": [
+          "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs"
+        ]
+      },
+      "path": "logics/request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md",
+      "ref": "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: The default explorer view prioritizes the active DBC and DBCs used by the current trace, while keeping unused imported DBCs discoverable through one compact on-demand control.",
+          "- AC2: A global text query hides DBC and message groups with no matches and shows an accurate match count for each remaining DBC group.",
+          "- AC3: Within a dense DBC, signals are grouped by CAN message in independently expandable, keyboard-operable message sections without changing signal selection, favorites, or the current query.",
+          "- AC4: The explorer remains compact and usable with at least six imported DBCs, including narrow desktop and mobile-supported viewports, without horizontal overflow.",
+          "- AC5: Server UI and local PWA keep equivalent DBC ordering, visibility, search, and message-group behavior, with automated coverage for the new defaults and interactions."
+        ],
+        "Needs": [
+          "- Reduce the visual weight of a signal explorer containing many imported DBC files.",
+          "- Make the relevant DBCs and signal matches easy to find without losing access to the full catalog.",
+          "- Make dense DBC signal lists scannable through a second, message-level navigation layer."
+        ]
+      },
+      "status": "Draft",
+      "title": "Streamline navigation of large multi-DBC signal catalogs"
+    },
+    {
+      "ai_context": {
+        "keywords": "prioritize, relevant, dbcs, add, message, level, signal, navigation",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation"
+        ],
+        "prod": [
+          "prod_009_efficient_multi_dbc_signal_exploration"
+        ],
+        "req": [
+          "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs"
+        ],
+        "task": [
+          "task_041_deliver_concise_multi_dbc_explorer_navigation"
+        ]
+      },
+      "path": "logics/backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md",
+      "ref": "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: In a session with six or more imported DBCs, the default view shows the active and trace-used DBCs first and exposes the remaining DBCs via one compact discoverable control.",
+          "- AC2: A global query displays only DBC and message sections with matching signals and each visible DBC reports its current match count.",
+          "- AC3: Message headers are keyboard-operable, expose expanded state, and toggle only their own signal rows.",
+          "- AC4: Selecting, plotting, favoriting, filtering, or reopening sections does not lose user state or hide a selected signal from the shown-only filter.",
+          "- AC5: Automated server UI and local PWA coverage demonstrates six-DBC behavior, search narrowing, message expansion, and supported viewport accessibility."
+        ],
+        "Problem": [
+          "- A catalog with many imported DBCs becomes a visually repetitive stack of headers, even when most files have no signal used by the trace.",
+          "- A dense DBC forces operators to scan a long flat list after finding the relevant database."
+        ]
+      },
+      "status": "Ready",
+      "title": "Prioritize relevant DBCs and add message-level signal navigation"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ],
+        "task": [
+          "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+        ]
+      },
+      "path": "logics/product/prod_008_compact_signal_exploration_for_cantracediag.md",
+      "ref": "prod_008_compact_signal_exploration_for_cantracediag",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Settled",
+      "title": "Compact signal exploration for CanTraceDiag"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation"
+        ],
+        "prod": [
+          "prod_009_efficient_multi_dbc_signal_exploration"
+        ],
+        "req": [
+          "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs"
+        ],
+        "task": [
+          "task_041_deliver_concise_multi_dbc_explorer_navigation"
+        ]
+      },
+      "path": "logics/product/prod_009_efficient_multi_dbc_signal_exploration.md",
+      "ref": "prod_009_efficient_multi_dbc_signal_exploration",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Efficient multi-DBC signal exploration"
+    },
+    {
+      "ai_context": {
+        "keywords": "deliver, concise, multi, dbc, explorer, navigation",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation"
+        ],
+        "prod": [
+          "prod_009_efficient_multi_dbc_signal_exploration"
+        ],
+        "req": [
+          "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs"
+        ],
+        "task": [
+          "task_041_deliver_concise_multi_dbc_explorer_navigation"
+        ]
+      },
+      "path": "logics/tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md",
+      "ref": "task_041_deliver_concise_multi_dbc_explorer_navigation",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Orchestrate the scaffolded request chain and keep sibling implementation slices linked."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver concise multi-DBC explorer navigation"
+    }
+  ],
+  "estimates": {
+    "char_count": 9270,
+    "companion_doc_count": 2,
+    "doc_count": 5
+  },
+  "generated_at": "2026-08-20T13:29:47Z",
+  "handoff": {
+    "companion_doc_count": 2,
+    "enabled": true,
+    "source_refs": [
+      "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs",
+      "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation",
+      "task_041_deliver_concise_multi_dbc_explorer_navigation"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "normal",
+  "ref": "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs,item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation,task_041_deliver_concise_multi_dbc_explorer_navigation",
+  "refs": [
+    "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs",
+    "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation",
+    "task_041_deliver_concise_multi_dbc_explorer_navigation"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_version": "1.0.11"
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md",
+      "ref": "task_041_deliver_concise_multi_dbc_explorer_navigation"
+    }
+  ]
+}

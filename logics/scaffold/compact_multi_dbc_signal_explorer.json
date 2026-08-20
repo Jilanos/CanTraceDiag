@@ -1,0 +1,95 @@
+{
+  "title": "Streamline navigation of large multi-DBC signal catalogs",
+  "references": [
+    "logics/product/prod_008_compact_signal_exploration_for_cantracediag.md",
+    "src/cantracediag/web/js/signals.js",
+    "src/cantracediag/web/styles.css",
+    "spikes/pwa-local-engine/src/local-backend.ts",
+    "spikes/pwa-local-engine/browser-smoke.mjs",
+    "tests/test_e2e_ui.py"
+  ],
+  "request": {
+    "complexity": "Medium",
+    "theme": "Signal explorer usability",
+    "needs": [
+      "Reduce the visual weight of a signal explorer containing many imported DBC files.",
+      "Make the relevant DBCs and signal matches easy to find without losing access to the full catalog.",
+      "Make dense DBC signal lists scannable through a second, message-level navigation layer."
+    ],
+    "context": [
+      "The current explorer renders one independently collapsible group per imported DBC and keeps the active DBC first.",
+      "Real diagnostic sessions may contain many DBCs, including files with no decoded signal in the loaded trace, which makes a long stack of group headers visually heavy.",
+      "Text search, favorites-only, and shown-only filtering already intersect in the explorer and selected signals remain visible as plot state.",
+      "The deployed product is the local PWA, whose local backend must expose the same explorer metadata contract as the server UI.",
+      "The existing explorer uses accessible buttons and aria-expanded state; new hierarchy controls must preserve keyboard and assistive-technology operation."
+    ],
+    "acceptance_criteria": [
+      "AC1: The default explorer view prioritizes the active DBC and DBCs used by the current trace, while keeping unused imported DBCs discoverable through one compact on-demand control.",
+      "AC2: A global text query hides DBC and message groups with no matches and shows an accurate match count for each remaining DBC group.",
+      "AC3: Within a dense DBC, signals are grouped by CAN message in independently expandable, keyboard-operable message sections without changing signal selection, favorites, or the current query.",
+      "AC4: The explorer remains compact and usable with at least six imported DBCs, including narrow desktop and mobile-supported viewports, without horizontal overflow.",
+      "AC5: Server UI and local PWA keep equivalent DBC ordering, visibility, search, and message-group behavior, with automated coverage for the new defaults and interactions."
+    ]
+  },
+  "product": {
+    "title": "Efficient multi-DBC signal exploration",
+    "overview": "Refine the signal explorer so large imported DBC catalogs prioritize live diagnostic relevance and remain fast to navigate during targeted signal searches.",
+    "goals": [
+      "Make used and active DBCs immediately useful while preserving access to the entire imported catalog.",
+      "Turn a global signal search into a concise, result-oriented navigation surface.",
+      "Provide message-level structure for dense DBCs without disrupting plots or saved explorer preferences."
+    ],
+    "non_goals": [
+      "Change DBC parsing, CAN decoding, conflict resolution, or trace storage.",
+      "Remove an imported DBC or signal from the catalog because it is initially hidden.",
+      "Replace the existing global search with a separate per-DBC search field."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Prioritize relevant DBCs and add message-level signal navigation",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Signal explorer usability",
+      "request_acs": ["AC1", "AC2", "AC3", "AC4", "AC5"],
+      "problem": [
+        "A catalog with many imported DBCs becomes a visually repetitive stack of headers, even when most files have no signal used by the trace.",
+        "A dense DBC forces operators to scan a long flat list after finding the relevant database."
+      ],
+      "scope_in": [
+        "Define a default relevant-DBC view containing the active DBC and DBCs represented in the loaded trace, plus a compact explicit control for unused imported DBCs.",
+        "Make global search remove empty DBC and message sections and display match counts for visible DBCs.",
+        "Group each DBC's signal rows by CAN message with independent accessible expansion state.",
+        "Preserve selected signals, favorites, query text, DBC expansion state, and existing shown-only behavior through all hierarchy changes.",
+        "Align the server-backed UI and local PWA data contracts and add browser-focused tests for multi-DBC sessions."
+      ],
+      "scope_out": [
+        "Changing the underlying signal catalog, decoder output, or DBC conflict policy.",
+        "Removing unused DBCs from the import session or persisted local library.",
+        "Adding separate search fields for each DBC or message."
+      ],
+      "acceptance_criteria": [
+        "AC1: In a session with six or more imported DBCs, the default view shows the active and trace-used DBCs first and exposes the remaining DBCs via one compact discoverable control.",
+        "AC2: A global query displays only DBC and message sections with matching signals and each visible DBC reports its current match count.",
+        "AC3: Message headers are keyboard-operable, expose expanded state, and toggle only their own signal rows.",
+        "AC4: Selecting, plotting, favoriting, filtering, or reopening sections does not lose user state or hide a selected signal from the shown-only filter.",
+        "AC5: Automated server UI and local PWA coverage demonstrates six-DBC behavior, search narrowing, message expansion, and supported viewport accessibility."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver concise multi-DBC explorer navigation",
+    "plan": [
+      "Map the server and local-PWA signal metadata needed to identify trace-used, active, and unused DBCs without changing decoding behavior.",
+      "Implement the relevant-DBC default and the compact on-demand unused-DBC control with accessible state semantics.",
+      "Add search-aware DBC counts and message-level expandable sections while preserving existing filters and selected plots.",
+      "Align styling for dense desktop and supported narrow viewports, keeping controls compact and keyboard reachable.",
+      "Add focused multi-DBC browser and local-PWA coverage, validate the project, and record closeout evidence."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/compact_multi_dbc_signal_explorer.json",
+    "mode": "diff-first",
+    "profile": "normal"
+  }
+}
