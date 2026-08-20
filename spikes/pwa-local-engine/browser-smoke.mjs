@@ -110,6 +110,30 @@ async function main() {
       measure: document.querySelector('#viewHint').textContent
     })`, (result) => result.selected > 0 && result.hint === "none");
 
+    const explorer = await cdp.call("Runtime.evaluate", {
+      expression: `(() => {
+        const header = document.querySelector('.grp');
+        const body = document.getElementById(header.getAttribute('aria-controls'));
+        header.click();
+        const collapsed = body.hidden && header.getAttribute('aria-expanded') === 'false';
+        header.click();
+        document.querySelector('#dispOnly').click();
+        const shown = {
+          checked: document.querySelector('#dispOnly').checked,
+          rows: document.querySelectorAll('.sig').length,
+          selected: document.querySelectorAll('.sig.on').length,
+        };
+        document.querySelector('#dispOnly').click();
+        return { collapsed, ...shown };
+      })()`,
+      returnByValue: true,
+    });
+    const explorerValue = explorer.result.value;
+    if (!explorerValue.collapsed) throw new Error(`DBC group did not collapse: ${JSON.stringify(explorerValue)}`);
+    if (!explorerValue.checked || explorerValue.rows !== 1 || explorerValue.selected !== 1) {
+      throw new Error(`Shown filter did not retain only the plotted signal: ${JSON.stringify(explorerValue)}`);
+    }
+
     const workspace = await cdp.call("Runtime.evaluate", {
       expression: `
         window.__ctd.placeCursor(0, 'a', false);
@@ -194,11 +218,22 @@ async function main() {
     });
     if (!String(libraryText.result.value).includes("sample.dbc")) throw new Error(`DBC library missing uploaded fixture: ${libraryText.result.value}`);
 
-    console.log(JSON.stringify({ ok: true, root, tracePath, dbcPath, snapshot: value, plotState, workspace: workspaceValue, pwa: pwaValue, apiCalls }, null, 2));
+    console.log(JSON.stringify({ ok: true, root, tracePath, dbcPath, snapshot: value, plotState, explorer: explorerValue, workspace: workspaceValue, pwa: pwaValue, apiCalls }, null, 2));
     await cdp.close();
   } finally {
     chrome.kill("SIGTERM");
     server.close();
+    // Chromium can still be flushing its profile just after SIGTERM. Retry the
+    // cleanup briefly so the smoke check never leaves an untracked `tmp/` tree.
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      try {
+        fs.rmSync(profileDir, { recursive: true, force: true, maxRetries: 2, retryDelay: 50 });
+        break;
+      } catch (error) {
+        if (attempt === 4) throw error;
+        await delay(100);
+      }
+    }
   }
 }
 

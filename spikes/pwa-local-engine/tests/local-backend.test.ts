@@ -237,6 +237,21 @@ describe("LocalPwaBackend", () => {
     assert.equal(backend.status().loaded, false);
   });
 
+  it("exposes imported DBC names in load order for collapsible explorer groups", async () => {
+    const backend = new LocalPwaBackend();
+    await backend.importText(readFixture("sample.asc"), [
+      { name: "sample.dbc", text: readFixture("sample.dbc") },
+      { name: "sample_body.dbc", text: readFixture("sample_body.dbc") },
+    ]);
+
+    const payload = backend.signals() as {
+      databases: string[];
+      active_database: string | null;
+    };
+    assert.deepEqual(payload.databases, ["sample.dbc", "sample_body.dbc"]);
+    assert.equal(payload.active_database, "sample.dbc");
+  });
+
   it("returns conflicts before importing when DBC definitions disagree", async () => {
     const backend = new LocalPwaBackend();
     const result = await backend.importText(readFixture("sample.asc"), [

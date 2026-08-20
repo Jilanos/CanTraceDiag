@@ -21,16 +21,17 @@ for (const entry of fs.readdirSync(srcDir)) {
   fs.writeFileSync(outputPath, stripped);
 }
 
+const version = buildVersion();
 const productAppSource = buildProductAppSource();
 fs.writeFileSync(path.join(distDir, "product-app.mjs"), productAppSource);
 
 fs.rmSync(siteDir, { recursive: true, force: true });
 fs.mkdirSync(path.join(siteDir, "browser"), { recursive: true });
 fs.mkdirSync(path.join(siteDir, "assets"), { recursive: true });
-fs.writeFileSync(path.join(siteDir, "index.html"), buildProductIndex());
+fs.writeFileSync(path.join(siteDir, "index.html"), buildProductIndex(version));
 fs.copyFileSync(path.resolve("src/cantracediag/web/styles.css"), path.join(siteDir, "styles.css"));
 fs.copyFileSync(path.resolve("spikes/pwa-local-engine/manifest.webmanifest"), path.join(siteDir, "manifest.webmanifest"));
-fs.writeFileSync(path.join(siteDir, "sw.js"), buildServiceWorker());
+fs.writeFileSync(path.join(siteDir, "sw.js"), buildServiceWorker(version));
 for (const entry of fs.readdirSync(distDir)) {
   if (entry === "app.mjs") continue;
   fs.copyFileSync(path.join(distDir, entry), path.join(siteDir, "browser", entry));
@@ -48,11 +49,11 @@ fs.copyFileSync(path.resolve("src/cantracediag/web/paulmondou-emblem.svg"), path
 console.log(`Built browser modules in ${path.relative(process.cwd(), distDir)}`);
 console.log(`Built static site in ${path.relative(process.cwd(), siteDir)}`);
 
-function buildProductIndex() {
+function buildProductIndex(version) {
   let html = fs.readFileSync(path.resolve("src/cantracediag/web/index.html"), "utf8")
     .replace('<link rel="icon" href="/static/app-icon.svg" type="image/svg+xml" />', '<link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml" />')
     .replace('<link rel="alternate icon" href="/favicon.ico" />', '<link rel="manifest" href="./manifest.webmanifest" />')
-    .replace('<link rel="stylesheet" href="/static/styles.css" />', '<link rel="stylesheet" href="./styles.css" />')
+    .replace('<link rel="stylesheet" href="/static/styles.css" />', `<link rel="stylesheet" href="./styles.css?v=${version}" />`)
     .replace('src="/static/app-emblem.svg"', 'src="./assets/app-emblem.svg"')
     .replace('src="/static/paulmondou-emblem.svg"', 'src="./assets/paulmondou-emblem.svg"')
     .replaceAll("__CTD_APP_VERSION__", appVersion());
@@ -60,11 +61,10 @@ function buildProductIndex() {
     /<script src="\/static\/js\/[^"]+"><\/script>\n?/g,
     "",
   );
-  return html.replace("</body>", '<script type="module" src="./browser/product-app.mjs"></script>\n</body>');
+  return html.replace("</body>", `<script type="module" src="./browser/product-app.mjs?v=${version}"></script>\n</body>`);
 }
 
-function buildServiceWorker() {
-  const version = buildVersion();
+function buildServiceWorker(version) {
   return fs.readFileSync(path.resolve("spikes/pwa-local-engine/sw.js"), "utf8")
     .replaceAll("__CTD_BUILD_VERSION__", version);
 }

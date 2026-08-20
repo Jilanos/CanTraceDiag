@@ -59,7 +59,12 @@ export class LocalPwaBackend {
   signals(): Record<string, unknown> {
     const present = this.store.presentSignalKeys();
     const presentIds = this.store.presentArbitrationIds();
+    // Match the server contract used by the explorer: preserve the import
+    // order so every loaded DBC has its own independently collapsible group.
+    const databases = [...new Set(this.dbcNames)];
     return {
+      databases,
+      active_database: databases[0] ?? null,
       signals: this.catalog.signals().map((signal) => ({
         ...signal,
         id_hex: idHex(signal.arbitration_id, signal.is_extended_id),
