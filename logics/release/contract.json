@@ -1,0 +1,44 @@
+{
+  "schema_version": "1.0",
+  "project": {
+    "id": "cantracediag",
+    "display_name": "Cantracediag",
+    "release_profile": "discovered-local"
+  },
+  "version_sources": [
+    {"path": "pyproject.toml", "format": "toml", "selector": "project.version", "required": true}
+  ],
+  "changelog": {
+    "required": false,
+    "version_heading_required": true,
+    "paths": [{"path": "CHANGELOG.md", "format": "markdown", "required": false}]
+  },
+  "operator_intents": [
+    {"utterance": "prepare release", "boundary": "Prepare metadata, changelog, and validation evidence only. Do not tag, push, publish, upload assets, or create a GitHub release unless explicitly requested.", "publication_action": false},
+    {"utterance": "commit and push, fix if CI is not green", "boundary": "Push first, then inspect the real remote CI run for the exact pushed commit before making fixes.", "publication_action": false},
+    {"utterance": "publish release", "boundary": "Publish only after required local and remote gates are green, then verify downstream publication or deployment evidence.", "publication_action": true}
+  ],
+  "state_machine": ["planning", "preparing", "local_validation", "commit_ready", "pushed", "ci_verification", "github_release", "external_publication", "ready", "blocked"],
+  "gates": [
+    {"id": "version_metadata", "state": "preparing", "required": true, "evidence_kinds": ["file"], "comparison": "release"},
+    {"id": "changelog", "state": "preparing", "required": false, "evidence_kinds": ["file"], "comparison": "release"},
+    {"id": "local_validation", "state": "local_validation", "required": true, "evidence_kinds": ["command"], "comparison": "release"},
+    {"id": "git_push", "state": "pushed", "required": true, "evidence_kinds": ["git"], "comparison": "release"},
+    {"id": "ci", "state": "ci_verification", "required": true, "evidence_kinds": ["ci"], "comparison": "release"},
+    {"id": "github_release", "state": "github_release", "required": true, "evidence_kinds": ["github_release"], "comparison": "release"},
+    {"id": "pypi_package", "state": "external_publication", "required": false, "evidence_kinds": ["external"], "comparison": "release"}
+  ],
+  "evidence": {
+    "store": {"path": "logics/release/evidence.jsonl", "format": "jsonl", "required": true},
+    "freshness": {"match_target_version": true, "match_commit_for_source_gates": true, "match_tag_for_publication_gates": true},
+    "required_fields": ["kind", "status", "observed_at", "target_version", "commit", "summary"]
+  },
+  "validation_commands": [
+    {"id": "pwa_engine_tests", "command": ["node", "--experimental-strip-types", "--test", "spikes/pwa-local-engine/tests/*.test.ts"], "required": true, "evidence_kind": "command"},
+    {"id": "pwa_engine_build", "command": ["node", "spikes/pwa-local-engine/build-browser.mjs"], "required": true, "evidence_kind": "command"}
+  ],
+  "git": {"release_branch_policy": "main_only", "allowed_branches": ["main"], "tag_policy": {"required": true, "pattern": "v{version}"}, "require_clean_worktree": true, "require_pushed_commit": true},
+  "github_release": {"required": true, "mode": "gh_cli", "draft_allowed": false, "asset_paths": []},
+  "assistant_readiness": {"must_inspect_status_before_claiming_ready": true, "readiness_source": "project_owned_evidence", "publication_requires_explicit_operator_approval": true},
+  "external_publication": [{"id": "pypi_package", "kind": "package_registry", "required": false, "url_template": "https://pypi.org/project/cantracediag/{version}/"}]
+}
