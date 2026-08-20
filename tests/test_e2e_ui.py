@@ -416,7 +416,9 @@ def test_dbc_groups_are_ordered_and_independently_collapsible(browser, live_url)
 
     # Plot a signal from the active group, then drive the second header from the
     # keyboard: only that group changes, and the selection survives (AC3).
-    bodies.nth(0).locator(".msg-grp").first.click()
+    # The first message of the active DBC is reachable immediately; its header
+    # is only toggled when the operator explicitly collapses it.
+    assert bodies.nth(0).locator(".msg-grp").first.get_attribute("aria-expanded") == "true"
     bodies.nth(0).locator("input[type=checkbox]").first.check()
     pg.wait_for_function("() => window.__ctd.selected.length === 1")
     heads.nth(1).focus()
