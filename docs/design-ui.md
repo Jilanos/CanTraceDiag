@@ -182,6 +182,11 @@ bordure `--line`, clé en micro-label coloré (A = `--ch4`, B = `--accent`,
   sélection, les favoris ni la recherche.
 - Filtres d'en-tête de panneau : `shown` (signaux tracés) et `fav`, en
   intersection avec la recherche texte. Aucun résultat : micro-label d'état vide.
+- Chips de filtre (`.filter-chip`) : micro-label + carré d'état 8 px reprenant le
+  vocabulaire des swatches — creux bordé `--faint` au repos sur fond `--panel-2`,
+  rempli `--accent` une fois actif, chip bordée `--accent-dim` sur fond `#17212c`.
+  La checkbox native est neutralisée (`appearance: none`) : son blanc par défaut
+  jure avec les panneaux sombres. Focus visible porté par la chip entière.
 - Ligne signal : swatch 8 px carré (gris `--faint` si non coché, couleur de
   canal + lueur si coché), nom mono, unité mono 10 px `--muted`.
 - Signal coché : liseré gauche 2 px de sa couleur de canal, fond `#0f1720`.

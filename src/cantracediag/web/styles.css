@@ -143,10 +143,33 @@
   .panel .phead .title { flex: 1; font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
   .panel.collapsed .phead { writing-mode: vertical-rl; height: 100%; border-bottom: 0; }
   .panel.collapsed .pbody { display: none; }
-  #explorer.collapsed .kbd { display: none; }
+  #explorer.collapsed .filter-chip { display: none; }
   .collapse-btn { background: none; border: 0; color: var(--muted); cursor: pointer; padding: 2px; font-weight: 700; }
   .collapse-btn:hover { background: none; color: var(--fg); }
-  .kbd { color: var(--muted); font: 10px var(--mono); }
+  /* Explorer filter toggles: instrument chips rather than native checkboxes,
+     whose default white box fights the dark panels. The 8 px state square
+     reuses the signal-row swatch language (grey when off, channel-lit when on),
+     so the state is never carried by color alone -- the chip keeps its label. */
+  .filter-chip {
+    display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto;
+    padding: 2px 6px; border: 1px solid var(--line); border-radius: 2px;
+    background: var(--panel2); color: var(--muted); cursor: pointer; user-select: none;
+    font: 600 9px var(--sans); letter-spacing: .12em; text-transform: uppercase;
+    transition: background .12s, border-color .12s, color .12s;
+  }
+  .filter-chip:hover { border-color: var(--accent-dim); color: var(--fg); }
+  .filter-chip input {
+    appearance: none; -webkit-appearance: none; margin: 0; width: 8px; height: 8px;
+    border: 1px solid var(--faint); border-radius: 1px; background: transparent;
+    flex: 0 0 auto; cursor: pointer;
+  }
+  .filter-chip input:checked { background: var(--accent); border-color: var(--accent); }
+  .filter-chip:has(input:checked) {
+    color: var(--fg); border-color: var(--accent-dim); background: #17212c;
+  }
+  /* The input is 8 px, so the focus ring belongs on the whole chip. */
+  .filter-chip:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+  .filter-chip input:focus-visible { outline: none; }
   .side-resizer { width: 5px; cursor: col-resize; background: transparent; flex: 0 0 auto; }
   .side-resizer:hover { background: var(--line); }
 
