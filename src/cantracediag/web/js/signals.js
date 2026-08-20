@@ -66,7 +66,9 @@ function groupHeader(db, count) {
   const open = groupOpen(db);
   const head = document.createElement("button");
   head.type = "button";
-  head.className = "grp" + (db === state.activeDatabase ? " active" : "");
+  // `is-active`, not `active`: the global `button.active` rule fills a button
+  // with the accent color, which would swallow the header and its badge.
+  head.className = "grp" + (db === state.activeDatabase ? " is-active" : "");
   head.id = groupHeadId(db);
   head.setAttribute("aria-expanded", open ? "true" : "false");
   head.setAttribute("aria-controls", groupBodyId(db));

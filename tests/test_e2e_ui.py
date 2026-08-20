@@ -396,6 +396,15 @@ def test_dbc_groups_are_ordered_and_independently_collapsible(browser, live_url)
     assert heads.nth(0).get_attribute("aria-expanded") == "true"
     assert heads.nth(1).get_attribute("aria-expanded") == "false"
     assert heads.nth(0).locator(".grp-tag").inner_text().lower() == "active"
+    # Regression: a class named `active` inherited the global accent-filled
+    # button style, painting the header the same color as its own badge.
+    assert pg.evaluate(
+        """() => {
+            const head = document.querySelector('#signalList .grp');
+            const tag = head.querySelector('.grp-tag');
+            return getComputedStyle(head).backgroundColor !== getComputedStyle(tag).color;
+        }"""
+    )
     bodies = pg.locator("#signalList .grp-body")
     assert bodies.nth(0).is_visible()
     assert not bodies.nth(1).is_visible()

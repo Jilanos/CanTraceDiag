@@ -164,7 +164,7 @@
     font: 600 10px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
   }
   .grp:hover { background: var(--panel2); color: var(--fg); }
-  .grp.active { color: var(--fg); border-bottom-color: var(--line); }
+  .grp.is-active { color: var(--fg); border-bottom-color: var(--line); }
   .grp .caret { color: var(--faint); font-size: 9px; flex: 0 0 auto; }
   .grp .grp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .grp .grp-tag {
