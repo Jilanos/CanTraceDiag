@@ -2,8 +2,8 @@
 > From version: 1.0.0
 > Schema version: 1.0
 > Status: Ready
-> Understanding: 90%
-> Confidence: 85%
+> Understanding: 95%
+> Confidence: 90%
 > Progress: 0%
 > Complexity: Medium
 > Theme: Signal explorer usability
@@ -26,10 +26,13 @@
   - Group each DBC's signal rows by CAN message with independent accessible expansion state.
   - Preserve selected signals, favorites, query text, DBC expansion state, and existing shown-only behavior through all hierarchy changes.
   - Align the server-backed UI and local PWA data contracts and add browser-focused tests for multi-DBC sessions.
+  - Follow the project release policy after implementation: prepare the next SemVer version in every canonical surface, commit it, push it, wait for CI on that exact commit, then create and push one annotated `vX.Y.Z` tag and verify the tag-triggered release workflow.
+  - Record the implementation commit SHA, CI run, tag, and release outcome in the task closeout.
 - Out:
   - Changing the underlying signal catalog, decoder output, or DBC conflict policy.
   - Removing unused DBCs from the import session or persisted local library.
   - Adding separate search fields for each DBC or message.
+  - Force-pushing a release commit, tagging before required CI succeeds, or retagging an existing release.
 
 # Acceptance criteria
 - AC1: In a session with six or more imported DBCs, the default view shows the active and trace-used DBCs first and exposes the remaining DBCs via one compact discoverable control.

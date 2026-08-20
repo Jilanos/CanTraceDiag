@@ -2,8 +2,8 @@
 > From version: 1.0.0
 > Schema version: 1.0
 > Status: Draft
-> Understanding: 90%
-> Confidence: 85%
+> Understanding: 95%
+> Confidence: 90%
 > Complexity: Medium
 > Theme: Signal explorer usability
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
@@ -25,6 +25,7 @@
 - Text search, favorites-only, and shown-only filtering already intersect in the explorer and selected signals remain visible as plot state.
 - The deployed product is the local PWA, whose local backend must expose the same explorer metadata contract as the server UI.
 - The existing explorer uses accessible buttons and aria-expanded state; new hierarchy controls must preserve keyboard and assistive-technology operation.
+- This functional delivery must follow the project release policy: validate locally, commit implementation work, prepare and commit the next SemVer version, push, wait for CI on that exact version-preparation commit, then create and push one annotated version tag and verify the tag-triggered release workflow.
 
 # Acceptance criteria
 - AC1: The default explorer view prioritizes the active DBC and DBCs used by the current trace, while keeping unused imported DBCs discoverable through one compact on-demand control.
