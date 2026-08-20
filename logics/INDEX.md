@@ -17,7 +17,7 @@
 | [prod_006_publier_les_derniers_assets_icones_v3_cantracediag](product/prod_006_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Proposed |  |  | product/prod_006_publier_les_derniers_assets_icones_v3_cantracediag.md |
 | [prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige](product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md) | Identite CanTraceDiag alignee sur Icones V3 corrige | Settled |  |  | product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md |
 | [prod_008_compact_signal_exploration_for_cantracediag](product/prod_008_compact_signal_exploration_for_cantracediag.md) | Compact signal exploration for CanTraceDiag | Settled |  |  | product/prod_008_compact_signal_exploration_for_cantracediag.md |
-| [prod_009_efficient_multi_dbc_signal_exploration](product/prod_009_efficient_multi_dbc_signal_exploration.md) | Efficient multi-DBC signal exploration | Proposed |  |  | product/prod_009_efficient_multi_dbc_signal_exploration.md |
+| [prod_009_efficient_multi_dbc_signal_exploration](product/prod_009_efficient_multi_dbc_signal_exploration.md) | Efficient multi-DBC signal exploration | Settled |  |  | product/prod_009_efficient_multi_dbc_signal_exploration.md |
 
 ## Roadmaps
 
@@ -53,7 +53,7 @@
 | [req_019_publier_la_release_patch_v1_0_7_de_cantracediag](request/req_019_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done |  |  | request/req_019_publier_la_release_patch_v1_0_7_de_cantracediag.md |
 | [req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Done |  |  | request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
 | [req_021_make_the_signal_explorer_more_efficient_on_compact_screens](request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md) | Make the signal explorer more efficient on compact screens | Done |  |  | request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md |
-| [req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs](request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md) | Streamline navigation of large multi-DBC signal catalogs | Draft |  |  | request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md |
+| [req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs](request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md) | Streamline navigation of large multi-DBC signal catalogs | Done |  |  | request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md |
 
 ## Backlog
 
@@ -108,7 +108,7 @@
 | [item_039_publier_la_version_1_0_8_apres_remplacement_des_assets](backlog/item_039_publier_la_version_1_0_8_apres_remplacement_des_assets.md) | Publier la version 1.0.8 apres remplacement des assets | Done |  | 100% | backlog/item_039_publier_la_version_1_0_8_apres_remplacement_des_assets.md |
 | [item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer](backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md) | Add displayed filtering and collapsible ordered DBC groups to the signal explorer | Done |  | 100% | backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md |
 | [item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace](backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md) | Add a resilient browser fullscreen control for the diagnostic workspace | Done |  | 100% | backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md |
-| [item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation](backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md) | Prioritize relevant DBCs and add message-level signal navigation | Ready |  | 0% | backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md |
+| [item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation](backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md) | Prioritize relevant DBCs and add message-level signal navigation | Done |  | 100% | backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md |
 
 ## Tasks
 
@@ -162,7 +162,7 @@
 | [task_038_publier_la_release_patch_v1_0_7_de_cantracediag](tasks/task_038_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done | Claude | 100% | tasks/task_038_publier_la_release_patch_v1_0_7_de_cantracediag.md |
 | [task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Done | Claude | 100% | tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
 | [task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen](tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md) | Deliver compact signal explorer navigation and browser fullscreen | Done | claude | 100% | tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md |
-| [task_041_deliver_concise_multi_dbc_explorer_navigation](tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md) | Deliver concise multi-DBC explorer navigation | Ready |  | 0% | tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md |
+| [task_041_deliver_concise_multi_dbc_explorer_navigation](tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md) | Deliver concise multi-DBC explorer navigation | Done | codex | 100% | tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md |
 
 ## Runbooks
 

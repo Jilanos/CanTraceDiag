@@ -1,12 +1,13 @@
 ## req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs - Streamline navigation of large multi-DBC signal catalogs
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 95%
 > Confidence: 90%
 > Complexity: Medium
 > Theme: Signal explorer usability
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-08-20 16:08:19
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -33,6 +34,13 @@
 - AC3: Within a dense DBC, signals are grouped by CAN message in independently expandable, keyboard-operable message sections without changing signal selection, favorites, or the current query.
 - AC4: The explorer remains compact and usable with at least six imported DBCs, including narrow desktop and mobile-supported viewports, without horizontal overflow.
 - AC5: Server UI and local PWA keep equivalent DBC ordering, visibility, search, and message-group behavior, with automated coverage for the new defaults and interactions.
+
+# AC Traceability
+- request-AC1 -> This task. Proof: multi-DBC E2E coverage verifies relevant DBCs and the unused-DBC control; CI run 32377864000 passed.
+- request-AC2 -> This task. Proof: multi-DBC E2E coverage verifies matching groups and counts; CI run 32377864000 passed.
+- request-AC3 -> This task. Proof: E2E coverage verifies independent keyboard-operable DBC/message sections and preserved selection; CI run 32377864000 passed.
+- request-AC4 -> This task. Proof: responsive explorer styles and automated PWA/server validation passed in CI run 32377864000.
+- request-AC5 -> This task. Proof: shared UI implementation is bundled into the local PWA; PWA validation and browser build passed in CI run 32377864000.
 
 # Definition of Ready (DoR)
 - [x] Problem statement is explicit and user impact is clear.

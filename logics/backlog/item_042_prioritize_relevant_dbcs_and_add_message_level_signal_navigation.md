@@ -1,14 +1,14 @@
 ## item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation - Prioritize relevant DBCs and add message-level signal navigation
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 95%
 > Confidence: 90%
-> Progress: 70%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Signal explorer usability
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-20 15:32:10
+> Indicators reviewed: 2026-08-20 16:08:20
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)
@@ -62,3 +62,9 @@
 # Priority
 - Priority: High
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_041_deliver_concise_multi_dbc_explorer_navigation`
+
+# Notes
+- Task `task_041_deliver_concise_multi_dbc_explorer_navigation` was finished via `logics-manager flow finish task` on 2026-08-20.
