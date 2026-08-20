@@ -668,10 +668,35 @@ def create_app(
         session.workspace.purge()
         return {"purged": True}
 
+    def _database_order() -> list[str]:
+        """Loaded DBC basenames, most-recently-used first.
+
+        The workspace library already ranks its entries by ``last_used``, so it
+        decides which DBC the operator used most recently. The session's own
+        load order is the fallback for every name the library cannot rank -- an
+        ephemeral workspace, a legacy session, or a DBC imported by path -- and
+        the first name is then simply the analysis' primary DBC.
+        """
+        names: list[str] = []
+        seen: set[str] = set()
+        raw = [Path(p).name for p in session.dbc_paths]
+        if not raw and session.catalog is not None:
+            raw = [db.name for db in session.catalog.databases]
+        for name in raw:
+            if name not in seen:
+                seen.add(name)
+                names.append(name)
+        try:
+            rank = {entry.name: i for i, entry in enumerate(session.workspace.library())}
+        except OSError:
+            rank = {}
+        # `sorted` is stable, so unranked names keep the session load order.
+        return sorted(names, key=lambda n: rank.get(n, len(rank)))
+
     @app.get("/api/signals")
     def api_signals() -> dict:
         if session.catalog is None:
-            return {"signals": []}
+            return {"signals": [], "databases": [], "active_database": None}
         present: set = set()
         present_ids: set[int] = set()
         try:
@@ -680,7 +705,12 @@ def create_app(
                 present_ids = store.present_arbitration_ids()
         except HTTPException:
             pass
+        databases = _database_order()
         return {
+            # Ordered DBC metadata (AC2): the explorer groups signals by DBC and
+            # puts the active one first, so the catalog alone is not enough.
+            "databases": databases,
+            "active_database": databases[0] if databases else None,
             "signals": [
                 {
                     "message_name": s.message_name,

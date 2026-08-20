@@ -1,0 +1,10 @@
+VERSION ""
+
+NS_ :
+
+BS_:
+
+BU_: BCM
+
+BO_ 1024 BodyState: 1 BCM
+ SG_ DoorsOpen : 0|8@1+ (1,0) [0|255] "" Vector__XXX

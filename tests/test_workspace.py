@@ -91,6 +91,39 @@ def test_session_restore_after_restart(tmp_path: Path) -> None:
     assert sigs, "signals should come from the restored catalog"
 
 
+def test_restored_analysis_ranks_databases_by_library_recency(tmp_path: Path) -> None:
+    """The active DBC is the most recently used one of the restored analysis (AC2).
+
+    A restore reads the manifest, which records the load order; the library is
+    what knows recency, so a DBC used again since the import must rank first.
+    """
+    ws1 = _persistent(tmp_path)
+    app1 = create_app(ws1)
+    c1 = make_client(app1)
+    r = c1.post(
+        "/api/import",
+        json={
+            "trace_path": str(FIX / "sample.asc"),
+            "dbc_paths": [str(FIX / "sample.dbc"), str(FIX / "sample_body.dbc")],
+        },
+    )
+    assert r.status_code == 200
+    assert c1.get("/api/signals").json()["active_database"] == "sample.dbc"
+    app1.state.ctd_session.store.close()
+
+    # Simulate the second DBC having been used again after this analysis.
+    index = json.loads(ws1.index_path.read_text())
+    for meta in index.values():
+        meta["last_used"] = "2030-01-01T00:00:00Z" if meta["name"] == "sample_body.dbc" \
+            else "2020-01-01T00:00:00Z"
+    ws1.index_path.write_text(json.dumps(index))
+
+    c2 = make_client(create_app(Workspace(ws1.root, ephemeral=False)))
+    payload = c2.get("/api/signals").json()
+    assert payload["databases"] == ["sample_body.dbc", "sample.dbc"]
+    assert payload["active_database"] == "sample_body.dbc"
+
+
 def test_corrupt_manifest_starts_empty(tmp_path: Path) -> None:
     ws = _persistent(tmp_path)
     ws.manifest_path.write_text("{ this is not valid json ")

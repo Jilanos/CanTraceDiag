@@ -1,13 +1,14 @@
 ## item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer - Add displayed filtering and collapsible ordered DBC groups to the signal explorer
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 10%
 > Complexity: Medium
 > Theme: Signal explorer usability
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-08-20 10:55:00
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)

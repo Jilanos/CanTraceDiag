@@ -46,6 +46,30 @@ def test_import_and_query_flow(client: TestClient) -> None:
     assert trace["prev_cursor"] is None
 
 
+def test_signals_expose_ordered_databases_with_active_first(client: TestClient) -> None:
+    """The explorer needs ordered DBC metadata, not just catalog entries (AC2)."""
+    empty = client.get("/api/signals").json()
+    assert empty == {"signals": [], "databases": [], "active_database": None}
+
+    r = client.post(
+        "/api/import",
+        json={
+            "trace_path": str(FIX / "sample.asc"),
+            "dbc_paths": [str(FIX / "sample.dbc"), str(FIX / "sample_body.dbc")],
+        },
+    )
+    assert r.status_code == 200
+
+    payload = client.get("/api/signals").json()
+    # Ephemeral workspace: no library ranking, so the session load order stands
+    # and the analysis' primary DBC is the active one.
+    assert payload["databases"] == ["sample.dbc", "sample_body.dbc"]
+    assert payload["active_database"] == "sample.dbc"
+    # Every group named by `databases` is reachable from the catalog entries.
+    named = {db for s in payload["signals"] for db in s["databases"]}
+    assert named == set(payload["databases"])
+
+
 def test_trace_endpoint_first_load_and_cursor_pagination(client: TestClient) -> None:
     assert _import(client).status_code == 200
     first = client.get("/api/trace", params={"limit": 3}).json()
