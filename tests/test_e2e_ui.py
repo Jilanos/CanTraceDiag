@@ -334,6 +334,191 @@ def test_rapid_zoom_pan_no_server_errors(page):
     assert not page._ctd_http_errors, page._ctd_http_errors
 
 
+def _visible_rows(pg) -> int:
+    """Signal rows the operator can actually see (collapsed groups excluded)."""
+    return pg.locator("#signalList .grp-body:not([hidden]) .sig").count()
+
+
+def test_signal_filters_intersect_and_show_an_empty_state(page):
+    """Displayed-only, favorites-only and text search intersect (AC1, AC3)."""
+    pg = page
+    total = pg.evaluate("() => state.signals.length")
+    assert _visible_rows(pg) == total
+
+    # Displayed-only keeps exactly the plotted signals.
+    pg.locator("#dispOnly").check()
+    assert _visible_rows(pg) == 2
+    first = pg.evaluate("() => state.selected[0].signal")
+
+    # ... and intersects with the text search instead of replacing it.
+    pg.locator("#sigFilter").fill(first)
+    assert _visible_rows(pg) == 1
+
+    # ... and with favorites-only, which no signal satisfies yet.
+    pg.locator("#favOnly").check()
+    assert _visible_rows(pg) == 0
+    empty = pg.locator("#signalEmpty")
+    assert empty.is_visible()
+    assert "no matching signals" in empty.inner_text().lower()
+
+    # Filtering never touched the plotted selection or the query (AC3).
+    assert pg.evaluate("() => state.selected.length") == 2
+    assert pg.locator("#sigFilter").input_value() == first
+
+    pg.locator("#favOnly").uncheck()
+    pg.locator("#dispOnly").uncheck()
+    pg.locator("#sigFilter").fill("")
+    assert _visible_rows(pg) == total
+    assert pg.locator("#signalEmpty").count() == 0
+
+
+def test_dbc_groups_are_ordered_and_independently_collapsible(browser, live_url):
+    """Active DBC first and expanded, the others listed but collapsed (AC2, AC3)."""
+    ctx = browser.new_context(viewport={"width": 1280, "height": 720})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.evaluate("() => localStorage.clear()")
+    pg.set_input_files("#traceFile", str(REPO / "tests" / "fixtures" / "sample.asc"))
+    pg.set_input_files(
+        "#dbcFiles",
+        [
+            str(REPO / "tests" / "fixtures" / "sample.dbc"),
+            str(REPO / "tests" / "fixtures" / "sample_body.dbc"),
+        ],
+    )
+    pg.click("#loadBtn")
+    pg.wait_for_function("() => window.__ctd && window.__ctd.state.databases.length === 2")
+
+    heads = pg.locator("#signalList .grp")
+    assert heads.count() == 2
+    assert "sample.dbc" in heads.nth(0).inner_text().lower()
+    assert "sample_body.dbc" in heads.nth(1).inner_text().lower()
+    assert heads.nth(0).get_attribute("aria-expanded") == "true"
+    assert heads.nth(1).get_attribute("aria-expanded") == "false"
+    assert heads.nth(0).locator(".grp-tag").inner_text().lower() == "active"
+    bodies = pg.locator("#signalList .grp-body")
+    assert bodies.nth(0).is_visible()
+    assert not bodies.nth(1).is_visible()
+
+    # Plot a signal from the active group, then drive the second header from the
+    # keyboard: only that group changes, and the selection survives (AC3).
+    bodies.nth(0).locator("input[type=checkbox]").first.check()
+    pg.wait_for_function("() => window.__ctd.selected.length === 1")
+    heads.nth(1).focus()
+    pg.keyboard.press("Enter")
+    pg.wait_for_function(
+        "() => document.querySelectorAll('#signalList .grp')[1]"
+        ".getAttribute('aria-expanded') === 'true'"
+    )
+    assert bodies.nth(1).is_visible()
+    assert heads.nth(0).get_attribute("aria-expanded") == "true"
+    assert pg.evaluate("() => window.__ctd.selected.length") == 1
+
+    # Collapsing the active group hides only its rows, never the selection.
+    heads.nth(0).click()
+    assert heads.nth(0).get_attribute("aria-expanded") == "false"
+    assert not bodies.nth(0).is_visible()
+    assert bodies.nth(1).is_visible()
+    assert pg.evaluate("() => window.__ctd.selected.length") == 1
+
+    # A DBC with no matching signal keeps its header and reports a zero count.
+    heads.nth(0).click()
+    pg.locator("#sigFilter").fill("EngineSpeed")
+    assert heads.count() == 2
+    assert heads.nth(1).locator(".grp-count").inner_text() == "0"
+    assert _visible_rows(pg) == 1
+    ctx.close()
+
+
+# --- fullscreen -------------------------------------------------------------
+# The native API is stubbed rather than driven for real: headless Chromium
+# cannot be trusted to grant document fullscreen, and what these tests must pin
+# down is that the control follows the *native* state rather than the click.
+_FS_STUB = """
+    (mode) => {
+      window.__fsEl = null;
+      window.__fsCalls = 0;
+      Object.defineProperty(document, "fullscreenElement", {
+        configurable: true, get: () => window.__fsEl,
+      });
+      Object.defineProperty(document, "fullscreenEnabled", {
+        configurable: true, get: () => mode !== "unsupported",
+      });
+      if (mode === "unsupported") {
+        document.documentElement.requestFullscreen = undefined;
+        return;
+      }
+      document.documentElement.requestFullscreen = () => {
+        window.__fsCalls++;
+        if (mode === "reject") return Promise.reject(new Error("denied"));
+        window.__fsEl = document.documentElement;
+        return Promise.resolve();
+      };
+      document.exitFullscreen = () => {
+        window.__fsEl = null;
+        return Promise.resolve();
+      };
+    }
+"""
+
+
+def test_fullscreen_control_follows_native_state(browser, live_url):
+    """Enter, then an external exit: the pressed state mirrors the browser (AC1, AC2)."""
+    ctx = browser.new_context(viewport={"width": 1280, "height": 720})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.evaluate(_FS_STUB, "grant")
+    btn = pg.locator("#fullscreenBtn")
+    assert btn.get_attribute("aria-pressed") == "false"
+    assert btn.get_attribute("aria-label") == "Enter fullscreen"
+
+    btn.click()  # a real user gesture, as the API requires
+    pg.wait_for_function("() => window.__fsCalls === 1")
+    # The state only moves once the browser confirms it.
+    pg.evaluate("() => document.dispatchEvent(new Event('fullscreenchange'))")
+    pg.wait_for_function(
+        "() => document.getElementById('fullscreenBtn').getAttribute('aria-pressed') === 'true'"
+    )
+    assert btn.get_attribute("aria-label") == "Exit fullscreen"
+
+    # An exit we did not initiate (Escape, F11, the browser UI) restores the
+    # enter affordance.
+    pg.evaluate(
+        "() => { window.__fsEl = null; document.dispatchEvent(new Event('fullscreenchange')); }"
+    )
+    pg.wait_for_function(
+        "() => document.getElementById('fullscreenBtn').getAttribute('aria-pressed') === 'false'"
+    )
+    assert btn.get_attribute("aria-label") == "Enter fullscreen"
+    assert pg.locator("#fullscreenNote").is_hidden()
+    ctx.close()
+
+
+@pytest.mark.parametrize(
+    ("mode", "message"),
+    [("reject", "refused"), ("unsupported", "not available")],
+)
+def test_fullscreen_failure_is_announced_without_blocking(browser, live_url, mode, message):
+    """A refused or unsupported request leaves the page usable (AC3)."""
+    ctx = browser.new_context(viewport={"width": 1280, "height": 720})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.evaluate(_FS_STUB, mode)
+    btn = pg.locator("#fullscreenBtn")
+    btn.click()
+    note = pg.locator("#fullscreenNote")
+    note.wait_for(state="visible")
+    assert message in note.inner_text()
+    # Not a dialog, and the control still advertises entering fullscreen.
+    assert pg.locator("dialog[open]").count() == 0
+    assert btn.get_attribute("aria-pressed") == "false"
+    assert btn.get_attribute("aria-label") == "Enter fullscreen"
+    # The workspace is untouched and still responds.
+    pg.locator("#viewTrace").click()
+    assert pg.locator("#traceWrap").is_visible()
+    ctx.close()
+
+
 def test_imported_text_does_not_execute_html(browser, live_url, tmp_path):
     """Hostile ASC/DBC text must render as text, not executable markup."""
     trace = tmp_path / "hostile.asc"
@@ -407,7 +592,11 @@ def test_narrow_viewport_keeps_critical_actions_reachable(browser, live_url):
     # Minimal 390x844 support: import, load, main filters, views and export
     # stay reachable within the viewport (AC14).
     # Plots is active by default; import/load/views/export stay reachable.
-    for selector in ["#pickTraceBtn", "#loadBtn", "#viewSplit", "#viewReport", "#exportBtn"]:
+    for selector in [
+        "#pickTraceBtn", "#loadBtn", "#viewSplit", "#viewReport", "#exportBtn",
+        # The compact-screen additions must stay reachable too (AC5).
+        "#dispOnly", "#favOnly", "#fullscreenBtn",
+    ]:
         box = pg.locator(selector).bounding_box()
         assert box is not None, selector
         assert box["x"] >= 0, selector

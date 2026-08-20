@@ -35,6 +35,11 @@
   <div class="hstatus">
     <div class="summary" id="summary">No trace loaded.</div>
     <span class="led" id="statusLed"><i></i><span id="statusLedText">IDLE</span></span>
+    <span class="fs-note" id="fullscreenNote" role="status" hidden></span>
+    <button class="ghost icon fs-btn" id="fullscreenBtn" aria-pressed="false" aria-label="Enter fullscreen" title="Enter fullscreen">
+      <svg class="fs-enter" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4"/></svg>
+      <svg class="fs-exit" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M2 6h4V2M14 6h-4V2M2 10h4v4M14 10h-4v4"/></svg>
+    </button>
     <span class="app-version" title="CanTraceDiag version">v__CTD_APP_VERSION__</span>
     <a class="parent-link" href="https://paulmondou.fr/" aria-label="Back to paulmondou.fr" title="Back to paulmondou.fr">
       <img src="/static/paulmondou-emblem.svg" alt="" width="22" height="22" />
@@ -49,6 +54,7 @@
     <div class="phead">
       <button class="collapse-btn" id="explorerToggle" title="Collapse / expand">‹</button>
       <span class="title">Signals</span>
+      <label class="kbd" title="Show only the signals currently plotted"><input type="checkbox" id="dispOnly" aria-label="Show displayed signals only" /> shown</label>
       <label class="kbd" title="Show favorites only"><input type="checkbox" id="favOnly" aria-label="Show favorite signals only" /> fav</label>
     </div>
     <div class="pbody">
@@ -215,6 +221,7 @@
 <script src="/static/js/report.js"></script>
 <script src="/static/js/trace.js"></script>
 <script src="/static/js/inspector.js"></script>
+<script src="/static/js/fullscreen.js"></script>
 <script src="/static/js/main.js"></script>
 </body>
 </html>

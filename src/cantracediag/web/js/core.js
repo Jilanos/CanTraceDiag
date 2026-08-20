@@ -40,6 +40,9 @@ const store = {
 
 const state = {
   signals: [],                      // catalog entries
+  databases: [],                    // loaded DBC names, most-recently-used first
+  activeDatabase: null,             // the DBC group shown first and expanded
+  groupsOpen: new Map(),            // DBC name -> group expanded?
   selected: [],                     // {message, signal, unit, color, t:[], v:[], downsampled}
   favorites: new Set(store.get("favorites", [])),
   bounds: null,                     // [t0, t1] full data extent

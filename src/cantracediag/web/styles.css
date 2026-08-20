@@ -99,6 +99,16 @@
     border: 1px solid var(--line); border-radius: 2px; padding: 3px 7px;
     background: var(--bg-deep); white-space: nowrap;
   }
+  /* fullscreen control (AC4): icon-only, its glyph follows the pressed state */
+  .fs-btn { padding: 4px 6px; flex: 0 0 auto; }
+  .fs-btn svg { width: 14px; height: 14px; }
+  .fs-btn .fs-exit, .fs-btn[aria-pressed="true"] .fs-enter { display: none; }
+  .fs-btn[aria-pressed="true"] .fs-exit { display: inline; }
+  .fs-note {
+    color: var(--warn); font: 10px var(--mono); max-width: 220px; text-align: right;
+  }
+  .fs-note[hidden] { display: none; }
+
   .parent-link {
     width: 28px; height: 28px; display: grid; place-items: center; flex: 0 0 auto;
     border: 1px solid var(--line); border-radius: 3px; background: var(--panel2);
@@ -144,10 +154,28 @@
   #explorer .pbody { flex: 1; display: flex; flex-direction: column; min-height: 0; }
   #sigFilter { margin: 8px; }
   #signalList { overflow: auto; flex: 1; padding: 2px 0; }
+  /* DBC group header: a real button so expansion is keyboard-operable and its
+     state is exposed through aria-expanded (AC3). */
   .grp {
-    position: sticky; top: 0; z-index: 1; background: var(--panel);
-    padding: 6px 10px 3px; border-bottom: 1px solid var(--line-soft);
+    position: sticky; top: 0; z-index: 1; width: 100%; text-align: left;
+    display: flex; align-items: center; gap: 6px;
+    background: var(--panel); border: 0; border-bottom: 1px solid var(--line-soft);
+    border-radius: 0; padding: 5px 10px; cursor: pointer;
     font: 600 10px var(--sans); letter-spacing: .1em; text-transform: uppercase; color: var(--muted);
+  }
+  .grp:hover { background: var(--panel2); color: var(--fg); }
+  .grp.active { color: var(--fg); border-bottom-color: var(--line); }
+  .grp .caret { color: var(--faint); font-size: 9px; flex: 0 0 auto; }
+  .grp .grp-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .grp .grp-tag {
+    color: var(--accent); border: 1px solid var(--accent-dim); border-radius: 2px;
+    padding: 0 4px; font-size: 8.5px; letter-spacing: .08em; flex: 0 0 auto;
+  }
+  .grp .grp-count { color: var(--faint); font: 10px var(--mono); letter-spacing: 0; flex: 0 0 auto; }
+  .grp-body[hidden] { display: none; }
+  .grp-empty {
+    padding: 8px 10px; font: 600 10px var(--sans); letter-spacing: .1em;
+    text-transform: uppercase; color: var(--muted);
   }
   .sig {
     display: flex; align-items: center; gap: 7px; padding: 3px 10px 3px 13px; cursor: pointer;

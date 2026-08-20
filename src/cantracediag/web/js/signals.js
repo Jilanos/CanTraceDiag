@@ -6,9 +6,11 @@ async function loadSignals() {
   try {
     const r = await api("/api/signals");
     state.signals = r.signals;
+    setDatabases(r.databases || [], r.active_database || null);
     renderSignalList();
   } catch (err) {
     state.signals = [];
+    setDatabases([], null);
     renderSignalList();
     reportError(err, "Signal list failed to load");
   }
@@ -16,41 +18,121 @@ async function loadSignals() {
 
 function favKey(sig) { return `${sig.message_name}.${sig.signal_name}`; }
 
+/* ---- DBC groups -------------------------------------------------------- */
+const NO_DBC = "(no DBC)";
+
+/* Adopt the ordered DBC metadata of a freshly loaded or restored analysis: the
+ * active DBC comes first and starts expanded, every other loaded DBC is listed
+ * but collapsed, so a large multi-DBC catalog stays scannable (AC2). */
+function setDatabases(names, active) {
+  state.databases = [...names];
+  state.activeDatabase = active || names[0] || null;
+  state.groupsOpen = new Map(state.databases.map((n) => [n, n === state.activeDatabase]));
+}
+
+function groupOpen(db) {
+  if (state.groupsOpen.has(db)) return state.groupsOpen.get(db);
+  // A group the API did not list (the "no DBC" bucket, or a catalog name absent
+  // from the session) has no recency to defer to, so it opens by default.
+  const open = !state.databases.includes(db) || db === state.activeDatabase;
+  state.groupsOpen.set(db, open);
+  return open;
+}
+
+/* DBC names come from imported files and may contain anything, so element ids
+ * are sequence numbers rather than the name itself. */
+const groupIds = new Map();
+function groupSlug(db) {
+  if (!groupIds.has(db)) groupIds.set(db, `g${groupIds.size}`);
+  return groupIds.get(db);
+}
+const groupHeadId = (db) => `grpHead-${groupSlug(db)}`;
+const groupBodyId = (db) => `grpBody-${groupSlug(db)}`;
+
+/* Toggle one group in place: re-rendering the whole list would move focus off
+ * the header the operator just activated, and only this group's rows change
+ * (selection, favorites, search text and other groups stay as they are, AC3). */
+function setGroupOpen(db, open) {
+  state.groupsOpen.set(db, open);
+  const head = $(groupHeadId(db));
+  const body = $(groupBodyId(db));
+  if (!head || !body) { renderSignalList(); return; }
+  head.setAttribute("aria-expanded", open ? "true" : "false");
+  head.querySelector(".caret").textContent = open ? "\u25be" : "\u25b8";
+  body.hidden = !open;
+}
+
+function groupHeader(db, count) {
+  const open = groupOpen(db);
+  const head = document.createElement("button");
+  head.type = "button";
+  head.className = "grp" + (db === state.activeDatabase ? " active" : "");
+  head.id = groupHeadId(db);
+  head.setAttribute("aria-expanded", open ? "true" : "false");
+  head.setAttribute("aria-controls", groupBodyId(db));
+  head.innerHTML =
+    `<span class="caret" aria-hidden="true">${open ? "\u25be" : "\u25b8"}</span>` +
+    `<span class="grp-name">${esc(db)}</span>` +
+    (db === state.activeDatabase ? `<span class="grp-tag">active</span>` : "") +
+    `<span class="grp-count">${count}</span>`;
+  head.addEventListener("click", () => setGroupOpen(db, !groupOpen(db)));
+  return head;
+}
+
 function renderSignalList() {
   const filter = $("sigFilter").value.toLowerCase();
   const favOnly = $("favOnly").checked;
+  const dispOnly = $("dispOnly").checked;
   const list = $("signalList");
   list.innerHTML = "";
 
-  // Group by DBC database, then by message.
-  const groups = new Map();
+  // Group by DBC database, then by message. Every loaded DBC gets a bucket up
+  // front so it still has a header when no signal of its own matches (AC2).
+  const groups = new Map(state.databases.map((db) => [db, []]));
   for (const sig of state.signals) {
     const key = favKey(sig);
     const haystack = [
       sig.message_name, sig.signal_name, sig.id_hex, sig.unit,
       ...(sig.databases || []),
     ].join(" ").toLowerCase();
+    // The three predicates intersect: text AND favorites AND displayed (AC1).
     if (filter && !haystack.includes(filter)) continue;
     if (favOnly && !state.favorites.has(key)) continue;
-    const db = (sig.databases && sig.databases[0]) || "(no DBC)";
+    if (dispOnly && !isDisplayed(sig)) continue;
+    const db = (sig.databases && sig.databases[0]) || NO_DBC;
     if (!groups.has(db)) groups.set(db, []);
     groups.get(db).push(sig);
   }
 
-  for (const [db, sigs] of [...groups.entries()].sort()) {
-    const head = document.createElement("div");
-    head.className = "grp";
-    head.textContent = db;
-    list.appendChild(head);
+  // Session order first (active DBC leading), then anything the session did not
+  // name — a stale catalog entry or the "no DBC" bucket — alphabetically.
+  const extra = [...groups.keys()].filter((db) => !state.databases.includes(db)).sort();
+  let matched = 0;
+  for (const db of [...state.databases, ...extra]) {
+    const sigs = groups.get(db) || [];
+    matched += sigs.length;
+    list.appendChild(groupHeader(db, sigs.length));
+    const body = document.createElement("div");
+    body.className = "grp-body";
+    body.id = groupBodyId(db);
+    body.hidden = !groupOpen(db);
     sigs.sort((a, b) => favKey(a).localeCompare(favKey(b)));
-    for (const sig of sigs) list.appendChild(signalRow(sig));
+    for (const sig of sigs) body.appendChild(signalRow(sig));
+    list.appendChild(body);
   }
-  if (!list.children.length) {
+  if (!matched) {
     const empty = document.createElement("div");
-    empty.className = "grp";
+    empty.className = "grp-empty";
+    empty.id = "signalEmpty";
     empty.textContent = state.signals.length ? "No matching signals." : "No signals (load a DBC).";
     list.appendChild(empty);
   }
+}
+
+/* "Displayed" means currently selected for plotting — a selected signal counts
+ * even while its DBC group is collapsed (AC1). */
+function isDisplayed(sig) {
+  return state.selected.some((s) => s.message === sig.message_name && s.signal === sig.signal_name);
 }
 
 function signalRow(sig) {

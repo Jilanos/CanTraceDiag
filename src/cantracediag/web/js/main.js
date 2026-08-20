@@ -38,6 +38,8 @@ $("resolveConflictsBtn").addEventListener("click", () => {
 
 $("sigFilter").addEventListener("input", renderSignalList);
 $("favOnly").addEventListener("change", () => { store.set("favOnly", $("favOnly").checked); renderSignalList(); });
+// Displayed-only sits beside favorites-only and persists the same way (AC1).
+$("dispOnly").addEventListener("change", () => { store.set("dispOnly", $("dispOnly").checked); renderSignalList(); });
 
 $("fitBtn").addEventListener("click", fitView);
 $("zoomInBtn").addEventListener("click", () => { const g = plotGeom(); zoomAt((g.t0 + g.t1) / 2, 0.7); });
@@ -146,6 +148,7 @@ wireSplitResize();
   refreshPicked();
   setLed("idle");
   $("favOnly").checked = store.get("favOnly", false);
+  $("dispOnly").checked = store.get("dispOnly", false);
   $("gridBtn").classList.toggle("active", state.grid);
   applyLayout();
   restoreFilters();
