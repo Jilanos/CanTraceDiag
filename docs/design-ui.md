@@ -174,12 +174,27 @@ bordure `--line`, clé en micro-label coloré (A = `--ch4`, B = `--accent`,
 
 ### Explorateur de signaux
 
-- Groupes = messages : nom en micro-label + ID hex mono `--faint`, sticky.
+- Groupes = bases DBC : en-tête sticky **bouton** (chevron `--faint`, nom en
+  micro-label, badge `active` bordé `--accent-dim` pour la DBC courante, compteur
+  mono `--faint`), `aria-expanded` porté par le bouton.
+- La DBC active est en premier et dépliée ; les autres DBC chargées restent
+  visibles mais repliées. Chaque groupe se replie indépendamment sans toucher la
+  sélection, les favoris ni la recherche.
+- Filtres d'en-tête de panneau : `shown` (signaux tracés) et `fav`, en
+  intersection avec la recherche texte. Aucun résultat : micro-label d'état vide.
 - Ligne signal : swatch 8 px carré (gris `--faint` si non coché, couleur de
   canal + lueur si coché), nom mono, unité mono 10 px `--muted`.
 - Signal coché : liseré gauche 2 px de sa couleur de canal, fond `#0f1720`.
 - Signal absent de la trace (DBC seul) : opacité .45.
 - Recherche : champ fond `--bg-deep` avec icône loupe inline.
+
+### Contrôle plein écran
+
+- Bouton icône `ghost` dans la barre d'en-tête, à gauche du badge de version :
+  glyphe « flèches sortantes » au repos, « flèches entrantes » en plein écran,
+  état porté par `aria-pressed` et le libellé accessible.
+- Un refus du navigateur s'affiche en note inline `--warn` mono 10 px
+  (`role="status"`), jamais en dialogue bloquant.
 
 ### Inspecteur
 

@@ -26,8 +26,10 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Streamed export** of selected signals to CSV or Parquet over a chosen range, with bounded memory.
 - **Trace table** with pagination, filtering, and configurable columns.
 - **Frame inspector** with raw payload, decoded message, and physical signals.
+- **Compact signal explorer**: collapsible DBC groups with the active database first and expanded, plus displayed-only and favorites-only filters that intersect with the text search.
 - **Local DBC library** to reuse databases without uploading them again.
 - **Keyboard-accessible controls** (favorites, filters, table rows, dialogs, resizers) with Pointer-Events graph and resize interactions, verified across the 1024×768 / 1280×720 / 1600×900 desktop viewports plus minimal 390×844 support.
+- **Browser fullscreen control** requesting document fullscreen from the user gesture, following native exits (Escape, F11, browser UI) and reporting a refusal inline.
 - **Session restore** through a local workspace outside the repository.
 - **One-click Windows + WSL launcher** with a desktop shortcut.
 
@@ -189,7 +191,7 @@ CanTraceDiag exposes a local FastAPI API used by the UI:
 - `POST /api/import`: server-side path import;
 - `POST /api/resolve`: DBC conflict resolution;
 - `GET /api/status`: session state;
-- `GET /api/signals`: signal catalog;
+- `GET /api/signals`: signal catalog plus the ordered loaded DBCs and the active one;
 - `GET /api/series`: windowed/downsampled series;
 - `GET /api/cursor`: nearest cursor value for one signal (bounded lookup);
 - `POST /api/cursors`: nearest values for N signals at cursors A and B in one call;
