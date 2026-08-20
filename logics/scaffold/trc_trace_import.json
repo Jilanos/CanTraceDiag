@@ -1,0 +1,101 @@
+{
+  "title": "Import text TRC CAN trace recordings",
+  "references": [
+    "logics/external/peak.trc",
+    "src/cantracediag/formats/asc.py",
+    "src/cantracediag/pipeline.py",
+    "src/cantracediag/api.py",
+    "src/cantracediag/web/index.html",
+    "spikes/pwa-local-engine/src/asc.ts",
+    "spikes/pwa-local-engine/src/local-backend.ts",
+    "tests/test_asc.py",
+    "tests/test_api.py"
+  ],
+  "request": {
+    "complexity": "Medium",
+    "theme": "Trace import interoperability",
+    "needs": [
+      "Allow operators to import text .trc CAN recordings directly, without a manual conversion to .asc.",
+      "Normalize supported .trc frames into the existing trace, DBC decoding, plotting, reporting, and export workflow.",
+      "Keep unsupported record types and malformed lines visible as import anomalies rather than silently dropping data."
+    ],
+    "context": [
+      "The supplied representative recording is CRLF-delimited text, declares $FILEVERSION=1.1, and contains 50,099 classic-CAN Rx frames over roughly 39.2 seconds.",
+      "Each observed data line has a sequence number, a millisecond offset, direction, hexadecimal identifier, DLC, and zero to eight hexadecimal bytes.",
+      "The server importer currently accepts only .asc uploads and routes them to an ASC-specific parser; the local-first PWA likewise exposes only an ASC picker and parser.",
+      "RawCanFrame already represents the fields required for classic CAN data frames, while the current product intentionally preserves CAN FD lines as non-data events.",
+      "This delivery must preserve the current ASC import contract, asynchronous server import behavior, local PWA parity, and file-upload safety limits.",
+      "This functional delivery follows the project release policy: validate locally, commit implementation work, prepare and commit the next SemVer version, push, wait for CI on that exact version-preparation commit, then create and push one annotated version tag and verify the tag-triggered release workflow."
+    ],
+    "acceptance_criteria": [
+      "AC1: A supported text .trc file can be selected in both the server-backed UI and the local PWA and reaches the existing import workflow without requiring conversion.",
+      "AC2: The supplied v1.1 fixture imports all valid classic CAN data frames with timestamps converted from milliseconds to seconds, preserved Rx/Tx direction, correct hexadecimal IDs, DLCs, and payload bytes.",
+      "AC3: Imported .trc frames decode against selected DBC files and remain available through the existing trace navigation, signals, report, and export APIs exactly as equivalent normalized ASC frames do.",
+      "AC4: Header and comment records are ignored safely; remote requests, warning/error records, unsupported protocol records, malformed fields, payload/DLC mismatches, and DLCs above eight are surfaced as explicit non-data events or import anomalies without corrupting valid frames.",
+      "AC5: ASC behavior remains unchanged, and automated Python, API/UI, and local-PWA tests cover the representative .trc fixture, a compact synthetic edge-case fixture, rejection/diagnostic behavior, and file-picker acceptance."
+    ]
+  },
+  "product": {
+    "title": "Interoperable classic CAN trace import",
+    "overview": "Extend the diagnostic workstation with direct ingestion of a documented text .trc trace family while preserving its established ASC workflow and one normalized CAN data model.",
+    "goals": [
+      "Make supported classic-CAN .trc recordings first-class import inputs in both product surfaces.",
+      "Retain data integrity and diagnostic visibility for records that cannot be decoded as classic CAN frames.",
+      "Keep the import extension small, testable, and independent from DBC decoding and trace storage."
+    ],
+    "non_goals": [
+      "Implement CAN FD or CAN XL decoding, payloads beyond eight bytes, or a new database format.",
+      "Support binary trace formats or every historical variation of the .trc extension in this delivery.",
+      "Alter existing ASC parsing semantics, DBC conflict handling, chart behavior, or export schemas."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Add verified text TRC import with server and local-PWA parity",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Trace import interoperability",
+      "request_acs": ["AC1", "AC2", "AC3", "AC4", "AC5"],
+      "problem": [
+        "Operators cannot analyze supported .trc recordings directly because both import surfaces restrict traces to .asc.",
+        "A format-specific parser is needed to convert millisecond offsets and text record fields into the existing normalized frame/event model without weakening integrity checks."
+      ],
+      "scope_in": [
+        "Add a streaming Python parser for the verified text .trc v1.1 classic-CAN layout and route trace import by extension without changing the normalized pipeline.",
+        "Add a matching local-PWA parser and format dispatch so the browser-only workflow accepts the same supported input.",
+        "Update upload validation, file-picker labels and accept attributes, CLI/help copy where needed, and user-facing import diagnostics for .trc.",
+        "Add a minimal checked-in .trc fixture derived from the supplied recording plus focused malformed, remote-request, warning/error, unsupported-record, extended-ID, zero-DLC, and payload/DLC mismatch coverage.",
+        "Verify frame count, timestamp conversion, direction, identifiers, payloads, DBC decoding, reporting, exports, cancellation/progress behavior, and ASC non-regression across server and local-PWA paths.",
+        "Record the implementation commit SHA, CI run, annotated tag, and release outcome in the task closeout; never force-push or retag a release."
+      ],
+      "scope_out": [
+        "CAN FD and CAN XL ingestion or decoding.",
+        "Binary trace reader support or automatic conversion by external tools.",
+        "Unverified .trc dialects beyond the documented v1.1 classic-CAN layout, except for safe diagnostic rejection."
+      ],
+      "acceptance_criteria": [
+        "AC1: Both trace pickers accept .asc and .trc; the server upload and path-import endpoints accept supported .trc names without weakening file-size and path security controls.",
+        "AC2: The supplied-recording-derived fixture produces the expected normalized frame count and representative first, middle, and final frame values, including millisecond-to-second timestamps and Rx direction.",
+        "AC3: Valid .trc frames work with the existing DBC decode, trace navigation, report, CSV, and Parquet contracts without a format-specific consumer path.",
+        "AC4: Invalid or unsupported .trc records are accounted for as safe, inspectable events/anomalies and never produce malformed RawCanFrame data.",
+        "AC5: Python unit tests, API/UI tests, and local-PWA tests demonstrate TRC support and demonstrate that the ASC suite retains its current behavior."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver verified text TRC trace import",
+    "plan": [
+      "Characterize the supplied trace layout and define the supported v1.1 classic-CAN grammar, normalization rules, and explicit diagnostics for unsupported records.",
+      "Implement streaming server-side format dispatch and the TRC reader while retaining current pipeline progress, cancellation, DBC decoding, and storage contracts.",
+      "Implement equivalent local-PWA format dispatch and parsing, then expose both supported extensions consistently in product copy and file pickers.",
+      "Add focused fixtures and automated coverage for valid frames, edge cases, diagnostics, API/UI import, local-PWA parity, and ASC non-regression.",
+      "Validate the project and record closeout evidence.",
+      "Follow the release policy after implementation: prepare the next SemVer version, push the version-preparation commit, wait for CI on that exact SHA, create and push the annotated tag, verify the tag-triggered publication/deployment workflow, and record all release evidence."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/trc_trace_import.json",
+    "mode": "diff-first",
+    "profile": "normal"
+  }
+}

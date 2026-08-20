@@ -1,0 +1,304 @@
+{
+  "budgets": {
+    "max_docs": 12,
+    "max_docs_per_ref": 4
+  },
+  "changed_paths": [
+    "logics/backlog/item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity.md",
+    "logics/external/peak.trc",
+    "logics/product/prod_010_interoperable_classic_can_trace_import.md",
+    "logics/request/req_023_import_text_trc_can_trace_recordings.md",
+    "logics/scaffold/trc_trace_import.json",
+    "logics/tasks/task_042_deliver_verified_text_trc_trace_import.md"
+  ],
+  "command": "logics-manager sync context-pack req_023_import_text_trc_can_trace_recordings item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity task_042_deliver_verified_text_trc_trace_import --mode diff-first --profile normal --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity"
+        ],
+        "prod": [
+          "prod_010_interoperable_classic_can_trace_import"
+        ],
+        "req": [
+          "req_023_import_text_trc_can_trace_recordings"
+        ],
+        "task": [
+          "task_042_deliver_verified_text_trc_trace_import"
+        ]
+      },
+      "path": "logics/product/prod_010_interoperable_classic_can_trace_import.md",
+      "ref": "prod_010_interoperable_classic_can_trace_import",
+      "sections": {
+        "Goals": [
+          "- Make supported classic-CAN .trc recordings first-class import inputs in both product surfaces.",
+          "- Retain data integrity and diagnostic visibility for records that cannot be decoded as classic CAN frames.",
+          "- Keep the import extension small, testable, and independent from DBC decoding and trace storage."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Extend the diagnostic workstation with direct ingestion of a documented text .trc trace family while preserving its established ASC workflow and one normalized CAN data model."
+        ],
+        "References": [
+          "- Product back-reference: `req_023_import_text_trc_can_trace_recordings`",
+          "- Task back-reference: `task_042_deliver_verified_text_trc_trace_import`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Interoperable classic CAN trace import"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "import, text, trc, can, trace, recordings",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity"
+        ],
+        "prod": [
+          "prod_010_interoperable_classic_can_trace_import"
+        ],
+        "req": [
+          "req_023_import_text_trc_can_trace_recordings"
+        ]
+      },
+      "path": "logics/request/req_023_import_text_trc_can_trace_recordings.md",
+      "ref": "req_023_import_text_trc_can_trace_recordings",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: A supported text .trc file can be selected in both the server-backed UI and the local PWA and reaches the existing import workflow without requiring conversion.",
+          "- AC2: The supplied v1.1 fixture imports all valid classic CAN data frames with timestamps converted from milliseconds to seconds, preserved Rx/Tx direction, correct hexadecimal IDs, DLCs, and payload bytes.",
+          "- AC3: Imported .trc frames decode against selected DBC files and remain available through the existing trace navigation, signals, report, and export APIs exactly as equivalent normalized ASC frames do.",
+          "- AC4: Header and comment records are ignored safely; remote requests, warning/error records, unsupported protocol records, malformed fields, payload/DLC mismatches, and DLCs above eight are surfaced as explicit non-data events or import anomalies without corrupting valid frames.",
+          "- AC5: ASC behavior remains unchanged, and automated Python, API/UI, and local-PWA tests cover the representative .trc fixture, a compact synthetic edge-case fixture, rejection/diagnostic behavior, and file-picker acceptance."
+        ],
+        "Needs": [
+          "- Allow operators to import text .trc CAN recordings directly, without a manual conversion to .asc.",
+          "- Normalize supported .trc frames into the existing trace, DBC decoding, plotting, reporting, and export workflow.",
+          "- Keep unsupported record types and malformed lines visible as import anomalies rather than silently dropping data."
+        ]
+      },
+      "status": "Draft",
+      "title": "Import text TRC CAN trace recordings"
+    },
+    {
+      "ai_context": {
+        "keywords": "add, verified, text, trc, import, server, local, pwa, parity",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity"
+        ],
+        "prod": [
+          "prod_010_interoperable_classic_can_trace_import"
+        ],
+        "req": [
+          "req_023_import_text_trc_can_trace_recordings"
+        ],
+        "task": [
+          "task_042_deliver_verified_text_trc_trace_import"
+        ]
+      },
+      "path": "logics/backlog/item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity.md",
+      "ref": "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Both trace pickers accept .asc and .trc; the server upload and path-import endpoints accept supported .trc names without weakening file-size and path security controls.",
+          "- AC2: The supplied-recording-derived fixture produces the expected normalized frame count and representative first, middle, and final frame values, including millisecond-to-second timestamps and Rx direction.",
+          "- AC3: Valid .trc frames work with the existing DBC decode, trace navigation, report, CSV, and Parquet contracts without a format-specific consumer path.",
+          "- AC4: Invalid or unsupported .trc records are accounted for as safe, inspectable events/anomalies and never produce malformed RawCanFrame data.",
+          "- AC5: Python unit tests, API/UI tests, and local-PWA tests demonstrate TRC support and demonstrate that the ASC suite retains its current behavior."
+        ],
+        "Problem": [
+          "- Operators cannot analyze supported .trc recordings directly because both import surfaces restrict traces to .asc.",
+          "- A format-specific parser is needed to convert millisecond offsets and text record fields into the existing normalized frame/event model without weakening integrity checks."
+        ]
+      },
+      "status": "Ready",
+      "title": "Add verified text TRC import with server and local-PWA parity"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity"
+        ],
+        "prod": [
+          "prod_010_interoperable_classic_can_trace_import"
+        ],
+        "req": [
+          "req_023_import_text_trc_can_trace_recordings"
+        ],
+        "task": [
+          "task_042_deliver_verified_text_trc_trace_import"
+        ]
+      },
+      "path": "logics/product/prod_010_interoperable_classic_can_trace_import.md",
+      "ref": "prod_010_interoperable_classic_can_trace_import",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Interoperable classic CAN trace import"
+    },
+    {
+      "ai_context": {
+        "keywords": "deliver, verified, text, trc, trace, import",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity"
+        ],
+        "prod": [
+          "prod_010_interoperable_classic_can_trace_import"
+        ],
+        "req": [
+          "req_023_import_text_trc_can_trace_recordings"
+        ],
+        "task": [
+          "task_042_deliver_verified_text_trc_trace_import"
+        ]
+      },
+      "path": "logics/tasks/task_042_deliver_verified_text_trc_trace_import.md",
+      "ref": "task_042_deliver_verified_text_trc_trace_import",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Orchestrate the scaffolded request chain and keep sibling implementation slices linked."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver verified text TRC trace import"
+    }
+  ],
+  "estimates": {
+    "char_count": 7134,
+    "companion_doc_count": 1,
+    "doc_count": 4
+  },
+  "generated_at": "2026-08-20T16:06:20Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_023_import_text_trc_can_trace_recordings",
+      "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity",
+      "task_042_deliver_verified_text_trc_trace_import"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "normal",
+  "ref": "req_023_import_text_trc_can_trace_recordings,item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity,task_042_deliver_verified_text_trc_trace_import",
+  "refs": [
+    "req_023_import_text_trc_can_trace_recordings",
+    "item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity",
+    "task_042_deliver_verified_text_trc_trace_import"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_version": "1.0.16"
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_042_deliver_verified_text_trc_trace_import.md",
+      "ref": "task_042_deliver_verified_text_trc_trace_import"
+    }
+  ]
+}

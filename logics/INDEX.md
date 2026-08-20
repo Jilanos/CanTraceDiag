@@ -18,6 +18,7 @@
 | [prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige](product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md) | Identite CanTraceDiag alignee sur Icones V3 corrige | Settled |  |  | product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md |
 | [prod_008_compact_signal_exploration_for_cantracediag](product/prod_008_compact_signal_exploration_for_cantracediag.md) | Compact signal exploration for CanTraceDiag | Settled |  |  | product/prod_008_compact_signal_exploration_for_cantracediag.md |
 | [prod_009_efficient_multi_dbc_signal_exploration](product/prod_009_efficient_multi_dbc_signal_exploration.md) | Efficient multi-DBC signal exploration | Settled |  |  | product/prod_009_efficient_multi_dbc_signal_exploration.md |
+| [prod_010_interoperable_classic_can_trace_import](product/prod_010_interoperable_classic_can_trace_import.md) | Interoperable classic CAN trace import | Proposed |  |  | product/prod_010_interoperable_classic_can_trace_import.md |
 
 ## Roadmaps
 
@@ -54,6 +55,7 @@
 | [req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Done |  |  | request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
 | [req_021_make_the_signal_explorer_more_efficient_on_compact_screens](request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md) | Make the signal explorer more efficient on compact screens | Done |  |  | request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md |
 | [req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs](request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md) | Streamline navigation of large multi-DBC signal catalogs | Done |  |  | request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md |
+| [req_023_import_text_trc_can_trace_recordings](request/req_023_import_text_trc_can_trace_recordings.md) | Import text TRC CAN trace recordings | Draft |  |  | request/req_023_import_text_trc_can_trace_recordings.md |
 
 ## Backlog
 
@@ -109,6 +111,7 @@
 | [item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer](backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md) | Add displayed filtering and collapsible ordered DBC groups to the signal explorer | Done |  | 100% | backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md |
 | [item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace](backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md) | Add a resilient browser fullscreen control for the diagnostic workspace | Done |  | 100% | backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md |
 | [item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation](backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md) | Prioritize relevant DBCs and add message-level signal navigation | Done |  | 100% | backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md |
+| [item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity](backlog/item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity.md) | Add verified text TRC import with server and local-PWA parity | Ready |  | 0% | backlog/item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity.md |
 
 ## Tasks
 
@@ -163,6 +166,7 @@
 | [task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Done | Claude | 100% | tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
 | [task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen](tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md) | Deliver compact signal explorer navigation and browser fullscreen | Done | claude | 100% | tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md |
 | [task_041_deliver_concise_multi_dbc_explorer_navigation](tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md) | Deliver concise multi-DBC explorer navigation | Done | codex | 100% | tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md |
+| [task_042_deliver_verified_text_trc_trace_import](tasks/task_042_deliver_verified_text_trc_trace_import.md) | Deliver verified text TRC trace import | Ready |  | 0% | tasks/task_042_deliver_verified_text_trc_trace_import.md |
 
 ## Runbooks
 
