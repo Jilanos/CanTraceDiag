@@ -43,6 +43,8 @@ const state = {
   databases: [],                    // loaded DBC names, most-recently-used first
   activeDatabase: null,             // the DBC group shown first and expanded
   groupsOpen: new Map(),            // DBC name -> group expanded?
+  messageGroupsOpen: new Map(),     // DBC/message -> message section expanded?
+  showUnusedDatabases: false,
   selected: [],                     // {message, signal, unit, color, t:[], v:[], downsampled}
   favorites: new Set(store.get("favorites", [])),
   bounds: null,                     // [t0, t1] full data extent

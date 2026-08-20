@@ -1,13 +1,14 @@
 ## item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation - Prioritize relevant DBCs and add message-level signal navigation
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 95%
 > Confidence: 90%
-> Progress: 0%
+> Progress: 70%
 > Complexity: Medium
 > Theme: Signal explorer usability
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-08-20 15:32:10
 
 # AI Context
 - Summary: (unfilled: replace before this doc is used)

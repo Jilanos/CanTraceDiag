@@ -373,7 +373,7 @@ def test_signal_filters_intersect_and_show_an_empty_state(page):
 
 
 def test_dbc_groups_are_ordered_and_independently_collapsible(browser, live_url):
-    """Active DBC first and expanded, the others listed but collapsed (AC2, AC3)."""
+    """Relevant DBCs are compact by default; unused ones remain on demand."""
     ctx = browser.new_context(viewport={"width": 1280, "height": 720})
     pg = ctx.new_page()
     pg.goto(live_url)
@@ -390,6 +390,11 @@ def test_dbc_groups_are_ordered_and_independently_collapsible(browser, live_url)
     pg.wait_for_function("() => window.__ctd && window.__ctd.state.databases.length === 2")
 
     heads = pg.locator("#signalList .grp")
+    # The trace uses sample.dbc, so the unused catalog entry is compacted until
+    # the operator explicitly asks to inspect it.
+    assert heads.count() == 1
+    assert pg.locator("#showUnusedDbcs").inner_text().lower() == "+ 1 unused dbc"
+    pg.locator("#showUnusedDbcs").click()
     assert heads.count() == 2
     assert "sample.dbc" in heads.nth(0).inner_text().lower()
     assert "sample_body.dbc" in heads.nth(1).inner_text().lower()
@@ -411,6 +416,7 @@ def test_dbc_groups_are_ordered_and_independently_collapsible(browser, live_url)
 
     # Plot a signal from the active group, then drive the second header from the
     # keyboard: only that group changes, and the selection survives (AC3).
+    bodies.nth(0).locator(".msg-grp").first.click()
     bodies.nth(0).locator("input[type=checkbox]").first.check()
     pg.wait_for_function("() => window.__ctd.selected.length === 1")
     heads.nth(1).focus()
@@ -430,11 +436,12 @@ def test_dbc_groups_are_ordered_and_independently_collapsible(browser, live_url)
     assert bodies.nth(1).is_visible()
     assert pg.evaluate("() => window.__ctd.selected.length") == 1
 
-    # A DBC with no matching signal keeps its header and reports a zero count.
+    # Search removes groups with no matching signal, rather than leaving an
+    # operator to scan empty DBC headers.
     heads.nth(0).click()
     pg.locator("#sigFilter").fill("EngineSpeed")
-    assert heads.count() == 2
-    assert heads.nth(1).locator(".grp-count").inner_text() == "0"
+    assert heads.count() == 1
+    assert heads.nth(0).locator(".grp-count").inner_text() == "1"
     assert _visible_rows(pg) == 1
     ctx.close()
 

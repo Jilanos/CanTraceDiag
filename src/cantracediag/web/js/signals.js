@@ -28,6 +28,8 @@ function setDatabases(names, active) {
   state.databases = [...names];
   state.activeDatabase = active || names[0] || null;
   state.groupsOpen = new Map(state.databases.map((n) => [n, n === state.activeDatabase]));
+  state.messageGroupsOpen = new Map();
+  state.showUnusedDatabases = false;
 }
 
 function groupOpen(db) {
@@ -48,6 +50,9 @@ function groupSlug(db) {
 }
 const groupHeadId = (db) => `grpHead-${groupSlug(db)}`;
 const groupBodyId = (db) => `grpBody-${groupSlug(db)}`;
+const messageKey = (db, message) => `${db}\u0000${message}`;
+const messageHeadId = (db, message) => `msgHead-${groupSlug(messageKey(db, message))}`;
+const messageBodyId = (db, message) => `msgBody-${groupSlug(messageKey(db, message))}`;
 
 /* Toggle one group in place: re-rendering the whole list would move focus off
  * the header the operator just activated, and only this group's rows change
@@ -81,10 +86,37 @@ function groupHeader(db, count) {
   return head;
 }
 
+function messageOpen(db, message, sigs, filtering) {
+  const key = messageKey(db, message);
+  if (state.messageGroupsOpen.has(key)) return state.messageGroupsOpen.get(key);
+  // Search reveals its results immediately; otherwise dense DBCs stay compact
+  // until the operator opens the relevant CAN message.
+  const open = filtering || sigs.some(isDisplayed);
+  state.messageGroupsOpen.set(key, open);
+  return open;
+}
+
+function messageHeader(db, message, sigs, filtering) {
+  const open = messageOpen(db, message, sigs, filtering);
+  const head = document.createElement("button");
+  head.type = "button";
+  head.className = "msg-grp";
+  head.id = messageHeadId(db, message);
+  head.setAttribute("aria-expanded", open ? "true" : "false");
+  head.setAttribute("aria-controls", messageBodyId(db, message));
+  head.innerHTML = `<span class="caret" aria-hidden="true">${open ? "▾" : "▸"}</span><span>${esc(message)}</span><span class="msg-count">${sigs.length}</span>`;
+  head.addEventListener("click", () => {
+    state.messageGroupsOpen.set(messageKey(db, message), !messageOpen(db, message, sigs, filtering));
+    renderSignalList();
+  });
+  return head;
+}
+
 function renderSignalList() {
   const filter = $("sigFilter").value.toLowerCase();
   const favOnly = $("favOnly").checked;
   const dispOnly = $("dispOnly").checked;
+  const filtering = Boolean(filter || favOnly || dispOnly);
   const list = $("signalList");
   list.innerHTML = "";
 
@@ -109,8 +141,12 @@ function renderSignalList() {
   // Session order first (active DBC leading), then anything the session did not
   // name — a stale catalog entry or the "no DBC" bucket — alphabetically.
   const extra = [...groups.keys()].filter((db) => !state.databases.includes(db)).sort();
+  const ordered = [...state.databases, ...extra];
+  const relevant = new Set([state.activeDatabase, ...ordered.filter((db) => (groups.get(db) || []).some((sig) => sig.present !== false))]);
+  const visible = filtering ? ordered.filter((db) => (groups.get(db) || []).length) : ordered.filter((db) => relevant.has(db) || state.showUnusedDatabases);
+  const unused = ordered.filter((db) => !relevant.has(db));
   let matched = 0;
-  for (const db of [...state.databases, ...extra]) {
+  for (const db of visible) {
     const sigs = groups.get(db) || [];
     matched += sigs.length;
     list.appendChild(groupHeader(db, sigs.length));
@@ -118,9 +154,31 @@ function renderSignalList() {
     body.className = "grp-body";
     body.id = groupBodyId(db);
     body.hidden = !groupOpen(db);
-    sigs.sort((a, b) => favKey(a).localeCompare(favKey(b)));
-    for (const sig of sigs) body.appendChild(signalRow(sig));
+    const messages = new Map();
+    for (const sig of sigs.sort((a, b) => favKey(a).localeCompare(favKey(b)))) {
+      const message = sig.message_name || "(unnamed message)";
+      if (!messages.has(message)) messages.set(message, []);
+      messages.get(message).push(sig);
+    }
+    for (const [message, messageSignals] of messages) {
+      body.appendChild(messageHeader(db, message, messageSignals, filtering));
+      const messageBody = document.createElement("div");
+      messageBody.className = "msg-body";
+      messageBody.id = messageBodyId(db, message);
+      messageBody.hidden = !messageOpen(db, message, messageSignals, filtering);
+      for (const sig of messageSignals) messageBody.appendChild(signalRow(sig));
+      body.appendChild(messageBody);
+    }
     list.appendChild(body);
+  }
+  if (!filtering && unused.length && !state.showUnusedDatabases) {
+    const reveal = document.createElement("button");
+    reveal.type = "button";
+    reveal.className = "show-unused-dbcs";
+    reveal.id = "showUnusedDbcs";
+    reveal.textContent = `+ ${unused.length} unused DBC${unused.length === 1 ? "" : "s"}`;
+    reveal.addEventListener("click", () => { state.showUnusedDatabases = true; renderSignalList(); });
+    list.appendChild(reveal);
   }
   if (!matched) {
     const empty = document.createElement("div");
@@ -242,4 +300,3 @@ async function fetchAllSeries() {
   if (token !== state.seriesToken) return false;   // a newer request superseded us
   return results.every((result) => result.status === "fulfilled");
 }
-

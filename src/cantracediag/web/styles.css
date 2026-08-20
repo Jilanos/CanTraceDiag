@@ -196,6 +196,16 @@
   }
   .grp .grp-count { color: var(--faint); font: 10px var(--mono); letter-spacing: 0; flex: 0 0 auto; }
   .grp-body[hidden] { display: none; }
+  .msg-grp, .show-unused-dbcs {
+    width: 100%; display: flex; align-items: center; gap: 6px; padding: 3px 12px 3px 21px;
+    border: 0; border-bottom: 1px solid var(--line-soft); border-radius: 0; background: var(--panel2);
+    color: var(--muted); text-align: left; font: 600 9px var(--sans); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .msg-grp:hover, .show-unused-dbcs:hover { color: var(--fg); background: #17212c; }
+  .msg-grp span:nth-child(2) { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .msg-count { color: var(--faint); font: 10px var(--mono); letter-spacing: 0; }
+  .msg-body[hidden] { display: none; }
+  .show-unused-dbcs { cursor: pointer; color: var(--accent); padding: 6px 12px; }
   .grp-empty {
     padding: 8px 10px; font: 600 10px var(--sans); letter-spacing: .1em;
     text-transform: uppercase; color: var(--muted);
