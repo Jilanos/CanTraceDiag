@@ -24,7 +24,21 @@ jobs:
           server_pid=$!
           trap 'kill "$server_pid"' EXIT
           python3 - <<'PY'
+          import time
           import urllib.request
+
+          # The background HTTP server is not guaranteed to be ready on the
+          # next scheduler tick. Wait briefly so this verifies delivery rather
+          # than racing process startup.
+          for _ in range(30):
+              try:
+                  with urllib.request.urlopen("http://127.0.0.1:8770/", timeout=1) as response:
+                      assert response.status == 200, response.status
+                  break
+              except OSError:
+                  time.sleep(0.1)
+          else:
+              raise RuntimeError("Static PWA server did not start within 3 seconds")
 
           for path in ("/", "/index.html", "/manifest.webmanifest", "/sw.js"):
               with urllib.request.urlopen("http://127.0.0.1:8770" + path) as response:
