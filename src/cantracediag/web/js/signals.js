@@ -91,7 +91,7 @@ function messageOpen(db, message, sigs, filtering) {
   if (state.messageGroupsOpen.has(key)) return state.messageGroupsOpen.get(key);
   // Search reveals its results immediately; otherwise dense DBCs stay compact
   // until the operator opens the relevant CAN message.
-  const open = filtering || sigs.some(isDisplayed);
+  const open = filtering || state.databases.length <= 1 || sigs.some(isDisplayed);
   state.messageGroupsOpen.set(key, open);
   return open;
 }
