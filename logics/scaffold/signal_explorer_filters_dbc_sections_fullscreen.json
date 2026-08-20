@@ -1,0 +1,123 @@
+{
+  "title": "Make the signal explorer more efficient on compact screens",
+  "references": [
+    "src/cantracediag/web/index.html",
+    "src/cantracediag/web/js/signals.js",
+    "src/cantracediag/web/js/main.js",
+    "src/cantracediag/web/styles.css",
+    "tests/test_e2e_ui.py"
+  ],
+  "request": {
+    "complexity": "Medium",
+    "theme": "Signal explorer usability",
+    "needs": [
+      "Filter the signal explorer to signals currently displayed as plots, alongside the existing favorites filter.",
+      "Make DBC groups in the signal explorer compact and navigable, with the active DBC prominent and all other imported DBCs available on demand.",
+      "Let operators enter and leave browser fullscreen from the application to recover space on small screens."
+    ],
+    "context": [
+      "The current explorer groups catalog entries by the first database name, lists groups alphabetically, and renders every group expanded.",
+      "Selection is the canonical source for plotted signals in `state.selected`; favorites and selected signals are persisted in browser storage.",
+      "An imported/restored analysis already exposes the ordered DBC paths in the server session, but `/api/signals` currently returns only the catalog entries.",
+      "The requested active DBC is the DBC most recently used by the loaded or restored analysis. It is displayed first and starts expanded; all other loaded DBC groups remain visible as collapsed headers with an arrow control.",
+      "The active DBC group itself is collapsible. Expanding or collapsing a group must not change signal selection, favorites, the search text, or the other filter state.",
+      "The displayed-only and favorites-only filters combine with the existing text search using AND semantics. Displayed means a signal is currently selected for plotting, including a selected signal whose source DBC group is collapsed.",
+      "The Web Fullscreen API can only be requested from a user gesture and cannot programmatically invoke the browser's F11 chrome-hiding mode. The UI must therefore request document fullscreen, reflect native fullscreen changes, and remain usable when the request is denied or unsupported.",
+      "The web UI is keyboard-accessible and its current end-to-end suite uses Playwright. Tests must cover keyboard and assistive-technology semantics as well as visual state changes."
+    ],
+    "acceptance_criteria": [
+      "AC1: The Signals header provides an accessible displayed-only checkbox next to the existing favorites-only control; when enabled, the list contains only currently plotted signals and combines predictably with text search and favorites-only filtering.",
+      "AC2: The active DBC is first and initially expanded. Every loaded DBC, including DBCs without a currently matching signal, has a visible, keyboard-operable expandable header; non-active DBC groups start collapsed and the active group can also be collapsed.",
+      "AC3: Collapsing, expanding, filtering, selecting, or unselecting signals preserves selected signals, favorite signals, the text query, and unrelated DBC group state. The explorer has a clear empty state when filters match no signal.",
+      "AC4: An accessible fullscreen control requests and exits document fullscreen from a user action, accurately updates its pressed/label state after browser fullscreen changes, and presents a non-disruptive failure state when fullscreen is unavailable or denied. Escape exits fullscreen according to browser behavior.",
+      "AC5: The updated explorer and fullscreen control remain operable at the supported desktop and 390x844 small-screen viewports, without horizontal overflow or inaccessible controls.",
+      "AC6: Focused unit or browser tests cover displayed-only filtering, DBC group ordering and expansion, and fullscreen success, exit, and failure paths."
+    ]
+  },
+  "product": {
+    "title": "Compact signal exploration for CanTraceDiag",
+    "overview": "Improve selection and navigation of multi-DBC signal catalogs while recovering workspace area on small displays.",
+    "goals": [
+      "Make already plotted signals immediately discoverable.",
+      "Keep every imported DBC discoverable without permanently consuming explorer height.",
+      "Offer application-controlled document fullscreen with truthful browser state."
+    ],
+    "non_goals": [
+      "Change CAN decoding, DBC conflict resolution, or the persisted DBC library.",
+      "Programmatically trigger the browser F11 mode or suppress browser exit controls.",
+      "Introduce a mobile-only layout or alter plot data and rendering semantics."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Add displayed filtering and collapsible ordered DBC groups to the signal explorer",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Signal explorer usability",
+      "request_acs": ["AC1", "AC2", "AC3", "AC5", "AC6"],
+      "problem": [
+        "The explorer renders all DBC groups expanded and alphabetically, making a large multi-DBC catalog difficult to scan.",
+        "Operators cannot restrict the list to the signals already plotted."
+      ],
+      "scope_in": [
+        "Expose enough ordered DBC metadata for the UI to identify the most recently used DBC of the loaded/restored analysis.",
+        "Add the displayed-only control beside favorites-only, persist its preference consistently with favorites-only, and combine its predicate with the existing search and favorites predicates.",
+        "Render all loaded DBCs as accessible expandable group headers, place the active DBC first, and default only non-active groups to collapsed.",
+        "Preserve independent expansion state without altering selected signals, favorites, or search text.",
+        "Add focused automated coverage for the filter and DBC group interactions."
+      ],
+      "scope_out": [
+        "Changing decoder behavior, DBC parsing, or conflict resolution.",
+        "Removing signals from selected plots when their group is collapsed or filtered out.",
+        "Persisting sensitive DBC contents beyond the existing local workspace behavior."
+      ],
+      "acceptance_criteria": [
+        "AC1: Displayed-only, favorites-only, and text filtering produce their intersection from the current catalog and selection.",
+        "AC2: The last-used DBC is first and expanded after loading/restoring; each remaining loaded DBC is listed and collapsed by default.",
+        "AC3: Each DBC header exposes its expanded state to keyboard and assistive-technology users, and toggling it affects only that group's rows.",
+        "AC4: Tests demonstrate filter intersection, empty results, active-group ordering, and expand/collapse persistence through re-rendering."
+      ]
+    },
+    {
+      "title": "Add a resilient browser fullscreen control for the diagnostic workspace",
+      "priority": "Medium",
+      "complexity": "Low",
+      "theme": "Compact-screen workspace",
+      "request_acs": ["AC4", "AC5", "AC6"],
+      "problem": [
+        "Small screens lose useful diagnostic workspace to browser chrome and the application offers no direct fullscreen action."
+      ],
+      "scope_in": [
+        "Add a clearly labelled, keyboard-operable fullscreen toggle in the application chrome.",
+        "Use the standards-based Web Fullscreen API only from a user gesture and react to `fullscreenchange` and fullscreen errors.",
+        "Keep control semantics, focus behavior, and layout usable whether fullscreen succeeds, exits via Escape, is unsupported, or is denied.",
+        "Cover the native API success, external exit, and rejection paths in automated tests."
+      ],
+      "scope_out": [
+        "Attempting to synthesize F11, hiding browser chrome outside document fullscreen, or bypassing browser permission policies.",
+        "Making fullscreen a persisted preference that auto-enters on page load."
+      ],
+      "acceptance_criteria": [
+        "AC1: Activating the control requests document fullscreen and its accessible state changes only after native state confirms success.",
+        "AC2: Escape or any external fullscreen exit restores the enter-fullscreen affordance and normal layout.",
+        "AC3: A rejected or unsupported request leaves the page usable and communicates the issue without a blocking dialog.",
+        "AC4: Small-screen browser tests show no horizontal overflow and retain access to the signal filters and fullscreen control."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver compact signal explorer navigation and browser fullscreen",
+    "plan": [
+      "Trace import/restoration metadata through the signal API and define the active DBC fallback for an empty or legacy session.",
+      "Implement displayed-only filtering and accessible, independently collapsible DBC groups in the explorer.",
+      "Implement the document fullscreen control and its native success, exit, unsupported, and error handling.",
+      "Add focused UI/API tests, including keyboard behavior and small-screen layout coverage.",
+      "Run the targeted suite and the project validation commands, then record implementation evidence in task closeout."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/signal_explorer_filters_dbc_sections_fullscreen.json",
+    "mode": "diff-first",
+    "profile": "normal"
+  }
+}

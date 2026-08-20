@@ -1,0 +1,315 @@
+{
+  "budgets": {
+    "max_docs": 16,
+    "max_docs_per_ref": 4
+  },
+  "changed_paths": [
+    "logics/backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md",
+    "logics/backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md",
+    "logics/product/prod_008_compact_signal_exploration_for_cantracediag.md",
+    "logics/request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md",
+    "logics/scaffold/signal_explorer_filters_dbc_sections_fullscreen.json",
+    "logics/tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md"
+  ],
+  "command": "logics-manager sync context-pack req_021_make_the_signal_explorer_more_efficient_on_compact_screens item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen --mode diff-first --profile normal --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer",
+          "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ],
+        "task": [
+          "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+        ]
+      },
+      "path": "logics/product/prod_008_compact_signal_exploration_for_cantracediag.md",
+      "ref": "prod_008_compact_signal_exploration_for_cantracediag",
+      "sections": {
+        "Goals": [
+          "- Make already plotted signals immediately discoverable.",
+          "- Keep every imported DBC discoverable without permanently consuming explorer height.",
+          "- Offer application-controlled document fullscreen with truthful browser state."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Improve selection and navigation of multi-DBC signal catalogs while recovering workspace area on small displays."
+        ],
+        "References": [
+          "- Product back-reference: `req_021_make_the_signal_explorer_more_efficient_on_compact_screens`",
+          "- Task back-reference: `task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Compact signal exploration for CanTraceDiag"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "signal, explorer, more, efficient, compact, screens",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer",
+          "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ]
+      },
+      "path": "logics/request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md",
+      "ref": "req_021_make_the_signal_explorer_more_efficient_on_compact_screens",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: The Signals header provides an accessible displayed-only checkbox next to the existing favorites-only control; when enabled, the list contains only currently plotted signals and combines predictably with text search and favorites-only filtering.",
+          "- AC2: The active DBC is first and initially expanded. Every loaded DBC, including DBCs without a currently matching signal, has a visible, keyboard-operable expandable header; non-active DBC groups start collapsed and the active group can also be collapsed.",
+          "- AC3: Collapsing, expanding, filtering, selecting, or unselecting signals preserves selected signals, favorite signals, the text query, and unrelated DBC group state. The explorer has a clear empty state when filters match no signal.",
+          "- AC4: An accessible fullscreen control requests and exits document fullscreen from a user action, accurately updates its pressed/label state after browser fullscreen changes, and presents a non-disruptive failure state when fullscreen is unavailable or denied. Escape exits fullscreen according to browser behavior.",
+          "- AC5: The updated explorer and fullscreen control remain operable at the supported desktop and 390x844 small-screen viewports, without horizontal overflow or inaccessible controls.",
+          "- AC6: Focused unit or browser tests cover displayed-only filtering, DBC group ordering and expansion, and fullscreen success, exit, and failure paths."
+        ],
+        "Needs": [
+          "- Filter the signal explorer to signals currently displayed as plots, alongside the existing favorites filter.",
+          "- Make DBC groups in the signal explorer compact and navigable, with the active DBC prominent and all other imported DBCs available on demand.",
+          "- Let operators enter and leave browser fullscreen from the application to recover space on small screens."
+        ]
+      },
+      "status": "Draft",
+      "title": "Make the signal explorer more efficient on compact screens"
+    },
+    {
+      "ai_context": {
+        "keywords": "add, displayed, filtering, collapsible, ordered, dbc, groups, signal, explorer",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ],
+        "task": [
+          "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+        ]
+      },
+      "path": "logics/backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md",
+      "ref": "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Displayed-only, favorites-only, and text filtering produce their intersection from the current catalog and selection.",
+          "- AC2: The last-used DBC is first and expanded after loading/restoring; each remaining loaded DBC is listed and collapsed by default.",
+          "- AC3: Each DBC header exposes its expanded state to keyboard and assistive-technology users, and toggling it affects only that group's rows.",
+          "- AC4: Tests demonstrate filter intersection, empty results, active-group ordering, and expand/collapse persistence through re-rendering."
+        ],
+        "Problem": [
+          "- The explorer renders all DBC groups expanded and alphabetically, making a large multi-DBC catalog difficult to scan.",
+          "- Operators cannot restrict the list to the signals already plotted."
+        ]
+      },
+      "status": "Ready",
+      "title": "Add displayed filtering and collapsible ordered DBC groups to the signal explorer"
+    },
+    {
+      "ai_context": {
+        "keywords": "add, resilient, browser, fullscreen, control, diagnostic, workspace",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ],
+        "task": [
+          "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+        ]
+      },
+      "path": "logics/backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md",
+      "ref": "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Activating the control requests document fullscreen and its accessible state changes only after native state confirms success.",
+          "- AC2: Escape or any external fullscreen exit restores the enter-fullscreen affordance and normal layout.",
+          "- AC3: A rejected or unsupported request leaves the page usable and communicates the issue without a blocking dialog.",
+          "- AC4: Small-screen browser tests show no horizontal overflow and retain access to the signal filters and fullscreen control."
+        ],
+        "Problem": [
+          "- Small screens lose useful diagnostic workspace to browser chrome and the application offers no direct fullscreen action."
+        ]
+      },
+      "status": "Ready",
+      "title": "Add a resilient browser fullscreen control for the diagnostic workspace"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer",
+          "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ],
+        "task": [
+          "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+        ]
+      },
+      "path": "logics/product/prod_008_compact_signal_exploration_for_cantracediag.md",
+      "ref": "prod_008_compact_signal_exploration_for_cantracediag",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Compact signal exploration for CanTraceDiag"
+    },
+    {
+      "ai_context": {
+        "keywords": "deliver, compact, signal, explorer, navigation, browser, fullscreen",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer",
+          "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace"
+        ],
+        "prod": [
+          "prod_008_compact_signal_exploration_for_cantracediag"
+        ],
+        "req": [
+          "req_021_make_the_signal_explorer_more_efficient_on_compact_screens"
+        ],
+        "task": [
+          "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+        ]
+      },
+      "path": "logics/tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md",
+      "ref": "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Orchestrate the scaffolded request chain and keep sibling implementation slices linked."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver compact signal explorer navigation and browser fullscreen"
+    }
+  ],
+  "estimates": {
+    "char_count": 9595,
+    "companion_doc_count": 1,
+    "doc_count": 5
+  },
+  "generated_at": "2026-08-20T08:49:49Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_021_make_the_signal_explorer_more_efficient_on_compact_screens",
+      "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer",
+      "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace",
+      "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "normal",
+  "ref": "req_021_make_the_signal_explorer_more_efficient_on_compact_screens,item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer,item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace,task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen",
+  "refs": [
+    "req_021_make_the_signal_explorer_more_efficient_on_compact_screens",
+    "item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer",
+    "item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace",
+    "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+  ],
+  "release": {
+    "blocking_reasons": [
+      "Missing logics/release/contract.json."
+    ],
+    "configured": false,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Run logics-manager release discover --write, then review and promote logics/release/contract.draft.json to logics/release/contract.json.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "not_configured",
+    "target_version": null
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md",
+      "ref": "task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen"
+    }
+  ]
+}

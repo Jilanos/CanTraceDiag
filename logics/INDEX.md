@@ -15,13 +15,14 @@
 | [prod_004_fiabilisation_du_produit_cantracediag](product/prod_004_fiabilisation_du_produit_cantracediag.md) | Fiabilisation du produit CanTraceDiag | Proposed |  |  | product/prod_004_fiabilisation_du_produit_cantracediag.md |
 | [prod_005_identite_cantracediag_alignee_sur_icones_v3](product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md) | Identite CanTraceDiag alignee sur Icones V3 | Settled |  |  | product/prod_005_identite_cantracediag_alignee_sur_icones_v3.md |
 | [prod_006_publier_les_derniers_assets_icones_v3_cantracediag](product/prod_006_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Proposed |  |  | product/prod_006_publier_les_derniers_assets_icones_v3_cantracediag.md |
-| [prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige](product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md) | Identite CanTraceDiag alignee sur Icones V3 corrige | Proposed |  |  | product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md |
+| [prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige](product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md) | Identite CanTraceDiag alignee sur Icones V3 corrige | Settled |  |  | product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md |
+| [prod_008_compact_signal_exploration_for_cantracediag](product/prod_008_compact_signal_exploration_for_cantracediag.md) | Compact signal exploration for CanTraceDiag | Proposed |  |  | product/prod_008_compact_signal_exploration_for_cantracediag.md |
 
 ## Roadmaps
 
 | Doc | Title | Status | Owner | Progress | Path |
 |---|---|---|---|---|---|
-| [0.4](roadmap/road_001_architecture_pwa_spa_local_first.md) | Migration UI produit et parite MVP | Proposed |  |  | roadmap/road_001_architecture_pwa_spa_local_first.md |
+| [road_001_architecture_pwa_spa_local_first](roadmap/road_001_architecture_pwa_spa_local_first.md) | Architecture PWA SPA local-first | Proposed |  |  | roadmap/road_001_architecture_pwa_spa_local_first.md |
 
 ## Requests
 
@@ -49,7 +50,8 @@
 | [req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag](request/req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag.md) | Integrer les icones Icones V3 et le lien parent Paul Mondou dans CanTraceDiag | Done |  |  | request/req_017_integrer_les_icones_icones_v3_et_le_lien_parent_paul_mondou_dans_cantracediag.md |
 | [req_018_publier_les_derniers_assets_icones_v3_cantracediag](request/req_018_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Done |  |  | request/req_018_publier_les_derniers_assets_icones_v3_cantracediag.md |
 | [req_019_publier_la_release_patch_v1_0_7_de_cantracediag](request/req_019_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done |  |  | request/req_019_publier_la_release_patch_v1_0_7_de_cantracediag.md |
-| [req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Draft |  |  | request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
+| [req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Done |  |  | request/req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
+| [req_021_make_the_signal_explorer_more_efficient_on_compact_screens](request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md) | Make the signal explorer more efficient on compact screens | Draft |  |  | request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md |
 
 ## Backlog
 
@@ -100,8 +102,10 @@
 | [item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3](backlog/item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3.md) | Mettre le lien parent Paul Mondou aux couleurs Icones V3 | Done |  | 100% | backlog/item_035_mettre_le_lien_parent_paul_mondou_aux_couleurs_icones_v3.md |
 | [item_036_publier_les_derniers_assets_icones_v3_cantracediag](backlog/item_036_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Done |  | 100% | backlog/item_036_publier_les_derniers_assets_icones_v3_cantracediag.md |
 | [item_037_publier_la_release_patch_v1_0_7_de_cantracediag](backlog/item_037_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done |  | 100% | backlog/item_037_publier_la_release_patch_v1_0_7_de_cantracediag.md |
-| [item_038_remplacer_les_assets_web_et_l_ico_cantracediag](backlog/item_038_remplacer_les_assets_web_et_l_ico_cantracediag.md) | Remplacer les assets web et l'ICO CanTraceDiag | Ready |  | 0% | backlog/item_038_remplacer_les_assets_web_et_l_ico_cantracediag.md |
-| [item_039_publier_la_version_1_0_8_apres_remplacement_des_assets](backlog/item_039_publier_la_version_1_0_8_apres_remplacement_des_assets.md) | Publier la version 1.0.8 apres remplacement des assets | Ready |  | 0% | backlog/item_039_publier_la_version_1_0_8_apres_remplacement_des_assets.md |
+| [item_038_remplacer_les_assets_web_et_l_ico_cantracediag](backlog/item_038_remplacer_les_assets_web_et_l_ico_cantracediag.md) | Remplacer les assets web et l'ICO CanTraceDiag | Done |  | 100% | backlog/item_038_remplacer_les_assets_web_et_l_ico_cantracediag.md |
+| [item_039_publier_la_version_1_0_8_apres_remplacement_des_assets](backlog/item_039_publier_la_version_1_0_8_apres_remplacement_des_assets.md) | Publier la version 1.0.8 apres remplacement des assets | Done |  | 100% | backlog/item_039_publier_la_version_1_0_8_apres_remplacement_des_assets.md |
+| [item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer](backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md) | Add displayed filtering and collapsible ordered DBC groups to the signal explorer | Ready |  | 0% | backlog/item_040_add_displayed_filtering_and_collapsible_ordered_dbc_groups_to_the_signal_explorer.md |
+| [item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace](backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md) | Add a resilient browser fullscreen control for the diagnostic workspace | Ready |  | 0% | backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md |
 
 ## Tasks
 
@@ -153,4 +157,9 @@
 | [task_036_orchestrer_l_integration_icones_v3_dans_cantracediag](tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md) | Orchestrer l'integration Icones V3 dans CanTraceDiag | Done | Codex | 100% | tasks/task_036_orchestrer_l_integration_icones_v3_dans_cantracediag.md |
 | [task_037_publier_les_derniers_assets_icones_v3_cantracediag](tasks/task_037_publier_les_derniers_assets_icones_v3_cantracediag.md) | Publier les derniers assets Icones V3 CanTraceDiag | Done | codex | 100% | tasks/task_037_publier_les_derniers_assets_icones_v3_cantracediag.md |
 | [task_038_publier_la_release_patch_v1_0_7_de_cantracediag](tasks/task_038_publier_la_release_patch_v1_0_7_de_cantracediag.md) | Publier la release patch v1.0.7 de CanTraceDiag | Done | Claude | 100% | tasks/task_038_publier_la_release_patch_v1_0_7_de_cantracediag.md |
-| [task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Ready |  | 0% | tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
+| [task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges](tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md) | Remplacer les assets CanTraceDiag par les masters Icones V3 corriges | Done | Claude | 100% | tasks/task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges.md |
+| [task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen](tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md) | Deliver compact signal explorer navigation and browser fullscreen | Ready |  | 0% | tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md |
+
+## Runbooks
+
+_None_
