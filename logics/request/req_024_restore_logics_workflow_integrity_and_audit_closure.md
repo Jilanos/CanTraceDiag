@@ -1,13 +1,13 @@
 ## req_024_restore_logics_workflow_integrity_and_audit_closure - Restore Logics workflow integrity and audit closure
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: High
 > Theme: Workflow integrity
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-08-21 09:52:29
+> Indicators reviewed: 2026-08-21 09:59:08
 
 # AI Context
 - Summary: Classify historic audit blockers before choosing evidence repair, lifecycle withdrawal, or successor linkage.

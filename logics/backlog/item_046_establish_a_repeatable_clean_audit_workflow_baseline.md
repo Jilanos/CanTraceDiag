@@ -1,14 +1,14 @@
 ## item_046_establish_a_repeatable_clean_audit_workflow_baseline - Establish a repeatable clean-audit workflow baseline
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 10%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Validation governance
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-21 09:56:52
+> Indicators reviewed: 2026-08-21 09:59:09
 
 # AI Context
 - Summary: Capture the final validation sequence and its evidence once all remediation waves are complete.
@@ -53,3 +53,9 @@
 # Priority
 - Priority: High
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_043_deliver_clean_logics_workflow_audit_baseline`
+
+# Notes
+- Task `task_043_deliver_clean_logics_workflow_audit_baseline` was finished via `logics-manager flow finish task` on 2026-08-21.

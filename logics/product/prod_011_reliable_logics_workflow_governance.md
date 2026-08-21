@@ -1,11 +1,12 @@
 ## prod_011_reliable_logics_workflow_governance - Reliable Logics workflow governance
 > Date: 2026-08-21
-> Status: Proposed
+> Status: Settled
 > Related request: `req_024_restore_logics_workflow_integrity_and_audit_closure`
-> Related backlog: `item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt`, `item_045_repair_workflow_companion_documents_and_metadata_hygiene`, `item_046_establish_a_repeatable_clean_audit_workflow_baseline`
+> Related backlog: `item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt`
 > Related task: `task_043_deliver_clean_logics_workflow_audit_baseline`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-08-21 09:59:09
 
 # Overview
 Establish a clean, evidence-backed Logics corpus whose lifecycle state, traceability, companion documents, and audit results give implementers a reliable source of truth.
@@ -44,5 +45,5 @@ flowchart LR
 - Context-pack output can be handed to an implementation agent directly.
 
 # References
-- Product back-reference: `req_024_restore_logics_workflow_integrity_and_audit_closure`
+- Product back-reference: `item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt`
 - Task back-reference: `task_043_deliver_clean_logics_workflow_audit_baseline`

@@ -19,7 +19,7 @@
 | [prod_008_compact_signal_exploration_for_cantracediag](product/prod_008_compact_signal_exploration_for_cantracediag.md) | Compact signal exploration for CanTraceDiag | Settled |  |  | product/prod_008_compact_signal_exploration_for_cantracediag.md |
 | [prod_009_efficient_multi_dbc_signal_exploration](product/prod_009_efficient_multi_dbc_signal_exploration.md) | Efficient multi-DBC signal exploration | Settled |  |  | product/prod_009_efficient_multi_dbc_signal_exploration.md |
 | [prod_010_interoperable_classic_can_trace_import](product/prod_010_interoperable_classic_can_trace_import.md) | Interoperable classic CAN trace import | Proposed |  |  | product/prod_010_interoperable_classic_can_trace_import.md |
-| [prod_011_reliable_logics_workflow_governance](product/prod_011_reliable_logics_workflow_governance.md) | Reliable Logics workflow governance | Proposed |  |  | product/prod_011_reliable_logics_workflow_governance.md |
+| [prod_011_reliable_logics_workflow_governance](product/prod_011_reliable_logics_workflow_governance.md) | Reliable Logics workflow governance | Settled |  |  | product/prod_011_reliable_logics_workflow_governance.md |
 
 ## Roadmaps
 
@@ -57,7 +57,7 @@
 | [req_021_make_the_signal_explorer_more_efficient_on_compact_screens](request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md) | Make the signal explorer more efficient on compact screens | Done |  |  | request/req_021_make_the_signal_explorer_more_efficient_on_compact_screens.md |
 | [req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs](request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md) | Streamline navigation of large multi-DBC signal catalogs | Done |  |  | request/req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs.md |
 | [req_023_import_text_trc_can_trace_recordings](request/req_023_import_text_trc_can_trace_recordings.md) | Import text TRC CAN trace recordings | Draft |  |  | request/req_023_import_text_trc_can_trace_recordings.md |
-| [req_024_restore_logics_workflow_integrity_and_audit_closure](request/req_024_restore_logics_workflow_integrity_and_audit_closure.md) | Restore Logics workflow integrity and audit closure | Draft |  |  | request/req_024_restore_logics_workflow_integrity_and_audit_closure.md |
+| [req_024_restore_logics_workflow_integrity_and_audit_closure](request/req_024_restore_logics_workflow_integrity_and_audit_closure.md) | Restore Logics workflow integrity and audit closure | Done |  |  | request/req_024_restore_logics_workflow_integrity_and_audit_closure.md |
 
 ## Backlog
 
@@ -114,9 +114,9 @@
 | [item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace](backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md) | Add a resilient browser fullscreen control for the diagnostic workspace | Done |  | 100% | backlog/item_041_add_a_resilient_browser_fullscreen_control_for_the_diagnostic_workspace.md |
 | [item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation](backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md) | Prioritize relevant DBCs and add message-level signal navigation | Done |  | 100% | backlog/item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation.md |
 | [item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity](backlog/item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity.md) | Add verified text TRC import with server and local-PWA parity | In progress |  | 90% | backlog/item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity.md |
-| [item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt](backlog/item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt.md) | Resolve legacy acceptance-criteria traceability and lifecycle debt | Ready |  | 0% | backlog/item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt.md |
-| [item_045_repair_workflow_companion_documents_and_metadata_hygiene](backlog/item_045_repair_workflow_companion_documents_and_metadata_hygiene.md) | Repair workflow companion documents and metadata hygiene | Ready |  | 0% | backlog/item_045_repair_workflow_companion_documents_and_metadata_hygiene.md |
-| [item_046_establish_a_repeatable_clean_audit_workflow_baseline](backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md) | Establish a repeatable clean-audit workflow baseline | Ready |  | 0% | backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md |
+| [item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt](backlog/item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt.md) | Resolve legacy acceptance-criteria traceability and lifecycle debt | Done |  | 100% | backlog/item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt.md |
+| [item_045_repair_workflow_companion_documents_and_metadata_hygiene](backlog/item_045_repair_workflow_companion_documents_and_metadata_hygiene.md) | Repair workflow companion documents and metadata hygiene | Done |  | 100% | backlog/item_045_repair_workflow_companion_documents_and_metadata_hygiene.md |
+| [item_046_establish_a_repeatable_clean_audit_workflow_baseline](backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md) | Establish a repeatable clean-audit workflow baseline | Done |  | 100% | backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md |
 
 ## Tasks
 
@@ -172,7 +172,7 @@
 | [task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen](tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md) | Deliver compact signal explorer navigation and browser fullscreen | Done | claude | 100% | tasks/task_040_deliver_compact_signal_explorer_navigation_and_browser_fullscreen.md |
 | [task_041_deliver_concise_multi_dbc_explorer_navigation](tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md) | Deliver concise multi-DBC explorer navigation | Done | codex | 100% | tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md |
 | [task_042_deliver_verified_text_trc_trace_import](tasks/task_042_deliver_verified_text_trc_trace_import.md) | Deliver verified text TRC trace import | In progress | codex | 90% | tasks/task_042_deliver_verified_text_trc_trace_import.md |
-| [task_043_deliver_clean_logics_workflow_audit_baseline](tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md) | Deliver clean Logics workflow audit baseline | Ready |  | 0% | tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md |
+| [task_043_deliver_clean_logics_workflow_audit_baseline](tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md) | Deliver clean Logics workflow audit baseline | Done | codex | 100% | tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md |
 
 ## Runbooks
 
