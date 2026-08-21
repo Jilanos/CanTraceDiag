@@ -157,6 +157,14 @@ BO_ 512 MuxMsg: 8 Vector__XXX
 });
 
 describe("LocalPwaBackend", () => {
+  it("dispatches a text TRC filename through the same normalized import path", async () => {
+    const backend = new LocalPwaBackend();
+    const result = await backend.importText(readFixture("sample.trc"), [], {}, "sample.trc");
+    assert.equal(result.needs_resolution, false);
+    assert.equal(backend.status().summary.frames, 4);
+    assert.equal(backend.trace({ limit: 10 }).total, 4);
+  });
+
   it("imports fixture trace and exposes API-equivalent queries without FastAPI", async () => {
     const backend = new LocalPwaBackend();
     const result = await backend.importText(readFixture("sample.asc"), [

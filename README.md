@@ -9,7 +9,7 @@ is retained as a local/API reference implementation and compatibility suite;
 it is not the artifact served by the production Docker image. See
 `docs/architecture-pwa-canonique.md` for the boundary and validation contract.
 
-**CanTraceDiag turns a CANalyzer `.asc` trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
+**CanTraceDiag turns an ASC or supported text `.trc` CAN trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
 
 The goal is direct: inspect real CAN acquisitions away from the vehicle, without a remote server, without keeping a proprietary tool open, and without loading the whole trace into the browser.
 
@@ -17,7 +17,7 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 
 ## Core Features
 
-- **ASC + DBC import** from the browser or server-side paths, with parsing integrity checks that turn a truncated line, a payload/DLC mismatch, an out-of-range byte or an over-long classic DLC into an explicit import anomaly instead of a corrupt frame.
+- **ASC/TRC + DBC import** from the browser or server-side paths. The supported PCAN-View text TRC v1.1 layout and ASC both retain malformed records as explicit import anomalies instead of corrupt frames.
 - **Multi-DBC decoding** with ambiguous arbitration ID detection.
 - **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
 - **Workspace views** from a single control — Plots, Plots + trace (split with a resizable divider), Trace, and Report — that switch layout while preserving selection, cursors, and filters.
@@ -134,6 +134,7 @@ The synthetic fixtures exercise the full flow:
 
 ```bash
 cantracediag info tests/fixtures/sample.asc --dbc tests/fixtures/sample.dbc
+cantracediag info tests/fixtures/sample.trc --dbc tests/fixtures/sample.dbc
 cantracediag signals tests/fixtures/sample.dbc
 cantracediag serve --open
 ```
@@ -158,7 +159,7 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 
 ## User Workflow
 
-1. **Import** one `.asc` trace and one or more `.dbc` files.
+1. **Import** one `.asc` or supported text `.trc` trace and one or more `.dbc` files.
 2. **Resolve DBC conflicts** when several databases define the same arbitration ID with non-equivalent messages.
 3. **Select signals** present in the trace or available in the DBC catalog.
 4. **Switch workspace views** — Plots, Plots + trace (split), Trace, or Report — from the single view control; switching keeps your selection, cursors, and filters.
@@ -172,6 +173,8 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 ```bash
 # Summarize an import
 cantracediag info /path/to/trace.asc --dbc system.dbc --dbc auxiliary.dbc
+# A verified PCAN-View text TRC v1.1 file is supported too.
+cantracediag info /path/to/trace.trc --dbc system.dbc --dbc auxiliary.dbc
 
 # List messages and signals from one or more DBC files
 cantracediag signals system.dbc

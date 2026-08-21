@@ -538,8 +538,8 @@ def create_app(
         (including ``/api/import-job`` polling and ``/api/import-cancel``)
         could be served in the meantime (AC1).
         """
-        if not (trace.filename or "").lower().endswith(".asc"):
-            raise HTTPException(400, "Trace file must be a .asc file.")
+        if not (trace.filename or "").lower().endswith((".asc", ".trc")):
+            raise HTTPException(400, "Trace file must be an .asc or .trc file.")
 
         # Reject oversized requests early via the declared length, then enforce
         # the same aggregate cap while streaming so a lying Content-Length cannot

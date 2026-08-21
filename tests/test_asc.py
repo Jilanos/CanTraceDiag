@@ -1,10 +1,13 @@
 from pathlib import Path
 
 from cantracediag.formats.asc import parse_asc
+from cantracediag.formats.trc import parse_trc
 
 FIXTURE = Path(__file__).parent / "fixtures" / "sample.asc"
 FIXTURE_DEC = Path(__file__).parent / "fixtures" / "sample_dec.asc"
 FIXTURE_MALFORMED = Path(__file__).parent / "fixtures" / "malformed.asc"
+TRC_FIXTURE = Path(__file__).parent / "fixtures" / "sample.trc"
+TRC_MALFORMED = Path(__file__).parent / "fixtures" / "malformed.trc"
 
 
 def test_parses_frames_and_events() -> None:
@@ -96,3 +99,24 @@ def test_valid_frames_survive_alongside_anomalies() -> None:
     result = parse_asc(FIXTURE_MALFORMED)
     last = max(result.frames, key=lambda f: f.timestamp_s)
     assert last.data == bytes([0xAA, 0xBB])  # the trailing well-formed frame
+
+
+def test_trc_v11_normalizes_representative_records() -> None:
+    result = parse_trc(TRC_FIXTURE)
+    assert result.parsed_frames == 4
+    assert result.parsed_events == 0
+    assert [(f.timestamp_s, f.direction, f.arbitration_id, f.data) for f in result.frames] == [
+        (0.0, "Rx", 0x414, bytes.fromhex("F0069C")),
+        (0.0009, "Rx", 0x1A1, bytes.fromhex("7E7F8EAFF04E0124")),
+        (0.02, "Rx", 0x414, bytes.fromhex("F0069C")),
+        (0.0399, "Tx", 0x600, bytes.fromhex("0000")),
+    ]
+
+
+def test_trc_invalid_records_become_inspectable_events() -> None:
+    result = parse_trc(TRC_MALFORMED)
+    assert result.parsed_frames == 2
+    assert {event.event_type for event in result.events} == {
+        "TrcAnomaly", "TrcRemoteRequest", "TrcUnsupported", "TrcWarning"
+    }
+    assert all(len(frame.data) == frame.dlc for frame in result.frames)

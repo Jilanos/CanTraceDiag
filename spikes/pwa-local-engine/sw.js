@@ -12,6 +12,7 @@ const APP_SHELL = [
   "./browser/product-app.mjs",
   "./browser/product-backend.mjs",
   "./browser/asc.mjs",
+  "./browser/trc.mjs",
   "./browser/dbc.mjs",
   "./browser/decode.mjs",
   "./browser/local-backend.mjs",

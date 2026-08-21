@@ -277,6 +277,20 @@ def test_import_files_rejects_non_asc(client: TestClient) -> None:
     assert r.status_code == 400
 
 
+def test_import_files_accepts_text_trc(client: TestClient) -> None:
+    trc = (FIX / "sample.trc").read_bytes()
+    dbc = (FIX / "sample.dbc").read_bytes()
+    r = client.post(
+        "/api/import-files",
+        files=[
+            ("trace", ("sample.trc", trc, "text/plain")),
+            ("dbcs", ("sample.dbc", dbc, "application/octet-stream")),
+        ],
+    )
+    assert r.status_code == 200
+    assert r.json()["summary"]["frames"] == 4
+
+
 def test_import_job_reports_completed_import(client: TestClient) -> None:
     r = _import(client)
     assert r.status_code == 200

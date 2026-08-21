@@ -30,7 +30,7 @@ loadBtn.addEventListener("click", async () => {
   const traceFile = traceInput.files?.[0];
   const dbcFiles = Array.from(dbcInput.files ?? []);
   if (!traceFile || !dbcFiles.length) {
-    appStatus.textContent = "Choose one ASC trace and at least one DBC.";
+    appStatus.textContent = "Choose one ASC or text TRC trace and at least one DBC.";
     return;
   }
   const traceText = await traceFile.text();
@@ -39,7 +39,7 @@ loadBtn.addEventListener("click", async () => {
   currentTraceName = traceFile.name;
   currentTraceText = traceText;
   currentDbcs = dbcs;
-  const result = await backend.importText(traceText, dbcs);
+  const result = await backend.importText(traceText, dbcs, {}, traceFile.name);
   if (result.needs_resolution) {
     appStatus.textContent = `DBC conflict needs resolution: ${JSON.stringify(result.conflicts)}`;
     render();
@@ -128,7 +128,7 @@ async function openWorkspace(id: string): Promise<void> {
     appStatus.textContent = "Workspace not found.";
     return;
   }
-  const result = await backend.importText(snapshot.traceText, snapshot.dbcs);
+  const result = await backend.importText(snapshot.traceText, snapshot.dbcs, {}, snapshot.traceName);
   if (result.needs_resolution) {
     appStatus.textContent = `Workspace needs DBC resolution: ${JSON.stringify(result.conflicts)}`;
     render();

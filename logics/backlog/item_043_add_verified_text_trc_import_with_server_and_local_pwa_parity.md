@@ -1,13 +1,14 @@
 ## item_043_add_verified_text_trc_import_with_server_and_local_pwa_parity - Add verified text TRC import with server and local-PWA parity
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 90%
 > Complexity: Medium
 > Theme: Trace import interoperability
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-08-21 09:21:26
 
 # AI Context
 - Summary: Add one verified .trc grammar and route it through the existing server and browser-local import contracts without duplicating consumers.

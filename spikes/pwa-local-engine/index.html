@@ -13,11 +13,11 @@
     <main>
       <header>
         <p>CanTraceDiag PWA milestone 0.3</p>
-        <h1>Local ASC + DBC PWA</h1>
+        <h1>Local ASC/TRC + DBC PWA</h1>
       </header>
       <p id="appStatus" class="app-status">PWA shell starting.</p>
       <section class="controls">
-        <label>ASC trace <input id="trace" type="file" accept=".asc,text/plain"></label>
+        <label>ASC or text TRC trace <input id="trace" type="file" accept=".asc,.trc,text/plain"></label>
         <label>DBC files <input id="dbc" type="file" accept=".dbc,text/plain" multiple></label>
         <label>Workspace name <input id="workspaceName" type="text" value="Local diagnostic"></label>
         <button id="load" type="button">Import locally</button>

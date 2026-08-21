@@ -1,4 +1,4 @@
-"""Orchestration: import an ASC trace, decode against DBCs, index locally."""
+"""Orchestration: import a supported text trace, decode against DBCs, index locally."""
 
 from __future__ import annotations
 
@@ -9,6 +9,7 @@ from pathlib import Path
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
 from cantracediag.formats.asc import stream_asc
+from cantracediag.formats.trc import stream_trc
 from cantracediag.models import NonDataEvent, RawCanFrame
 from cantracediag.store import TraceStore
 
@@ -42,7 +43,7 @@ def import_trace(
     cancel_check: Callable[[], bool] | None = None,
     decode_samples: bool = False,
 ) -> tuple[TraceStore, ImportResult]:
-    """Parse an ASC trace, decode frames, and populate a TraceStore.
+    """Parse a supported ASC or text TRC trace, decode frames, and populate a TraceStore.
 
     Real trace and DBC files are read from local disk only; nothing is written
     back to the repository (AC1, AC8). ``resolution`` maps an arbitration id to
@@ -110,7 +111,13 @@ def import_trace(
         on_progress(frac)
 
     try:
-        scanner, items = stream_asc(trace_path, on_progress=_report if on_progress else None)
+        suffix = Path(trace_path).suffix.lower()
+        if suffix == ".trc":
+            scanner, items = stream_trc(trace_path, on_progress=_report if on_progress else None)
+        elif suffix == ".asc":
+            scanner, items = stream_asc(trace_path, on_progress=_report if on_progress else None)
+        else:
+            raise ValueError(f"Unsupported trace format: {suffix or '(no extension)'}")
         for item in items:
             if cancel_check is not None and cancel_check():
                 raise ImportCancelled("Import cancelled by operator.")
@@ -144,6 +151,6 @@ def import_trace(
         dbc_paths=[str(p) for p in (dbc_paths or [])],
         summary=store.summary(),
         ambiguous_ids=catalog.find_ambiguous_ids(),
-        asc_base=scanner.base,
+        asc_base=getattr(scanner, "base", "hex"),
     )
     return store, result

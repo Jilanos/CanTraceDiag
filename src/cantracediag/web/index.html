@@ -16,7 +16,7 @@
     <h1>CanTrace<em>Diag</em></h1>
   </div>
   <div class="import">
-    <button class="ghost icon" id="pickTraceBtn" title="Choose a CANalyzer .asc trace">
+    <button class="ghost icon" id="pickTraceBtn" title="Choose an ASC or text TRC CAN trace">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M4 1.5h5l3 3v10h-8z"/><path d="M9 1.5v3h3"/></svg>Trace</button>
     <button class="ghost icon" id="pickDbcBtn" title="Choose one or more DBC files">
       <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="2" y="3" width="12" height="10" rx="1"/><path d="M2 6h12"/></svg>DBC files</button>
@@ -28,7 +28,7 @@
     <button class="ghost" id="cancelImportBtn" hidden>Cancel</button>
     <button class="ghost" id="resolveConflictsBtn" hidden>Resolve conflicts</button>
     <span class="picked" id="picked"></span>
-    <input id="traceFile" type="file" accept=".asc" hidden />
+    <input id="traceFile" type="file" accept=".asc,.trc" hidden />
     <input id="dbcFiles" type="file" accept=".dbc" multiple hidden />
     <input id="dbcDir" type="file" webkitdirectory hidden />
   </div>

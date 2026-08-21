@@ -1,4 +1,5 @@
 import { parseAscText, type AscItem } from "./asc.ts";
+import { parseTrcText, type TrcItem } from "./trc.ts";
 import { DbcCatalog } from "./dbc.ts";
 import { Decoder } from "./decode.ts";
 import { LocalTraceStore } from "./store.ts";
@@ -13,7 +14,7 @@ export class LocalPwaBackend {
   traceName: string | null = null;
   dbcNames: string[] = [];
 
-  async importText(traceText: string, dbcs: { name: string; text: string }[], resolution: Record<number, string> = {}): Promise<Record<string, unknown>> {
+  async importText(traceText: string, dbcs: { name: string; text: string }[], resolution: Record<number, string> = {}, traceName = ""): Promise<Record<string, unknown>> {
     this.purge();
     this.lastJob = { phase: "loading_dbc", progress: 0.05, cancellable: true };
     this.dbcNames = dbcs.map((dbc) => dbc.name);
@@ -29,10 +30,10 @@ export class LocalPwaBackend {
     }
 
     this.lastJob = { phase: "indexing", progress: 0.2, cancellable: true };
-    const parsed = parseAscText(traceText);
+    const parsed = isTrc(traceName, traceText) ? parseTrcText(traceText) : parseAscText(traceText);
     const messageIndex = this.catalog.messageIndex(resolution);
     const decoder = new Decoder(messageIndex, new Set(Object.keys(this.ambiguousIds).map(Number)));
-    const items: AscItem[] = [];
+    const items: Array<AscItem | TrcItem> = [];
     for (const frame of parsed.frames) items.push({ kind: "frame", frame });
     for (const event of parsed.events) items.push({ kind: "event", event });
     this.ingestItems(items, decoder);
@@ -192,7 +193,7 @@ export class LocalPwaBackend {
     this.lastJob = { phase: "idle", progress: 0, cancellable: false };
   }
 
-  private ingestItems(items: AscItem[], decoder: Decoder): void {
+  private ingestItems(items: Array<AscItem | TrcItem>, decoder: Decoder): void {
     let frameSeq = 0;
     let eventSeq = 0;
     const frames: RawCanFrame[] = [];
@@ -231,8 +232,12 @@ export class LocalPwaBackend {
   }
 }
 
-function timestamp(item: AscItem): number {
+function timestamp(item: AscItem | TrcItem): number {
   return item.kind === "frame" ? item.frame.timestamp_s : item.event.timestamp_s;
+}
+
+function isTrc(name: string, text: string): boolean {
+  return name.toLowerCase().endsWith(".trc") || /^\s*;\$FILEVERSION=1\.1\b/m.test(text);
 }
 
 function idHex(id: number, extended: boolean): string {

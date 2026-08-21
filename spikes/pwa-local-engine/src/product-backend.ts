@@ -47,7 +47,7 @@ export function createLocalProductBackend(): {
       if (!pending) throw new Error("No load is awaiting DBC conflict resolution.");
       const body = JSON.parse(String(opts.body || "{}"));
       const resolution = parseResolution(body.resolution || {});
-      const result = await backend.importText(pending.traceText, pending.dbcs, resolution);
+      const result = await backend.importText(pending.traceText, pending.dbcs, resolution, pending.traceName);
       backend.traceName = pending.traceName;
       if (!result.needs_resolution) pending = null;
       return result;
@@ -102,7 +102,7 @@ export function createLocalProductBackend(): {
     onProgress(0.35);
     const traceText = await trace.text();
     onProgress(0.75);
-    const result = await backend.importText(traceText, dbcs);
+    const result = await backend.importText(traceText, dbcs, {}, trace.name);
     backend.traceName = trace.name;
     lastSessionDbcs = dbcs.map((dbc) => dbc.name);
     try {

@@ -1,13 +1,15 @@
 ## task_042_deliver_verified_text_trc_trace_import - Deliver verified text TRC trace import
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 90%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Owner: codex
+> Indicators reviewed: 2026-08-21 09:21:26
 
 # AI Context
 - Summary: Deliver direct classic-CAN text .trc ingestion across both import surfaces with test-backed normalization and diagnostics.

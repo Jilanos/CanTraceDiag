@@ -4,6 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 
 import { parseAscText } from "../src/asc.ts";
+import { parseTrcText } from "../src/trc.ts";
 
 const FIX = path.resolve("tests/fixtures");
 
@@ -46,5 +47,24 @@ base hex
     assert.equal(parsed.frames.length, 1);
     assert.equal(parsed.frames[0].timestamp_s, 0.02);
     assert.equal(parsed.events.length, 2);
+  });
+});
+
+describe("local TRC parser", () => {
+  it("normalizes the representative PCAN-View v1.1 fixture", () => {
+    const parsed = parseTrcText(fs.readFileSync(path.join(FIX, "sample.trc"), "utf8"));
+    assert.equal(parsed.frames.length, 4);
+    assert.equal(parsed.events.length, 0);
+    assert.deepEqual(parsed.frames.map((frame) => [frame.timestamp_s, frame.direction, frame.id_hex]), [
+      [0, "Rx", "414"], [0.0009, "Rx", "1A1"], [0.02, "Rx", "414"], [0.0399, "Tx", "600"],
+    ]);
+  });
+
+  it("retains malformed and unsupported records as events", () => {
+    const parsed = parseTrcText(fs.readFileSync(path.join(FIX, "malformed.trc"), "utf8"));
+    assert.equal(parsed.frames.length, 2);
+    assert.deepEqual(new Set(parsed.events.map((event) => event.event_type)), new Set([
+      "TrcAnomaly", "TrcRemoteRequest", "TrcUnsupported", "TrcWarning",
+    ]));
   });
 });

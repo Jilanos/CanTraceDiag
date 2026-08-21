@@ -24,6 +24,15 @@ def test_import_summary() -> None:
     store.close()
 
 
+def test_imports_text_trc_through_the_normalized_pipeline() -> None:
+    trc = FIX / "sample.trc"
+    store, result = import_trace(trc)
+    assert result.summary["frames"] == 4
+    assert result.summary["start_s"] == 0.0
+    assert result.summary["end_s"] == 0.0399
+    store.close()
+
+
 def test_signal_series_is_time_ordered() -> None:
     store, _ = _store()
     series = store.signal_series("EngineData", "EngineSpeed")
