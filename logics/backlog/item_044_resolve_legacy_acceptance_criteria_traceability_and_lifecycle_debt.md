@@ -1,14 +1,14 @@
 ## item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt - Resolve legacy acceptance-criteria traceability and lifecycle debt
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 10%
 > Complexity: High
 > Theme: Traceability remediation
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-21 09:52:29
+> Indicators reviewed: 2026-08-21 09:56:52
 
 # AI Context
 - Summary: Reconcile historical acceptance criteria with verifiable implementation evidence or managed retirement.

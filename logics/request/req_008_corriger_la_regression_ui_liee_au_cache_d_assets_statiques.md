@@ -7,6 +7,7 @@
 > Complexity: medium
 > Theme: ui-asset-cache-busting
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-08-21 09:57:50
 
 # Needs
 - Apres la modularisation du frontend (task_022, `app.js` -> `js/*.js`) et le
@@ -65,10 +66,10 @@
   navigateur, et la suite E2E existante reste verte.
 
 # Definition of Ready (DoR)
-- [ ] Problem statement is explicit and user impact is clear.
-- [ ] Scope boundaries (in/out) are explicit.
-- [ ] Acceptance criteria are testable.
-- [ ] Dependencies and known risks are listed.
+- [x] Problem statement is explicit and user impact is clear.
+- [x] Scope boundaries (in/out) are explicit.
+- [x] Acceptance criteria are testable.
+- [x] Dependencies and known risks are listed.
 
 # Companion docs
 - Product brief(s): (none yet)

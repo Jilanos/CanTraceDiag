@@ -9,6 +9,7 @@
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 > Owner: claude
+> Indicators reviewed: 2026-08-21 09:57:37
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -143,3 +144,15 @@
 - Product brief(s): (none yet)
 - Architecture decision(s): `docs/adr/0005-identite-ui-instrument.md`
 - Design charter: `docs/design-ui.md`
+
+# AC Traceability
+- request-AC1 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC2 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC3 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC4 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC5 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC6 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC7 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC8 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC9 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`
+- request-AC10 -> This task. Proof: Implemented by task_015; validation recorded in its completed report. Source: `3d80c7c`

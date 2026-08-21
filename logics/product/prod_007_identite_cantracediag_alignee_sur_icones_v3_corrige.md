@@ -6,9 +6,18 @@
 > Related task: `task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-08-21 09:58:09
 
 # Overview
 Servir les masters approuves sur l'interface web et le favicon ICO.
+
+```mermaid
+flowchart LR
+  Masters[Approved icon masters] --> Web[Web emblem and icon]
+  Masters --> Ico[Favicon ICO]
+  Web --> Interface[CanTraceDiag interface]
+  Ico --> Browser[Browser identity]
+```
 
 # Goals
 - Une source unique pour l'icone, l'embleme et l'ICO.

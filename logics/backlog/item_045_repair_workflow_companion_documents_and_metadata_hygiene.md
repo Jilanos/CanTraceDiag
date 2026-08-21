@@ -1,14 +1,14 @@
 ## item_045_repair_workflow_companion_documents_and_metadata_hygiene - Repair workflow companion documents and metadata hygiene
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 10%
 > Complexity: Medium
 > Theme: Document hygiene
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-21 09:52:29
+> Indicators reviewed: 2026-08-21 09:56:52
 
 # AI Context
 - Summary: Repair authored companion content and metadata references after lifecycle evidence has been settled.

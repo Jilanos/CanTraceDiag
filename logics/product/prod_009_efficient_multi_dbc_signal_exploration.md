@@ -6,10 +6,19 @@
 > Related task: `task_041_deliver_concise_multi_dbc_explorer_navigation`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
-> Indicators reviewed: 2026-08-20 16:08:20
+> Indicators reviewed: 2026-08-21 09:58:09
 
 # Overview
 Refine the signal explorer so large imported DBC catalogs prioritize live diagnostic relevance and remain fast to navigate during targeted signal searches.
+
+```mermaid
+flowchart LR
+  Catalog[Imported DBC catalog] --> Prioritize[Prioritize active DBCs]
+  Catalog --> Search[Targeted signal search]
+  Prioritize --> Explorer[Signal explorer]
+  Search --> Explorer
+  Explorer --> Plots[Selected diagnostic plots]
+```
 
 # Goals
 - Make used and active DBCs immediately useful while preserving access to the entire imported catalog.

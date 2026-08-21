@@ -9,6 +9,7 @@
 > Theme: PWA parity recovery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 > Owner: codex
+> Indicators reviewed: 2026-08-21 09:57:43
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -106,3 +107,15 @@
 - Related task: `task_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC1 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC2 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC3 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC4 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC5 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC6 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC7 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC8 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC9 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`
+- request-AC10 -> This task. Proof: Implemented by task_022; PWA build, unit tests, and Chromium smoke are recorded in its completed report. Source: `9f96c32`

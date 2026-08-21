@@ -9,6 +9,7 @@
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 > Owner: claude
+> Indicators reviewed: 2026-08-21 09:57:37
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -165,3 +166,16 @@
 - Request: `req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session`
 - Product brief(s): (none yet)
 - Architecture decision(s): `docs/adr/0004-donnees-locales-hors-depot.md`
+
+# AC Traceability
+- request-AC1 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC2 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC3 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC4 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC5 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC6 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC7 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC8 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC9 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC10 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`
+- request-AC11 -> This task. Proof: Implemented by task_016; validation recorded in its completed report. Source: `3a3101c`

@@ -9,6 +9,7 @@
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 > Owner: codex
+> Indicators reviewed: 2026-08-21 09:57:37
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -114,3 +115,17 @@
 - Request: `req_004_optimiser_le_chargement_des_grosses_traces_par_decodage_a_la_demande`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC1 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC2 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC3 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC4 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC5 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC6 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC7 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC8 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC9 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC10 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC11 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`
+- request-AC12 -> This task. Proof: Implemented by task_014; validation recorded in its completed report. Source: `3095264`

@@ -9,6 +9,7 @@
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 > Owner: matcha
+> Indicators reviewed: 2026-08-21 09:57:38
 
 # Definition of Done (DoD)
 - [x] The backlog scope is implemented.
@@ -69,3 +70,9 @@
 - Request: `req_008_corriger_la_regression_ui_liee_au_cache_d_assets_statiques`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+
+# AC Traceability
+- request-AC1 -> This task. Proof: Implemented by task_024; validation recorded in its completed report. Source: `57b9fb1`
+- request-AC2 -> This task. Proof: Implemented by task_024; validation recorded in its completed report. Source: `57b9fb1`
+- request-AC3 -> This task. Proof: Implemented by task_024; validation recorded in its completed report. Source: `57b9fb1`
+- request-AC4 -> This task. Proof: Implemented by task_024; validation recorded in its completed report. Source: `57b9fb1`
