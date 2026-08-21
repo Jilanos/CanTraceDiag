@@ -1,0 +1,725 @@
+{
+  "budgets": {
+    "max_docs": 40,
+    "max_docs_per_ref": 8
+  },
+  "changed_paths": [],
+  "command": "logics-manager sync context-pack req_024_restore_logics_workflow_integrity_and_audit_closure item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt item_045_repair_workflow_companion_documents_and_metadata_hygiene item_046_establish_a_repeatable_clean_audit_workflow_baseline task_043_deliver_clean_logics_workflow_audit_baseline --mode full --profile deep --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_038_remplacer_les_assets_web_et_l_ico_cantracediag"
+        ],
+        "prod": [
+          "prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige"
+        ],
+        "req": [
+          "req_020_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges"
+        ],
+        "task": [
+          "task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges"
+        ]
+      },
+      "path": "logics/product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md",
+      "ref": "prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige",
+      "sections": {
+        "Goals": [
+          "- Une source unique pour l'icone, l'embleme et l'ICO.",
+          "- Des references coherentes avec le format reellement servi."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Servir les masters approuves sur l'interface web et le favicon ICO."
+        ],
+        "References": [
+          "- Product back-reference: `item_038_remplacer_les_assets_web_et_l_ico_cantracediag`",
+          "- Task back-reference: `task_039_remplacer_les_assets_cantracediag_par_les_masters_icones_v3_corriges`"
+        ]
+      },
+      "status": "Settled",
+      "title": "Identite CanTraceDiag alignee sur Icones V3 corrige"
+    },
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation"
+        ],
+        "prod": [
+          "prod_009_efficient_multi_dbc_signal_exploration"
+        ],
+        "req": [
+          "req_022_streamline_navigation_of_large_multi_dbc_signal_catalogs"
+        ],
+        "task": [
+          "task_041_deliver_concise_multi_dbc_explorer_navigation"
+        ]
+      },
+      "path": "logics/product/prod_009_efficient_multi_dbc_signal_exploration.md",
+      "ref": "prod_009_efficient_multi_dbc_signal_exploration",
+      "sections": {
+        "Goals": [
+          "- Make used and active DBCs immediately useful while preserving access to the entire imported catalog.",
+          "- Turn a global signal search into a concise, result-oriented navigation surface.",
+          "- Provide message-level structure for dense DBCs without disrupting plots or saved explorer preferences."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Refine the signal explorer so large imported DBC catalogs prioritize live diagnostic relevance and remain fast to navigate during targeted signal searches."
+        ],
+        "References": [
+          "- Product back-reference: `item_042_prioritize_relevant_dbcs_and_add_message_level_signal_navigation`",
+          "- Task back-reference: `task_041_deliver_concise_multi_dbc_explorer_navigation`"
+        ]
+      },
+      "status": "Settled",
+      "title": "Efficient multi-DBC signal exploration"
+    },
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt",
+          "item_045_repair_workflow_companion_documents_and_metadata_hygiene",
+          "item_046_establish_a_repeatable_clean_audit_workflow_baseline"
+        ],
+        "prod": [
+          "prod_011_reliable_logics_workflow_governance"
+        ],
+        "req": [
+          "req_024_restore_logics_workflow_integrity_and_audit_closure"
+        ],
+        "task": [
+          "task_043_deliver_clean_logics_workflow_audit_baseline"
+        ]
+      },
+      "path": "logics/product/prod_011_reliable_logics_workflow_governance.md",
+      "ref": "prod_011_reliable_logics_workflow_governance",
+      "sections": {
+        "Goals": [
+          "- Make every active workflow document actionable and every historical document truthfully resolved or linked.",
+          "- Remove audit blockers without masking missing evidence or bypassing lifecycle controls.",
+          "- Make corpus-wide validation a dependable gate for future task closeouts."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Establish a clean, evidence-backed Logics corpus whose lifecycle state, traceability, companion documents, and audit results give implementers a reliable source of truth."
+        ],
+        "References": [
+          "- Product back-reference: `req_024_restore_logics_workflow_integrity_and_audit_closure`",
+          "- Task back-reference: `task_043_deliver_clean_logics_workflow_audit_baseline`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Reliable Logics workflow governance"
+    },
+    {
+      "kind": "roadmap",
+      "linked_refs": {
+        "item": [
+          "item_017_passer_cantracediag_en_pwa_spa_local_first",
+          "item_018_spike_navigateur_500_mo_pour_pwa_local_first",
+          "item_019_moteur_local_asc_dbc_pour_pwa_local_first",
+          "item_020_pwa_statique_deployable_local_first",
+          "item_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp",
+          "item_022_rattraper_les_commits_ui_diagnostic_du_18_19_juillet_dans_la_pwa"
+        ],
+        "req": [
+          "req_007_passer_cantracediag_en_pwa_spa_local_first",
+          "req_008_spike_navigateur_500_mo_pwa_local_first",
+          "req_009_moteur_local_asc_dbc_pwa_local_first",
+          "req_010_pwa_statique_deployable_local_first",
+          "req_011_migrer_ui_produit_pwa_local_first_parite_mvp",
+          "req_012_rattraper_commits_ui_diagnostic_18_19_juillet_pwa"
+        ],
+        "road": [
+          "road_001_architecture_pwa_spa_local_first"
+        ],
+        "task": [
+          "task_017_passer_cantracediag_en_pwa_spa_local_first",
+          "task_018_spike_navigateur_500_mo_pour_pwa_local_first",
+          "task_019_moteur_local_asc_dbc_pour_pwa_local_first",
+          "task_020_pwa_statique_deployable_local_first",
+          "task_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp",
+          "task_022_rattraper_les_commits_ui_diagnostic_du_18_19_juillet_dans_la_pwa"
+        ]
+      },
+      "path": "logics/roadmap/road_001_architecture_pwa_spa_local_first.md",
+      "ref": "road_001_architecture_pwa_spa_local_first",
+      "sections": {
+        "References": [
+          "- Product brief(s): (none yet)",
+          "- Request(s): `req_007_passer_cantracediag_en_pwa_spa_local_first`, `req_008_spike_navigateur_500_mo_pwa_local_first`, `req_009_moteur_local_asc_dbc_pwa_local_first`, `req_010_pwa_statique_deployable_local_first`, `req_011_migrer_ui_produit_pwa_local_first_parite_mvp`, `req_012_rattraper_commits_ui_diagnostic_18_19_juillet_pwa`",
+          "- Backlog item(s): `item_017_passer_cantracediag_en_pwa_spa_local_first`, `item_018_spike_navigateur_500_mo_pour_pwa_local_first`, `item_019_moteur_local_asc_dbc_pour_pwa_local_first`, `item_020_pwa_statique_deployable_local_first`, `item_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp`, `item_022_rattraper_les_commits_ui_diagnostic_du_18_19_juillet_dans_la_pwa`",
+          "- Task(s): `task_017_passer_cantracediag_en_pwa_spa_local_first`, `task_018_spike_navigateur_500_mo_pour_pwa_local_first`, `task_019_moteur_local_asc_dbc_pour_pwa_local_first`, `task_020_pwa_statique_deployable_local_first`, `task_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp`, `task_022_rattraper_les_commits_ui_diagnostic_du_18_19_juillet_dans_la_pwa`",
+          "- Current local-server architecture: `src/cantracediag/api.py`",
+          "- Current streaming ASC import: `src/cantracediag/pipeline.py`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Architecture PWA SPA local-first"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "restore, logics, workflow, integrity, audit, closure",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt",
+          "item_045_repair_workflow_companion_documents_and_metadata_hygiene",
+          "item_046_establish_a_repeatable_clean_audit_workflow_baseline"
+        ],
+        "prod": [
+          "prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige",
+          "prod_009_efficient_multi_dbc_signal_exploration",
+          "prod_011_reliable_logics_workflow_governance"
+        ],
+        "req": [
+          "req_004_optimiser_le_chargement_des_grosses_traces_par_decodage_a_la_demande",
+          "req_005_refonte_identite_ui_instrument_de_mesure",
+          "req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session",
+          "req_008_corriger_la_regression_ui_liee_au_cache_d_assets_statiques",
+          "req_012_rattraper_commits_ui_diagnostic_18_19_juillet_pwa",
+          "req_024_restore_logics_workflow_integrity_and_audit_closure"
+        ]
+      },
+      "path": "logics/request/req_024_restore_logics_workflow_integrity_and_audit_closure.md",
+      "ref": "req_024_restore_logics_workflow_integrity_and_audit_closure",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Every blocking audit finding present at the start of this work is inventoried and assigned to one of: deterministic repair, evidence-backed traceability repair, valid lifecycle transition, or an explicitly linked replacement document.",
+          "- AC2: Legacy requests with missing task-level acceptance-criteria proof either gain accurate proof tied to an existing implementation commit and validation, or are withdrawn/superseded without fabricated evidence.",
+          "- AC3: Required product companion diagrams, workflow links, indicators, AI-context wording, and code anchors are corrected using the appropriate managed or authored workflow mechanism.",
+          "- AC4: The active workflow set has one unambiguous next action per active task; duplicate or obsolete paths are closed, withdrawn, or linked to their successor through the CLI.",
+          "- AC5: `logics-manager lint --require-status` and `logics-manager audit --group-by-doc` pass at closeout, with validation evidence recorded in each completed cleanup task."
+        ],
+        "Needs": [
+          "- Make the Logics workflow auditable by resolving each current blocking finding through evidence, a valid lifecycle transition, or a documented replacement chain.",
+          "- Remove stale workflow metadata that makes an active, ready, or completed document misleading to the next implementer.",
+          "- Leave a repeatable audit baseline so later feature work can be closed without inheriting historical workflow debt."
+        ]
+      },
+      "status": "Draft",
+      "title": "Restore Logics workflow integrity and audit closure"
+    },
+    {
+      "ai_context": {
+        "keywords": "cantracediag, performance, lazy-decode, on-demand-decoding, large-traces,",
+        "skip when": "Work targets export, local API security, BLF/MF4 support, frontend",
+        "summary": "Optimize large ASC trace loading by replacing exhaustive import-time signal",
+        "use when": "Planning or implementing lazy signal decoding, reducing import latency for"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_014_optimiser_le_chargement_des_grosses_traces_par_decodage_a_la_demande"
+        ],
+        "req": [
+          "req_003_robustesse_execution_et_completude_post_audit_2026_07_16",
+          "req_004_optimiser_le_chargement_des_grosses_traces_par_decodage_a_la_demande"
+        ]
+      },
+      "path": "logics/request/req_004_optimiser_le_chargement_des_grosses_traces_par_decodage_a_la_demande.md",
+      "ref": "req_004_optimiser_le_chargement_des_grosses_traces_par_decodage_a_la_demande",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: L'import initial d'une trace avec DBC ne mat\u00e9rialise plus tous les signaux dans",
+          "  `samples` par d\u00e9faut ; un test v\u00e9rifie qu'une trace multi-signaux peut \u00eatre charg\u00e9e",
+          "  avec z\u00e9ro ou un nombre born\u00e9 de samples d\u00e9cod\u00e9s avant toute s\u00e9lection utilisateur.",
+          "- AC2: L'import conserve les informations n\u00e9cessaires \u00e0 la navigation : r\u00e9sum\u00e9,",
+          "  bornes temporelles, pagination trace, \u00e9v\u00e9nements, IDs, statut de d\u00e9codabilit\u00e9,",
+          "  noms de messages connus et conflits DBC restent disponibles apr\u00e8s chargement."
+        ],
+        "Needs": [
+          "- R\u00e9duire le temps de chargement initial des traces ASC volumineuses (>100 Mo) en",
+          "  supprimant le d\u00e9codage exhaustif de tous les signaux pendant l'import.",
+          "- Conserver un import utile imm\u00e9diatement : indexer les trames brutes, \u00e9v\u00e9nements,",
+          "  timestamps, IDs, payloads, direction, statut de d\u00e9codabilit\u00e9 et nom de message quand",
+          "  il est d\u00e9terminable sans mat\u00e9rialiser tous les samples.",
+          "- D\u00e9coder les signaux \u00e0 la demande, uniquement lorsqu'un op\u00e9rateur les s\u00e9lectionne"
+        ]
+      },
+      "status": "Done",
+      "title": "Optimiser le chargement des grosses traces par d\u00e9codage \u00e0 la demande"
+    },
+    {
+      "ai_context": {
+        "keywords": "cantracediag, ui-identity, design-tokens, oscilloscope-channels,",
+        "skip when": "Work targets backend pipeline, decoding, storage, API performance, or",
+        "summary": "Reskin the CanTraceDiag web UI to the frozen \"measurement instrument\"",
+        "use when": "Implementing or reviewing UI changes in `src/cantracediag/web/`, applying"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_012_p2_ameliorer_ui_accessibilite_responsive",
+          "item_015_refonte_identite_ui_instrument_de_mesure"
+        ],
+        "req": [
+          "req_005_refonte_identite_ui_instrument_de_mesure"
+        ]
+      },
+      "path": "logics/request/req_005_refonte_identite_ui_instrument_de_mesure.md",
+      "ref": "req_005_refonte_identite_ui_instrument_de_mesure",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Plus aucune couleur One Dark (`#5aa9ff`, `#e06c75`, `#98c379`, `#c678dd`,",
+          "  `#56b6c2`, `#d19a66`, `#e0a44e` en tant que s\u00e9rie) ni token `--s0\u2026--s7` dans",
+          "  `index.html` et `app.js` ; les tokens et valeurs correspondent \u00e0 ceux de",
+          "  `docs/design-ui.md`.",
+          "- AC2: Le rendu canvas (grille, trac\u00e9s, curseurs, \u00e9tiquettes de piste, axe temps) lit",
+          "  ses couleurs depuis les custom properties CSS ; aucune couleur en dur dans `app.js`."
+        ],
+        "Needs": [
+          "- Remplacer l'identit\u00e9 visuelle g\u00e9n\u00e9rique actuelle (palette One Dark / VS Code,",
+          "  `system-ui` partout) par l'identit\u00e9 \u00ab instrument de mesure \u00bb valid\u00e9e sur maquette",
+          "  le 2026-07-16 et fig\u00e9e dans `docs/design-ui.md`.",
+          "- Donner \u00e0 l'outil une identit\u00e9 qui parle le langage du public cible (oscilloscopes,",
+          "  analyseurs de bus) : canaux de trac\u00e9 au code couleur oscilloscope, zone plot en",
+          "  \u00ab \u00e9cran \u00bb plus sombre que le chrome, readouts de mesure fa\u00e7on scope, LED d'\u00e9tat."
+        ]
+      },
+      "status": "Done",
+      "title": "Refonte identit\u00e9 UI instrument de mesure"
+    },
+    {
+      "ai_context": {
+        "keywords": "cantracediag, workspace, launcher, wsl, one-click, dbc-cache,",
+        "skip when": "Work targets decoding accuracy, trace formats (BLF/MF4), export,",
+        "summary": "Deliver a persistent local workspace for CanTraceDiag on Windows+WSL:",
+        "use when": "Implementing or reviewing the launcher, DBC library, session"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_016_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session"
+        ],
+        "req": [
+          "req_003_robustesse_execution_et_completude_post_audit_2026_07_16",
+          "req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session"
+        ]
+      },
+      "path": "logics/request/req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session.md",
+      "ref": "req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Un lanceur versionn\u00e9 permet, apr\u00e8s une installation document\u00e9e en une",
+          "  \u00e9tape par poste, de d\u00e9marrer CanTraceDiag par double-clic sous Windows : le",
+          "  serveur d\u00e9marre dans WSL et le navigateur Windows s'ouvre sur l'UI sans aucune",
+          "  commande tap\u00e9e.",
+          "- AC2: `cantracediag serve --open` ouvre le navigateur sur l'URL effective une",
+          "  fois le serveur pr\u00eat ; sous WSL il ouvre le navigateur Windows ; hors WSL il"
+        ],
+        "Needs": [
+          "- Lancer CanTraceDiag depuis Windows en un double-clic sur les deux postes de",
+          "  l'op\u00e9rateur (perso et travail, tous deux Windows + WSL), sans ouvrir de terminal",
+          "  ni taper de commande : le serveur d\u00e9marre dans WSL et le navigateur Windows",
+          "  s'ouvre sur l'UI.",
+          "- Rendre le lancement idempotent : si une instance tourne d\u00e9j\u00e0, le double-clic ne",
+          "  relance pas un second serveur, il rouvre simplement le navigateur sur l'instance"
+        ]
+      },
+      "status": "Done",
+      "title": "Workspace local: lancement 1-clic, bibliotheque DBC et reprise de session"
+    },
+    {
+      "ai_context": {
+        "keywords": "request-draft, logics-manager, python runtime, bundled CLI",
+        "skip when": "The work already has an existing request or should go straight to a backlog slice.",
+        "summary": "Draft a bounded request for corriger la regression ui liee au cache d'assets statiques.",
+        "use when": "You need a new bounded request doc for the Logics workflow."
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_024_corriger_la_regression_ui_liee_au_cache_d_assets_statiques"
+        ],
+        "req": [
+          "req_008_corriger_la_regression_ui_liee_au_cache_d_assets_statiques"
+        ]
+      },
+      "path": "logics/request/req_008_corriger_la_regression_ui_liee_au_cache_d_assets_statiques.md",
+      "ref": "req_008_corriger_la_regression_ui_liee_au_cache_d_assets_statiques",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: La reponse de `GET /` reference chaque asset JS/CSS avec un jeton de version",
+          "  (`?v=<token>`) et le jeton change quand un fichier d'asset change.",
+          "- AC2: La reponse de `GET /` porte un en-tete `Cache-Control` empechant le",
+          "  navigateur de conserver un shell perime (`no-cache`/`no-store`).",
+          "- AC3: Un test automatise verifie AC1 (references versionnees + rotation du jeton) et",
+          "  AC2, et echouerait sur le comportement d'avant-correctif."
+        ],
+        "Needs": [
+          "- Apres la modularisation du frontend (task_022, `app.js` -> `js/*.js`) et le",
+          "  passage aux \"workspace views\" (remplacement des onglets), l'operateur observe",
+          "  trois regressions simultanees : le redimensionnement des panneaux lateraux, le",
+          "  repli de l'inspecteur et des signaux, et les boutons de changement de vue ne",
+          "  repondent plus.",
+          "- L'operateur doit retrouver ces trois interactions sans avoir a vider"
+        ]
+      },
+      "status": "Done",
+      "title": "Corriger la regression UI liee au cache d'assets statiques"
+    },
+    {
+      "ai_context": {
+        "keywords": "request-draft, pwa, origin-main, rebase, cherry-pick, signal-stats,",
+        "skip when": "Only working on the older minimal PWA spike or unrelated FastAPI",
+        "summary": "Request to recover the July 18-19 `origin/main` diagnostic UI",
+        "use when": "Planning or executing the parity recovery before continuing"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_022_rattraper_les_commits_ui_diagnostic_du_18_19_juillet_dans_la_pwa"
+        ],
+        "req": [
+          "req_012_rattraper_commits_ui_diagnostic_18_19_juillet_pwa"
+        ],
+        "road": [
+          "road_001_architecture_pwa_spa_local_first"
+        ],
+        "task": [
+          "task_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp",
+          "task_022_rattraper_les_commits_ui_diagnostic_du_18_19_juillet_dans_la_pwa"
+        ]
+      },
+      "path": "logics/request/req_012_rattraper_commits_ui_diagnostic_18_19_juillet_pwa.md",
+      "ref": "req_012_rattraper_commits_ui_diagnostic_18_19_juillet_pwa",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: La branche PWA est synchronis\u00e9e avec les commits pertinents de",
+          "  `origin/main` ou applique un port cibl\u00e9 \u00e9quivalent, sans perdre les ajouts",
+          "  PWA d\u00e9j\u00e0 r\u00e9alis\u00e9s dans `spikes/pwa-local-engine`.",
+          "- AC2: Le build statique PWA reprend la structure UI r\u00e9cente : workspace views",
+          "  `Plots`, `Plots + trace`, `Trace`, `Report`, split layout et table de mesures",
+          "  unifi\u00e9e."
+        ],
+        "Needs": [
+          "- Rattraper dans la branche PWA les fonctionnalit\u00e9s pr\u00e9sentes dans",
+          "  `origin/main` depuis les commits du 18/19 juillet 2026, en particulier les",
+          "  statistiques de signaux entre curseurs A/B, les mesures unifi\u00e9es, le rapport",
+          "  diagnostic, les exports et les vues workspace.",
+          "- Emp\u00eacher la migration PWA de se baser sur une ancienne version de l'UI produit",
+          "  qui ne contient pas ces fonctionnalit\u00e9s r\u00e9centes."
+        ]
+      },
+      "status": "Done",
+      "title": "Rattraper les commits UI diagnostic du 18 19 juillet dans la PWA"
+    },
+    {
+      "ai_context": {
+        "keywords": "resolve, legacy, acceptance, criteria, traceability, lifecycle, debt",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt"
+        ],
+        "prod": [
+          "prod_011_reliable_logics_workflow_governance"
+        ],
+        "req": [
+          "req_024_restore_logics_workflow_integrity_and_audit_closure"
+        ],
+        "task": [
+          "task_043_deliver_clean_logics_workflow_audit_baseline"
+        ]
+      },
+      "path": "logics/backlog/item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt.md",
+      "ref": "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: The audit inventory accounts for every initially blocking legacy request acceptance criterion.",
+          "- AC2: Each repaired proof identifies a real source commit and validation command, while each obsolete item has a valid managed successor or withdrawal transition.",
+          "- AC3: No active request or task remains duplicated or lacks a concrete CLI-visible next action."
+        ],
+        "Problem": [
+          "- Several legacy requests block the audit because their acceptance criteria have no task-level proof, even though some work may have been delivered or superseded.",
+          "- Applying placeholder proof would conceal the distinction between verified delivery and obsolete planning."
+        ]
+      },
+      "status": "Ready",
+      "title": "Resolve legacy acceptance-criteria traceability and lifecycle debt"
+    },
+    {
+      "ai_context": {
+        "keywords": "repair, workflow, companion, documents, metadata, hygiene",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_045_repair_workflow_companion_documents_and_metadata_hygiene"
+        ],
+        "prod": [
+          "prod_011_reliable_logics_workflow_governance"
+        ],
+        "req": [
+          "req_024_restore_logics_workflow_integrity_and_audit_closure"
+        ],
+        "task": [
+          "task_043_deliver_clean_logics_workflow_audit_baseline"
+        ]
+      },
+      "path": "logics/backlog/item_045_repair_workflow_companion_documents_and_metadata_hygiene.md",
+      "ref": "item_045_repair_workflow_companion_documents_and_metadata_hygiene",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Every audit-reported missing companion diagram has a clear, valid overview Mermaid diagram with a refreshed signature.",
+          "- AC2: Workflow links and code anchors resolve to real repository documents or are removed as obsolete.",
+          "- AC3: AI-context sections describe document-specific execution context rather than template-generated wording."
+        ],
+        "Problem": [
+          "- Missing product overview diagrams, stale code anchors, prose-only lineage, and generated AI-context wording prevent the corpus from communicating reliable scope and ownership.",
+          "- Some findings require authored content, while others require sanctioned deterministic repair commands."
+        ]
+      },
+      "status": "Ready",
+      "title": "Repair workflow companion documents and metadata hygiene"
+    },
+    {
+      "ai_context": {
+        "keywords": "deliver, clean, logics, workflow, audit, baseline",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt",
+          "item_045_repair_workflow_companion_documents_and_metadata_hygiene",
+          "item_046_establish_a_repeatable_clean_audit_workflow_baseline"
+        ],
+        "prod": [
+          "prod_011_reliable_logics_workflow_governance"
+        ],
+        "req": [
+          "req_024_restore_logics_workflow_integrity_and_audit_closure"
+        ],
+        "task": [
+          "task_043_deliver_clean_logics_workflow_audit_baseline"
+        ]
+      },
+      "path": "logics/tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md",
+      "ref": "task_043_deliver_clean_logics_workflow_audit_baseline",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Orchestrate the scaffolded request chain and keep sibling implementation slices linked."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver clean Logics workflow audit baseline"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt",
+          "item_045_repair_workflow_companion_documents_and_metadata_hygiene",
+          "item_046_establish_a_repeatable_clean_audit_workflow_baseline"
+        ],
+        "prod": [
+          "prod_011_reliable_logics_workflow_governance"
+        ],
+        "req": [
+          "req_024_restore_logics_workflow_integrity_and_audit_closure"
+        ],
+        "task": [
+          "task_043_deliver_clean_logics_workflow_audit_baseline"
+        ]
+      },
+      "path": "logics/product/prod_011_reliable_logics_workflow_governance.md",
+      "ref": "prod_011_reliable_logics_workflow_governance",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Reliable Logics workflow governance"
+    },
+    {
+      "ai_context": {
+        "keywords": "establish, repeatable, clean, audit, workflow, baseline",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_046_establish_a_repeatable_clean_audit_workflow_baseline"
+        ],
+        "prod": [
+          "prod_011_reliable_logics_workflow_governance"
+        ],
+        "req": [
+          "req_024_restore_logics_workflow_integrity_and_audit_closure"
+        ],
+        "task": [
+          "task_043_deliver_clean_logics_workflow_audit_baseline"
+        ]
+      },
+      "path": "logics/backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md",
+      "ref": "item_046_establish_a_repeatable_clean_audit_workflow_baseline",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: The final Logics lint and corpus-wide audit commands pass with their outputs recorded.",
+          "- AC2: The context pack identifies the validation baseline and the order in which future task owners should run checks.",
+          "- AC3: Each cleanup slice is closed through Logics Manager with real validation evidence."
+        ],
+        "Problem": [
+          "- Without an agreed remediation sequence and recorded validation, the same workflow debt can recur or block unrelated task closeouts.",
+          "- The corpus needs a final, reproducible baseline after the targeted repairs are complete."
+        ]
+      },
+      "status": "Ready",
+      "title": "Establish a repeatable clean-audit workflow baseline"
+    }
+  ],
+  "estimates": {
+    "char_count": 25765,
+    "companion_doc_count": 4,
+    "doc_count": 11
+  },
+  "generated_at": "2026-08-21T07:51:22Z",
+  "handoff": {
+    "companion_doc_count": 4,
+    "enabled": true,
+    "source_refs": [
+      "req_024_restore_logics_workflow_integrity_and_audit_closure",
+      "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt",
+      "item_045_repair_workflow_companion_documents_and_metadata_hygiene",
+      "item_046_establish_a_repeatable_clean_audit_workflow_baseline",
+      "task_043_deliver_clean_logics_workflow_audit_baseline"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "full",
+  "profile": "deep",
+  "ref": "req_024_restore_logics_workflow_integrity_and_audit_closure,item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt,item_045_repair_workflow_companion_documents_and_metadata_hygiene,item_046_establish_a_repeatable_clean_audit_workflow_baseline,task_043_deliver_clean_logics_workflow_audit_baseline",
+  "refs": [
+    "req_024_restore_logics_workflow_integrity_and_audit_closure",
+    "item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt",
+    "item_045_repair_workflow_companion_documents_and_metadata_hygiene",
+    "item_046_establish_a_repeatable_clean_audit_workflow_baseline",
+    "task_043_deliver_clean_logics_workflow_audit_baseline"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_version": "1.0.17"
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md",
+      "ref": "task_043_deliver_clean_logics_workflow_audit_baseline"
+    }
+  ]
+}

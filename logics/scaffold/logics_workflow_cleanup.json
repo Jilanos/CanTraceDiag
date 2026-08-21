@@ -1,0 +1,146 @@
+{
+  "title": "Restore Logics workflow integrity and audit closure",
+  "references": [
+    "logics/instructions.md",
+    "logics/release/contract.json",
+    "logics/request/req_004_optimiser_le_chargement_des_grosses_traces_par_decodage_a_la_demande.md",
+    "logics/request/req_005_refonte_identite_ui_instrument_de_mesure.md",
+    "logics/request/req_006_workspace_local_lancement_1_clic_bibliotheque_dbc_et_reprise_de_session.md",
+    "logics/request/req_008_corriger_la_regression_ui_liee_au_cache_d_assets_statiques.md",
+    "logics/request/req_012_rattraper_commits_ui_diagnostic_18_19_juillet_pwa.md",
+    "logics/product/prod_007_identite_cantracediag_alignee_sur_icones_v3_corrige.md",
+    "logics/product/prod_009_efficient_multi_dbc_signal_exploration.md"
+  ],
+  "request": {
+    "complexity": "High",
+    "theme": "Workflow integrity",
+    "needs": [
+      "Make the Logics workflow auditable by resolving each current blocking finding through evidence, a valid lifecycle transition, or a documented replacement chain.",
+      "Remove stale workflow metadata that makes an active, ready, or completed document misleading to the next implementer.",
+      "Leave a repeatable audit baseline so later feature work can be closed without inheriting historical workflow debt."
+    ],
+    "context": [
+      "The current audit reports 50 blocking findings, primarily missing task-level acceptance-criteria traceability on legacy requests, plus missing companion Mermaid diagrams and document-hygiene warnings.",
+      "Historical documents must not receive invented implementation proof: traceability must refer to an existing validated task, or the obsolete request must be withdrawn or superseded through the Logics CLI.",
+      "The existing governance task includes release security work; this request is limited to workflow-document integrity and audit closure, and must not alter product behavior, release artifacts, or CI configuration.",
+      "All lifecycle changes, indicators, links, and Mermaid signatures must be made through the sanctioned Logics Manager commands rather than manual metadata edits.",
+      "The cleanup should be delivered in bounded waves so each category can be validated independently before the final corpus-wide audit."
+    ],
+    "acceptance_criteria": [
+      "AC1: Every blocking audit finding present at the start of this work is inventoried and assigned to one of: deterministic repair, evidence-backed traceability repair, valid lifecycle transition, or an explicitly linked replacement document.",
+      "AC2: Legacy requests with missing task-level acceptance-criteria proof either gain accurate proof tied to an existing implementation commit and validation, or are withdrawn/superseded without fabricated evidence.",
+      "AC3: Required product companion diagrams, workflow links, indicators, AI-context wording, and code anchors are corrected using the appropriate managed or authored workflow mechanism.",
+      "AC4: The active workflow set has one unambiguous next action per active task; duplicate or obsolete paths are closed, withdrawn, or linked to their successor through the CLI.",
+      "AC5: `logics-manager lint --require-status` and `logics-manager audit --group-by-doc` pass at closeout, with validation evidence recorded in each completed cleanup task."
+    ]
+  },
+  "product": {
+    "title": "Reliable Logics workflow governance",
+    "overview": "Establish a clean, evidence-backed Logics corpus whose lifecycle state, traceability, companion documents, and audit results give implementers a reliable source of truth.",
+    "goals": [
+      "Make every active workflow document actionable and every historical document truthfully resolved or linked.",
+      "Remove audit blockers without masking missing evidence or bypassing lifecycle controls.",
+      "Make corpus-wide validation a dependable gate for future task closeouts."
+    ],
+    "non_goals": [
+      "Change application functionality, UI behavior, trace parsing, or deployment infrastructure.",
+      "Rewrite product history solely to make document counts smaller.",
+      "Create new release versions, tags, or remote publications."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Resolve legacy acceptance-criteria traceability and lifecycle debt",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Traceability remediation",
+      "request_acs": ["AC1", "AC2", "AC4"],
+      "problem": [
+        "Several legacy requests block the audit because their acceptance criteria have no task-level proof, even though some work may have been delivered or superseded.",
+        "Applying placeholder proof would conceal the distinction between verified delivery and obsolete planning."
+      ],
+      "scope_in": [
+        "Build a finding-to-document inventory from the current audit output and classify each legacy acceptance criterion.",
+        "Use `flow repair ac-traceability` only with real commit and validation proof, then validate the repaired request.",
+        "Use managed withdraw, close, or successor links for work that is obsolete, duplicated, or never delivered.",
+        "Update active-task ownership and next-action signals through Logics Manager where they are stale or ambiguous."
+      ],
+      "scope_out": [
+        "Inventing evidence, backdating validation, or changing source code to justify a documentation repair.",
+        "Resolving product companion diagrams or generic document-hygiene warnings outside the affected lifecycle documents."
+      ],
+      "acceptance_criteria": [
+        "AC1: The audit inventory accounts for every initially blocking legacy request acceptance criterion.",
+        "AC2: Each repaired proof identifies a real source commit and validation command, while each obsolete item has a valid managed successor or withdrawal transition.",
+        "AC3: No active request or task remains duplicated or lacks a concrete CLI-visible next action."
+      ]
+    },
+    {
+      "title": "Repair workflow companion documents and metadata hygiene",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Document hygiene",
+      "request_acs": ["AC1", "AC3"],
+      "problem": [
+        "Missing product overview diagrams, stale code anchors, prose-only lineage, and generated AI-context wording prevent the corpus from communicating reliable scope and ownership.",
+        "Some findings require authored content, while others require sanctioned deterministic repair commands."
+      ],
+      "scope_in": [
+        "Author concise ASCII-safe Mermaid overview diagrams for product documents reported by audit.",
+        "Correct stale repository-relative code anchors, declared lineage links, and AI-context text using the appropriate document or Logics Manager mechanism.",
+        "Refresh Mermaid signatures and indicators after authored diagram or document changes.",
+        "Validate the touched documents with `flow validate` before proceeding to corpus-wide validation."
+      ],
+      "scope_out": [
+        "Changing product requirements or implementation scope merely to simplify a diagram.",
+        "Adding diagrams to documents not reported by the audit without a demonstrated need."
+      ],
+      "acceptance_criteria": [
+        "AC1: Every audit-reported missing companion diagram has a clear, valid overview Mermaid diagram with a refreshed signature.",
+        "AC2: Workflow links and code anchors resolve to real repository documents or are removed as obsolete.",
+        "AC3: AI-context sections describe document-specific execution context rather than template-generated wording."
+      ]
+    },
+    {
+      "title": "Establish a repeatable clean-audit workflow baseline",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Validation governance",
+      "request_acs": ["AC1", "AC4", "AC5"],
+      "problem": [
+        "Without an agreed remediation sequence and recorded validation, the same workflow debt can recur or block unrelated task closeouts.",
+        "The corpus needs a final, reproducible baseline after the targeted repairs are complete."
+      ],
+      "scope_in": [
+        "Run the prescribed structural, status, consistency, lint, and audit commands after the prior cleanup waves.",
+        "Record the exact validation commands and results in the cleanup task closeouts.",
+        "Produce a bounded context pack that identifies the clean baseline and the expected workflow checks for future task owners.",
+        "Close the cleanup chain only when all required workflow validation gates pass."
+      ],
+      "scope_out": [
+        "Suppressing audit findings through configuration changes.",
+        "Publishing a software release or changing release evidence unrelated to the document cleanup."
+      ],
+      "acceptance_criteria": [
+        "AC1: The final Logics lint and corpus-wide audit commands pass with their outputs recorded.",
+        "AC2: The context pack identifies the validation baseline and the order in which future task owners should run checks.",
+        "AC3: Each cleanup slice is closed through Logics Manager with real validation evidence."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver clean Logics workflow audit baseline",
+    "plan": [
+      "Capture the baseline audit and classify every blocking finding by repair route, preserving the original evidence and avoiding fabricated proof.",
+      "Resolve legacy acceptance-criteria traceability and lifecycle paths first, using managed transitions or evidence-backed repair commands.",
+      "Repair companion diagrams, lineage, anchors, indicators, and document-specific context for the remaining workflow hygiene findings.",
+      "Run per-document validation after each wave, refresh the index and Mermaid signatures where required, then rerun the complete diagnostic sequence.",
+      "Close each cleanup slice only with real lint and audit evidence, and publish the resulting context pack as the future workflow baseline."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/logics_workflow_cleanup.json",
+    "mode": "full",
+    "profile": "deep"
+  }
+}
