@@ -7,6 +7,7 @@
 > Complexity: High
 > Theme: reliability
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-08-21 10:06:05
 
 # Needs
 - Valider le PWA sur chaque changement
@@ -35,9 +36,9 @@
 
 # AI Context
 - Summary: Remedier aux constats de l'audit technique 2026-07-25
-- Keywords: request-chain-scaffold, remedier aux constats de l'audit technique 2026-07-25, development-ready
-- Use when: You need to implement or review the scaffolded workflow for Remedier aux constats de l'audit technique 2026-07-25.
-- Skip when: The change is unrelated to this scaffolded request chain.
+- Keywords: audit-technique, pwa-ci, architecture-canonique, gouvernance-logics, supply-chain-release
+- Use when: You need to plan or review remediation of the PWA CI, canonical architecture, Logics governance, or release supply chain identified by the 2026-07-25 audit.
+- Skip when: The work does not address a finding from this audit.
 
 # Backlog
 - `item_030_valider_le_pwa_a_chaque_changement_et_durcir_sa_livraison`

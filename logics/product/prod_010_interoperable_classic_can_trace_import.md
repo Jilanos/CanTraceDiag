@@ -6,9 +6,16 @@
 > Related task: `task_042_deliver_verified_text_trc_trace_import`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-08-21 10:06:05
 
 # Overview
 Extend the diagnostic workstation with direct ingestion of a documented text .trc trace family while preserving its established ASC workflow and one normalized CAN data model.
+
+```mermaid
+flowchart LR
+  A[ASC and text TRC inputs] --> B[Normalized CAN model]
+  B --> C[Diagnostic workflows]
+```
 
 # Goals
 - Make supported classic-CAN .trc recordings first-class import inputs in both product surfaces.

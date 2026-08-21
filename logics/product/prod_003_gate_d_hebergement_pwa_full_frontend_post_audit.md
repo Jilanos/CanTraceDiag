@@ -6,9 +6,17 @@
 > Related task: `task_023_orchestrer_la_stabilisation_post_audit_full_frontend`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-08-21 10:06:05
 
 # Overview
 Stabiliser la refonte PWA local-first jusqu a un niveau de preuve compatible avec un hebergement public statique.
+
+```mermaid
+flowchart LR
+  A[Audit PWA] --> B[Backlog priorise]
+  B --> C[Corrections verifiees]
+  C --> D[Decision d hebergement]
+```
 
 # Goals
 - Convertir les bloquants de l audit en backlog ordonne et testable.

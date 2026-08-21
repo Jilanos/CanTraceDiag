@@ -7,11 +7,12 @@
 > Complexity: High
 > Theme: Product migration
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-08-21 10:06:05
 
 # Needs
 - Migrer le reste des fonctionnalités de l'application actuelle vers la PWA
   local-first sans perdre le rendu produit existant ni les workflows MVP.
-- Remplacer progressivement les appels `/api/...` de l'UI actuelle par un
+- Remplacer progressivement les appels a l'API FastAPI de l'UI actuelle par un
   backend local navigateur, avec une preuve de parité fonctionnelle avant de
   considérer l'ancienne API FastAPI comme débranchable.
 - Produire un résultat vérifiable par l'utilisateur : même expérience visuelle
@@ -24,7 +25,7 @@
   chunkée 500 MiB, moteur local ASC/DBC fixture-focused, build statique PWA,
   service worker et workspaces minimaux.
 - Ces jalons ne migrent pas encore le produit. L'UI actuelle reste dans
-  `src/cantracediag/web/`, avec des appels `/api/...` vers FastAPI et DuckDB
+  `src/cantracediag/web/`, avec des appels a FastAPI et DuckDB
   côté Python.
 - Le spike PWA dans `spikes/pwa-local-engine/` a un rendu minimal qui ne doit
   pas être considéré comme cible produit. La migration doit reprendre le rendu
@@ -37,10 +38,10 @@
 
 # Acceptance criteria
 - AC1: Un inventaire exhaustif des fonctionnalités MVP de l'UI actuelle est
-  établi depuis `src/cantracediag/web/app.js`, `src/cantracediag/web/index.html`
+  établi depuis les modules sous `src/cantracediag/web/js/`, `src/cantracediag/web/index.html`
   et les endpoints `src/cantracediag/api.py`, avec statut `must-have`,
   `deferred` ou `obsolete`.
-- AC2: Tous les appels `/api/...` utilisés par le MVP sont remplacés dans le
+- AC2: Tous les appels a l'API FastAPI utilisés par le MVP sont remplacés dans le
   chemin PWA par une abstraction `BackendPort` et une implémentation
   `LocalPwaBackend`; aucun fetch réseau applicatif vers FastAPI ne reste dans
   l'artefact PWA produit, hors chargement statique du manifest/assets/cache.
@@ -63,7 +64,7 @@
   conflits DBC et filtres principaux.
 - AC8: Une smoke Chromium MVP démarre depuis le build statique, désactive ou
   absente FastAPI, importe les fixtures, exerce les workflows principaux et
-  échoue si un appel réseau `/api/...` est observé.
+  échoue si un appel réseau vers FastAPI est observé.
 - AC9: Les limites restantes avant déploiement public sont explicitement listées
   et visibles dans la documentation : DBC non couvert, navigateurs non validés,
   taille/performance, stratégie de migration des anciens workspaces et risques
@@ -87,7 +88,7 @@
 - `spikes/pwa-500mb/results-2026-07-22.md`
 - `spikes/pwa-local-engine/results-2026-07-22.md`
 - `spikes/pwa-local-engine/pwa-results-2026-07-22.md`
-- `src/cantracediag/web/app.js`
+- `src/cantracediag/web/js/`
 - `src/cantracediag/web/index.html`
 - `src/cantracediag/api.py`
 - `src/cantracediag/store.py`

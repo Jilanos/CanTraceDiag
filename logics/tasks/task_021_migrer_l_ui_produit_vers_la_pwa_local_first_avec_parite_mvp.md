@@ -9,6 +9,7 @@
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 > Owner: codex
+> Indicators reviewed: 2026-08-21 10:06:34
 
 # Definition of Done (DoD)
 - [ ] The backlog scope is implemented.
@@ -74,7 +75,7 @@
 # Report
 - Partial implementation wave completed on 2026-07-22.
 - Product UI shell is now used by the static PWA build instead of the minimal
-- Post-audit gate 2026-07-22: task_021 must not be closed as hosting-ready until request req_013_lever_les_bloquants_d_hebergement_pwa_full_frontend_post_audit_2026_07_22 and its P0 slices have been resolved or explicitly superseded. Source: docs/audit-refonte-full-frontend-2026-07-22.md.
+- Post-audit gate 2026-07-22: task_021 must not be closed as hosting-ready until the P0 hosting-recovery request and its slices have been resolved or explicitly superseded. Source: docs/audit-refonte-full-frontend-2026-07-22.md.
   spike page.
 - The build generates `product-app.mjs` from the current product `app.js` and
   replaces FastAPI network helpers with a browser-local adapter in

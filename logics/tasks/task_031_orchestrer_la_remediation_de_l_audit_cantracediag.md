@@ -9,6 +9,7 @@
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
 > Owner: codex
+> Indicators reviewed: 2026-08-21 10:06:05
 
 # Context
 - Orchestrate the scaffolded request chain and keep sibling implementation slices linked.
@@ -49,9 +50,9 @@
 
 # AI Context
 - Summary: Orchestrer la remediation de l'audit CanTraceDiag
-- Keywords: scaffolded-task, request-chain-scaffold, orchestration
-- Use when: Coordinating implementation of a scaffolded request chain.
-- Skip when: Working on one isolated sibling slice.
+- Keywords: audit-technique, pwa-ci, architecture-canonique, gouvernance-logics, release-supply-chain
+- Use when: Coordinating the cross-cutting remediation of the 2026-07-25 CanTraceDiag audit across its PWA CI, architecture, and release-governance slices.
+- Skip when: Implementing and closing one bounded backlog slice without orchestration work.
 
 # Links
 - Request: `req_015_remedier_aux_constats_de_l_audit_technique_2026_07_25`

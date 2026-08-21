@@ -6,9 +6,17 @@
 > Related task: `task_031_orchestrer_la_remediation_de_l_audit_cantracediag`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-08-21 10:06:05
 
 # Overview
 Rendre le PWA livrable, verifie et coheremment gouverne.
+
+```mermaid
+flowchart LR
+  A[CI PWA] --> D[Produit livrable]
+  B[Architecture canonique] --> D
+  C[Release tracable] --> D
+```
 
 # Goals
 - CI PWA executable sur les PR
