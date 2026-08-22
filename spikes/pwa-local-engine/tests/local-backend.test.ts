@@ -157,6 +157,21 @@ BO_ 512 MuxMsg: 8 Vector__XXX
 });
 
 describe("LocalPwaBackend", () => {
+  it("keeps unique trace-filter event types while reporting exact anomaly counts", async () => {
+    const backend = new LocalPwaBackend();
+    await backend.importText([
+      "base hex  timestamps absolute",
+      "0.000000 1 ErrorFrame",
+      "0.010000 1 ErrorFrame",
+      "0.020000 CAN 1 Status:chip status error active",
+    ].join("\n"), []);
+
+    assert.deepEqual(backend.status().summary.event_types, ["ErrorFrame", "Status"]);
+    const report = backend.report() as { events: number; anomalies: { asc_events: Record<string, number> } };
+    assert.equal(report.events, 3);
+    assert.deepEqual(report.anomalies.asc_events, { ErrorFrame: 2, Status: 1 });
+  });
+
   it("dispatches a text TRC filename through the same normalized import path", async () => {
     const backend = new LocalPwaBackend();
     const result = await backend.importText(readFixture("sample.trc"), [], {}, "sample.trc");
@@ -292,6 +307,88 @@ describe("Local product backend adapter", () => {
         () => backend.uploadWithProgress(form, () => {}),
         /Local DBC library quota exceeded/,
       );
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        value: originalStorage,
+      });
+    }
+  });
+
+  it("keeps a deterministic legacy hash collision as distinct DBC library entries", async () => {
+    const originalStorage = globalThis.localStorage;
+    let stored = "[]";
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem() { return stored; },
+        removeItem() { stored = "[]"; },
+        setItem(_key: string, value: string) { stored = value; },
+      },
+    });
+    try {
+      const suffix = '\nBO_ 256 Msg: 1 Vector__XXX\n SG_ Value : 0|8@1+ (1,0) [0|255] "" Vector__XXX\n';
+      const first = `costarring${suffix}`;
+      const second = `liquid${suffix}`;
+      const backend = createLocalProductBackend();
+      const form = new FormData();
+      form.append("trace", new File([readFixture("sample.asc")], "sample.asc"));
+      form.append("dbcs", new File([first], "first.dbc"));
+      form.append("dbcs", new File([second], "second.dbc"));
+      await backend.uploadWithProgress(form, () => {});
+
+      const entries = JSON.parse(stored) as Array<{ digest: string; name: string }>;
+      assert.deepEqual(entries.map((entry) => entry.name), ["first.dbc", "second.dbc"]);
+      assert.equal(new Set(entries.map((entry) => entry.digest)).size, 2);
+      assert.ok(entries.every((entry) => /^[a-f0-9]{64}$/.test(entry.digest)));
+
+      const duplicate = new FormData();
+      duplicate.append("trace", new File([readFixture("sample.asc")], "sample.asc"));
+      duplicate.append("dbcs", new File([first], "renamed-copy.dbc"));
+      await backend.uploadWithProgress(duplicate, () => {});
+      assert.equal((JSON.parse(stored) as unknown[]).length, 2);
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        value: originalStorage,
+      });
+    }
+  });
+
+  it("migrates a usable legacy DBC library entry before reusing it", async () => {
+    const originalStorage = globalThis.localStorage;
+    let stored = JSON.stringify([{
+      digest: "5e4daa9d",
+      name: "legacy.dbc",
+      text: readFixture("sample.dbc"),
+      last_used: "2026-01-01T00:00:00.000Z",
+    }]);
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem() { return stored; },
+        removeItem() { stored = "[]"; },
+        setItem(_key: string, value: string) { stored = value; },
+      },
+    });
+    try {
+      const backend = createLocalProductBackend();
+      const migrate = new FormData();
+      migrate.append("trace", new File([readFixture("sample.asc")], "sample.asc"));
+      migrate.append("dbcs", new File([readFixture("sample_body.dbc")], "body.dbc"));
+      await backend.uploadWithProgress(migrate, () => {});
+
+      const entries = JSON.parse(stored) as Array<{ digest: string; name: string }>;
+      const legacy = entries.find((entry) => entry.name === "legacy.dbc");
+      assert.ok(legacy);
+      assert.match(legacy.digest, /^[a-f0-9]{64}$/);
+
+      const reuse = new FormData();
+      reuse.append("trace", new File([readFixture("sample.asc")], "sample.asc"));
+      reuse.append("library", legacy.digest);
+      const result = await backend.uploadWithProgress(reuse, () => {}) as { needs_resolution: boolean };
+      assert.equal(result.needs_resolution, false);
+      assert.equal(backend.__backend.status().summary.decoded_frames, 5);
     } finally {
       Object.defineProperty(globalThis, "localStorage", {
         configurable: true,

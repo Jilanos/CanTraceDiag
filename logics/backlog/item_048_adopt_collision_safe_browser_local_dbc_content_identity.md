@@ -1,14 +1,14 @@
 ## item_048_adopt_collision_safe_browser_local_dbc_content_identity - Adopt collision-safe browser-local DBC content identity
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 10%
 > Complexity: Medium
 > Theme: Local library data integrity
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-22 12:22:26
+> Indicators reviewed: 2026-08-22 12:25:36
 
 # AI Context
 - Summary: Replace sole reliance on the browser library's 32-bit digest while preserving deduplication and legacy-entry compatibility.
