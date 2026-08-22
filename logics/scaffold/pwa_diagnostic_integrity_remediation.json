@@ -1,0 +1,131 @@
+{
+  "title": "Restore browser-local diagnostic data integrity",
+  "references": [
+    "logics/request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md",
+    "spikes/pwa-local-engine/src/store.ts",
+    "spikes/pwa-local-engine/src/local-backend.ts",
+    "spikes/pwa-local-engine/src/product-backend.ts",
+    "spikes/pwa-local-engine/tests/local-backend.test.ts",
+    "spikes/pwa-local-engine/browser-smoke.mjs",
+    "src/cantracediag/workspace.py",
+    "src/cantracediag/store.py",
+    "src/cantracediag/api.py",
+    ".github/workflows/ci.yml",
+    "logics/release/contract.json"
+  ],
+  "request": {
+    "complexity": "Medium",
+    "theme": "Browser-local diagnostic integrity",
+    "needs": [
+      "Make browser-local diagnostic reports preserve the exact multiplicity of every imported anomaly type instead of reducing repeated events to one occurrence.",
+      "Make browser-local DBC library identity collision-safe so distinct file contents can coexist and byte-identical contents remain deduplicated.",
+      "Protect both data-integrity contracts with deterministic regression tests and parity checks against the Python reference behavior."
+    ],
+    "context": [
+      "The 2026-08-22 review reproduced a report containing two ErrorFrame events while anomalies.asc_events.ErrorFrame was one because the store exposes a unique event-type list and the report counts that list.",
+      "The review also reproduced two distinct, parseable DBC contents with the same 32-bit FNV-1a digest; the browser-local library retained only the second entry because the digest is the map key.",
+      "The Python reference library uses SHA-256 for content identity and its report summary preserves event counts, making both findings browser-local parity divergences.",
+      "The current Python suite, Node PWA suite, PWA build, and Chromium smoke all pass, demonstrating that focused regression coverage is required rather than broad test repair.",
+      "This request is limited to the two reproduced findings. Chunked large-file import, durable trace storage, broader DBC grammar parity, and release-infrastructure remediation are already tracked elsewhere.",
+      "Because this is a functional correction intended for release, delivery must follow the repository release policy: validate locally, commit implementation, prepare the next SemVer patch, push, wait for CI on that exact commit, create and push one annotated tag, verify the tag-triggered release workflow, and record evidence."
+    ],
+    "acceptance_criteria": [
+      "AC1: For browser-local imports, the diagnostic report returns the exact count of each event type, including repeated events, while the trace event filter continues to expose each available type once.",
+      "AC2: The rendered PWA report displays the same exact anomaly counts returned by the local backend and remains contract-compatible with the Python reference report.",
+      "AC3: Browser-local DBC identity uses collision-safe content semantics: distinct contents remain separate library entries and byte-identical contents are deduplicated regardless of filename.",
+      "AC4: Existing valid browser-local library entries remain usable through a documented compatibility or migration path; the change does not silently discard recoverable entries, and an already-overwritten legacy collision is not falsely claimed as recoverable.",
+      "AC5: Automated tests reproduce repeated-event counting and a deterministic legacy 32-bit collision, verify Python/PWA parity for the affected payloads, and the standard Python, Ruff, Node, build, and Chromium smoke validations pass.",
+      "AC6: The implementation and version-preparation commits, successful CI run, annotated patch tag, and tag-triggered release outcome are recorded in the task closeout before the chain is marked done."
+    ]
+  },
+  "product": {
+    "title": "Trustworthy browser-local diagnostics",
+    "overview": "Ensure that the static PWA preserves diagnostic evidence and local DBC assets accurately enough for operators to trust reports and repeated analysis sessions.",
+    "goals": [
+      "Report imported anomaly multiplicities exactly and consistently across browser-local and Python reference paths.",
+      "Give each distinct DBC content a stable, collision-safe identity while preserving content deduplication.",
+      "Turn both reproduced failures into permanent automated regression contracts."
+    ],
+    "non_goals": [
+      "Redesign the diagnostic report, event taxonomy, signal explorer, or DBC parser.",
+      "Deliver chunked 500 MB imports, OPFS or IndexedDB trace persistence, or broader PWA migration scope.",
+      "Recover a legacy DBC entry whose content was already overwritten before this correction.",
+      "Change Python backend behavior beyond parity-test fixtures or assertions required to express the existing reference contract."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Preserve exact anomaly counts in browser-local reports",
+      "priority": "High",
+      "complexity": "Low",
+      "theme": "Diagnostic report correctness",
+      "request_acs": ["AC1", "AC2", "AC5", "AC6"],
+      "problem": [
+        "LocalTraceStore exposes event_types as a deduplicated list, and LocalPwaBackend.report increments each listed type once, so repeated anomalies are under-reported.",
+        "The existing fixture contains only one event of each type and the tests assert report frames and paths but not anomaly multiplicities."
+      ],
+      "scope_in": [
+        "Introduce an exact event-type count contract in the local store or report path while retaining the unique event-type list used by filters.",
+        "Align the browser-local report payload with the Python reference shape for anomaly counts.",
+        "Add a deterministic unit fixture containing repeated events of one type and mixed event types.",
+        "Assert backend payload counts and rendered report multiplicities, then run the standard PWA and Python non-regression suites."
+      ],
+      "scope_out": [
+        "Changing event classification or parser behavior.",
+        "Redesigning report presentation or adding new anomaly categories.",
+        "Large-trace performance changes unrelated to event counting."
+      ],
+      "acceptance_criteria": [
+        "AC1: A fixture with two ErrorFrame events and one Status event produces events equal to three, anomalies.asc_events.ErrorFrame equal to two, and anomalies.asc_events.Status equal to one.",
+        "AC2: The event filter still lists ErrorFrame and Status once each, proving that unique filter values and counted report values remain separate contracts.",
+        "AC3: The PWA report rendering shows ErrorFrame x2 and Status x1 from the backend payload without recomputing or losing counts.",
+        "AC4: Focused Node tests fail against the reviewed implementation and pass after the correction; existing Python, Node, build, and browser-smoke validations remain green."
+      ]
+    },
+    {
+      "title": "Adopt collision-safe browser-local DBC content identity",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Local library data integrity",
+      "request_acs": ["AC3", "AC4", "AC5", "AC6"],
+      "problem": [
+        "The browser-local library uses a 32-bit FNV-1a digest as its sole map key, so distinct DBC contents with the same digest silently overwrite one another.",
+        "Changing the identifier without an explicit compatibility path could make valid entries stored under the current library schema unreachable."
+      ],
+      "scope_in": [
+        "Replace sole reliance on the 32-bit digest with collision-safe content identity suitable for browser execution and stable library selection.",
+        "Keep byte-identical content deduplication independent of filenames and preserve the existing 20-entry retention policy unless a migration requires a documented equivalent.",
+        "Define and implement a compatibility path for valid entries stored under the current library key, including explicit handling of malformed entries and the fact that previously overwritten content cannot be reconstructed.",
+        "Add deterministic coverage using two distinct DBC contents that share the reviewed legacy digest plus coverage for identical-content deduplication and library reuse by identifier.",
+        "Verify the browser-local behavior against the Python reference content-identity semantics."
+      ],
+      "scope_out": [
+        "Moving trace or DBC persistence to OPFS or IndexedDB as part of this correction.",
+        "Recovering content that is no longer present in local storage.",
+        "Changing DBC parsing, conflict resolution, load ordering, or the visible library workflow except where identifier compatibility requires it."
+      ],
+      "acceptance_criteria": [
+        "AC1: The deterministic legacy collision pair is retained as two separate usable library entries with different new identifiers.",
+        "AC2: Two byte-identical DBC uploads with different filenames produce one content entry and remain selectable for a later trace import.",
+        "AC3: A valid legacy library payload is migrated or read compatibly without silent loss, malformed entries fail safely, and the compatibility behavior is covered by automated tests.",
+        "AC4: The local library list and import-selection contracts continue to return stable identifiers, names, last-used metadata, and successful DBC reuse after a reload.",
+        "AC5: Focused Node tests, the full PWA suite, PWA build, Chromium smoke, Python tests, and Ruff checks pass after the correction."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver browser-local diagnostic integrity remediation",
+    "plan": [
+      "Capture failing regression tests for repeated anomaly counts and for the deterministic legacy DBC digest collision before changing implementation behavior.",
+      "Separate unique event-type discovery from exact event counting, align the local report payload with the Python reference, and verify backend plus rendered-report behavior.",
+      "Introduce collision-safe DBC content identity and a bounded compatibility path for existing valid browser-local library entries without claiming recovery of already-overwritten content.",
+      "Run focused tests after each slice, then run the complete Node PWA suite, static build, Chromium browser smoke, Ruff, Python suite, Logics lint, and Logics audit.",
+      "Close each backlog slice with acceptance-criteria evidence, then follow the mandatory patch-release sequence and record commit, CI, tag, and release proof before final closeout."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/pwa_diagnostic_integrity_remediation.json",
+    "mode": "diff-first",
+    "profile": "normal"
+  }
+}

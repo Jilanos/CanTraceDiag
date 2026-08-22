@@ -1,0 +1,399 @@
+{
+  "budgets": {
+    "max_docs": 32,
+    "max_docs_per_ref": 8
+  },
+  "changed_paths": [
+    "logics/backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md",
+    "logics/backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md",
+    "logics/context-packs/pwa_diagnostic_integrity_remediation.json",
+    "logics/product/prod_012_trustworthy_browser_local_diagnostics.md",
+    "logics/request/req_026_restore_browser_local_diagnostic_data_integrity.md",
+    "logics/scaffold/pwa_diagnostic_integrity_remediation.json",
+    "logics/tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md"
+  ],
+  "command": "logics-manager sync context-pack req_026_restore_browser_local_diagnostic_data_integrity item_047_preserve_exact_anomaly_counts_in_browser_local_reports item_048_adopt_collision_safe_browser_local_dbc_content_identity task_044_deliver_browser_local_diagnostic_integrity_remediation --mode diff-first --profile deep --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_047_preserve_exact_anomaly_counts_in_browser_local_reports",
+          "item_048_adopt_collision_safe_browser_local_dbc_content_identity"
+        ],
+        "prod": [
+          "prod_012_trustworthy_browser_local_diagnostics"
+        ],
+        "req": [
+          "req_026_restore_browser_local_diagnostic_data_integrity"
+        ],
+        "task": [
+          "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+        ]
+      },
+      "path": "logics/product/prod_012_trustworthy_browser_local_diagnostics.md",
+      "ref": "prod_012_trustworthy_browser_local_diagnostics",
+      "sections": {
+        "Goals": [
+          "- Report imported anomaly multiplicities exactly and consistently across browser-local and Python reference paths.",
+          "- Give each distinct DBC content a stable, collision-safe identity while preserving content deduplication.",
+          "- Turn both reproduced failures into permanent automated regression contracts."
+        ],
+        "Key product decisions": [
+          "- Preserve the unique event-type list used by trace filters while adding a separate exact count contract for diagnostic reporting.",
+          "- Treat content identity and display filename as separate concepts; identity must distinguish different bytes and deduplicate identical bytes.",
+          "- Preserve valid legacy library entries through explicit compatibility or migration behavior, without implying that previously overwritten bytes can be reconstructed.",
+          "- Deliver the two corrections as separate backlog slices with one shared validation and patch-release closeout."
+        ],
+        "Overview": [
+          "Ensure that the static PWA preserves diagnostic evidence and local DBC assets accurately enough for operators to trust reports and repeated analysis sessions.",
+          "```mermaid",
+          "flowchart LR",
+          "  Trace[PWA trace import] --> Events[Event records]",
+          "  Events --> Types[Unique filter types]",
+          "  Events --> Counts[Exact report counts]"
+        ],
+        "References": [
+          "- Product back-reference: `req_026_restore_browser_local_diagnostic_data_integrity`",
+          "- Task back-reference: `task_044_deliver_browser_local_diagnostic_integrity_remediation`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Trustworthy browser-local diagnostics"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "restore, browser, local, diagnostic, data, integrity",
+        "skip when": "Working on large-file persistence, DBC grammar expansion, Python-only behavior, or unrelated release infrastructure.",
+        "summary": "Remediate two reproduced PWA integrity failures: repeated anomaly undercounting and collision-prone DBC library identity.",
+        "use when": "Planning, implementing, or validating the linked anomaly-count and DBC-identity backlog slices."
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_047_preserve_exact_anomaly_counts_in_browser_local_reports",
+          "item_048_adopt_collision_safe_browser_local_dbc_content_identity"
+        ],
+        "prod": [
+          "prod_012_trustworthy_browser_local_diagnostics"
+        ],
+        "req": [
+          "req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication",
+          "req_026_restore_browser_local_diagnostic_data_integrity"
+        ]
+      },
+      "path": "logics/request/req_026_restore_browser_local_diagnostic_data_integrity.md",
+      "ref": "req_026_restore_browser_local_diagnostic_data_integrity",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: For browser-local imports, the diagnostic report returns the exact count of each event type, including repeated events, while the trace event filter continues to expose each available type once.",
+          "- AC2: The rendered PWA report displays the same exact anomaly counts returned by the local backend and remains contract-compatible with the Python reference report.",
+          "- AC3: Browser-local DBC identity uses collision-safe content semantics: distinct contents remain separate library entries and byte-identical contents are deduplicated regardless of filename.",
+          "- AC4: Existing valid browser-local library entries remain usable through a documented compatibility or migration path; the change does not silently discard recoverable entries, and an already-overwritten legacy collision is not falsely claimed as recoverable.",
+          "- AC5: Automated tests reproduce repeated-event counting and a deterministic legacy 32-bit collision, verify Python/PWA parity for the affected payloads, and the standard Python, Ruff, Node, build, and Chromium smoke validations pass.",
+          "- AC6: The implementation and version-preparation commits, successful CI run, annotated patch tag, and tag-triggered release outcome are recorded in the task closeout before the chain is marked done."
+        ],
+        "Needs": [
+          "- Make browser-local diagnostic reports preserve the exact multiplicity of every imported anomaly type instead of reducing repeated events to one occurrence.",
+          "- Make browser-local DBC library identity collision-safe so distinct file contents can coexist and byte-identical contents remain deduplicated.",
+          "- Protect both data-integrity contracts with deterministic regression tests and parity checks against the Python reference behavior."
+        ]
+      },
+      "status": "Draft",
+      "title": "Restore browser-local diagnostic data integrity"
+    },
+    {
+      "ai_context": {
+        "keywords": "review, findings, pwa, report, integrity, dbc, library, deduplication",
+        "skip when": "Working on the already-captured large-file PWA migration, release deployment, or Python backend behavior.",
+        "summary": "Capture two reproduced PWA data-integrity defects found during the 2026-08-22 project review.",
+        "use when": "Deciding whether to correct PWA anomaly counts or strengthen content-based DBC deduplication."
+      },
+      "kind": "request",
+      "linked_refs": {
+        "req": [
+          "req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication"
+        ],
+        "task": [
+          "task_021_migrer_l_ui_produit_vers_la_pwa_local_first_avec_parite_mvp",
+          "task_031_orchestrer_la_remediation_de_l_audit_cantracediag"
+        ]
+      },
+      "path": "logics/request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md",
+      "ref": "req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: For a browser-local trace containing repeated events of one type, the report returns the exact count for that type and the displayed diagnostic report shows the same multiplicity.",
+          "- AC2: Two distinct DBC contents remain distinct library entries even when a legacy 32-bit hash function would collide, while byte-identical DBC contents are still deduplicated.",
+          "- AC3: Automated PWA tests cover at least one repeated-event report and one deterministic content-identity collision case, and fail against the reviewed implementation.",
+          "- AC4: The standard Node PWA tests, PWA build, Chromium browser smoke, Python tests, and Ruff checks continue to pass after any future implementation.",
+          "- AC5: Any future backlog promotion remains bounded to these two reproduced defects and does not absorb the already-tracked PWA migration or release work."
+        ],
+        "Needs": [
+          "- Preserve exact anomaly multiplicities in the browser-local diagnostic report. The PWA currently reports one occurrence per distinct event type, even when the imported trace contains repeated events of that type.",
+          "- Make browser-local DBC deduplication identify file content strongly enough that two distinct DBC files cannot silently replace one another in the library because their short hashes collide.",
+          "- Add focused regression coverage for both defects before treating them as addressed."
+        ]
+      },
+      "status": "Draft",
+      "title": "Review findings: PWA report integrity and DBC library deduplication"
+    },
+    {
+      "ai_context": {
+        "keywords": "preserve, exact, anomaly, counts, browser, local, reports",
+        "skip when": "Changing parser event classification, report design, DBC storage, or large-trace performance.",
+        "summary": "Separate unique event-type discovery from exact event counting so browser-local reports preserve anomaly multiplicities.",
+        "use when": "Changing LocalTraceStore or LocalPwaBackend report contracts and their focused PWA regression tests."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_047_preserve_exact_anomaly_counts_in_browser_local_reports"
+        ],
+        "prod": [
+          "prod_012_trustworthy_browser_local_diagnostics"
+        ],
+        "req": [
+          "req_026_restore_browser_local_diagnostic_data_integrity"
+        ],
+        "task": [
+          "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+        ]
+      },
+      "path": "logics/backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md",
+      "ref": "item_047_preserve_exact_anomaly_counts_in_browser_local_reports",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: A fixture with two ErrorFrame events and one Status event produces events equal to three, anomalies.asc_events.ErrorFrame equal to two, and anomalies.asc_events.Status equal to one.",
+          "- AC2: The event filter still lists ErrorFrame and Status once each, proving that unique filter values and counted report values remain separate contracts.",
+          "- AC3: The PWA report rendering shows ErrorFrame x2 and Status x1 from the backend payload without recomputing or losing counts.",
+          "- AC4: Focused Node tests fail against the reviewed implementation and pass after the correction; existing Python, Node, build, and browser-smoke validations remain green."
+        ],
+        "Problem": [
+          "- LocalTraceStore exposes event_types as a deduplicated list, and LocalPwaBackend.report increments each listed type once, so repeated anomalies are under-reported.",
+          "- The existing fixture contains only one event of each type and the tests assert report frames and paths but not anomaly multiplicities."
+        ]
+      },
+      "status": "Ready",
+      "title": "Preserve exact anomaly counts in browser-local reports"
+    },
+    {
+      "ai_context": {
+        "keywords": "adopt, collision, safe, browser, local, dbc, content, identity",
+        "skip when": "Moving storage to OPFS or IndexedDB, changing DBC parsing, or recovering content that was already overwritten.",
+        "summary": "Replace sole reliance on the browser library's 32-bit digest while preserving deduplication and legacy-entry compatibility.",
+        "use when": "Implementing PWA DBC identity, library migration, selection, reload, or collision regression tests."
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_048_adopt_collision_safe_browser_local_dbc_content_identity"
+        ],
+        "prod": [
+          "prod_012_trustworthy_browser_local_diagnostics"
+        ],
+        "req": [
+          "req_026_restore_browser_local_diagnostic_data_integrity"
+        ],
+        "task": [
+          "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+        ]
+      },
+      "path": "logics/backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md",
+      "ref": "item_048_adopt_collision_safe_browser_local_dbc_content_identity",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: The deterministic legacy collision pair is retained as two separate usable library entries with different new identifiers.",
+          "- AC2: Two byte-identical DBC uploads with different filenames produce one content entry and remain selectable for a later trace import.",
+          "- AC3: A valid legacy library payload is migrated or read compatibly without silent loss, malformed entries fail safely, and the compatibility behavior is covered by automated tests.",
+          "- AC4: The local library list and import-selection contracts continue to return stable identifiers, names, last-used metadata, and successful DBC reuse after a reload.",
+          "- AC5: Focused Node tests, the full PWA suite, PWA build, Chromium smoke, Python tests, and Ruff checks pass after the correction."
+        ],
+        "Problem": [
+          "- The browser-local library uses a 32-bit FNV-1a digest as its sole map key, so distinct DBC contents with the same digest silently overwrite one another.",
+          "- Changing the identifier without an explicit compatibility path could make valid entries stored under the current library schema unreachable."
+        ]
+      },
+      "status": "Ready",
+      "title": "Adopt collision-safe browser-local DBC content identity"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_047_preserve_exact_anomaly_counts_in_browser_local_reports",
+          "item_048_adopt_collision_safe_browser_local_dbc_content_identity"
+        ],
+        "prod": [
+          "prod_012_trustworthy_browser_local_diagnostics"
+        ],
+        "req": [
+          "req_026_restore_browser_local_diagnostic_data_integrity"
+        ],
+        "task": [
+          "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+        ]
+      },
+      "path": "logics/product/prod_012_trustworthy_browser_local_diagnostics.md",
+      "ref": "prod_012_trustworthy_browser_local_diagnostics",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Trustworthy browser-local diagnostics"
+    },
+    {
+      "ai_context": {
+        "keywords": "deliver, browser, local, diagnostic, integrity, remediation",
+        "skip when": "Implementing unrelated PWA migration milestones or changing the Python reference contract.",
+        "summary": "Orchestrate the two PWA integrity slices from failing regressions through validated patch release evidence.",
+        "use when": "Delivering or closing the linked anomaly-count and DBC-identity backlog items as one release chain."
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_047_preserve_exact_anomaly_counts_in_browser_local_reports",
+          "item_048_adopt_collision_safe_browser_local_dbc_content_identity"
+        ],
+        "prod": [
+          "prod_012_trustworthy_browser_local_diagnostics"
+        ],
+        "req": [
+          "req_026_restore_browser_local_diagnostic_data_integrity"
+        ],
+        "task": [
+          "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+        ]
+      },
+      "path": "logics/tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md",
+      "ref": "task_044_deliver_browser_local_diagnostic_integrity_remediation",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Start from the two deterministic reproductions linked through the parent remediation request.",
+          "- Deliver exact anomaly counts first because it is the smaller isolated contract, then change DBC identity with explicit legacy-entry compatibility.",
+          "- Keep the two backlog slices independently testable while closing and releasing them through this shared orchestration task."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver browser-local diagnostic integrity remediation"
+    }
+  ],
+  "estimates": {
+    "char_count": 13820,
+    "companion_doc_count": 1,
+    "doc_count": 6
+  },
+  "generated_at": "2026-08-22T10:23:30Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_026_restore_browser_local_diagnostic_data_integrity",
+      "item_047_preserve_exact_anomaly_counts_in_browser_local_reports",
+      "item_048_adopt_collision_safe_browser_local_dbc_content_identity",
+      "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "deep",
+  "ref": "req_026_restore_browser_local_diagnostic_data_integrity,item_047_preserve_exact_anomaly_counts_in_browser_local_reports,item_048_adopt_collision_safe_browser_local_dbc_content_identity,task_044_deliver_browser_local_diagnostic_integrity_remediation",
+  "refs": [
+    "req_026_restore_browser_local_diagnostic_data_integrity",
+    "item_047_preserve_exact_anomaly_counts_in_browser_local_reports",
+    "item_048_adopt_collision_safe_browser_local_dbc_content_identity",
+    "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_version": "1.0.17"
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md",
+      "ref": "task_044_deliver_browser_local_diagnostic_integrity_remediation"
+    }
+  ]
+}
