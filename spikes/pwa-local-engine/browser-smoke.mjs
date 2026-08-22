@@ -9,8 +9,12 @@ const chromePath = process.env.CHROME_PATH
 const port = Number(process.env.CTD_ENGINE_PORT || 9880);
 const debuggingPort = Number(process.env.CTD_ENGINE_DEBUG_PORT || 9230);
 const root = path.resolve(process.env.CTD_ENGINE_ROOT || "spikes/pwa-local-engine");
-const tracePath = path.resolve("tests/fixtures/sample.asc");
+const tracePath = path.resolve(process.env.CTD_ENGINE_TRACE || "tests/fixtures/sample.asc");
 const dbcPath = path.resolve("tests/fixtures/sample.dbc");
+const expectedTraceRows = Number(process.env.CTD_ENGINE_EXPECT_TRACE_ROWS || 8);
+const expectedReportText = (process.env.CTD_ENGINE_EXPECT_REPORT_TEXT || "")
+  .split("|")
+  .filter(Boolean);
 
 async function main() {
   if (!fs.existsSync(chromePath)) throw new Error(`Chromium not found: ${chromePath}`);
@@ -94,7 +98,7 @@ async function main() {
     if (!value.summary.includes("decoded")) throw new Error(`UI did not load trace: ${value.summary}`);
     if (!value.signals.includes("EngineSpeed")) throw new Error(`Signals missing EngineSpeed: ${value.signals}`);
     if (!value.trace.includes("EngineData")) throw new Error(`Trace missing EngineData: ${value.trace}`);
-    if (!value.pageInfo.includes("of 8")) throw new Error(`Trace pagination missing expected total: ${value.pageInfo}`);
+    if (!value.pageInfo.includes(`of ${expectedTraceRows}`)) throw new Error(`Trace pagination missing expected total: ${value.pageInfo}`);
     if (value.led !== "INDEXED") throw new Error(`Status LED did not switch to INDEXED: ${value.led}`);
 
     await cdp.call("Runtime.evaluate", {
@@ -173,6 +177,11 @@ async function main() {
       throw new Error(`Measurement table missing mean/rms stats: ${workspaceValue.split.readout}`);
     }
     if (!workspaceValue.report.includes("6") || !workspaceValue.report.includes("decoded")) throw new Error(`Report view missing diagnostic summary: ${workspaceValue.report}`);
+    for (const expected of expectedReportText) {
+      if (!workspaceValue.report.includes(expected)) {
+        throw new Error(`Report view missing expected text '${expected}': ${workspaceValue.report}`);
+      }
+    }
     if (workspaceValue.exportDialogOpen || workspaceValue.exportError) throw new Error(`CSV export did not complete cleanly: ${JSON.stringify(workspaceValue)}`);
 
     const pwa = await cdp.call("Runtime.evaluate", {

@@ -82,6 +82,14 @@ export class LocalTraceStore {
     return [...new Set(this.events.map((event) => event.event_type))].sort();
   }
 
+  eventTypeCounts(): Record<string, number> {
+    const counts: Record<string, number> = {};
+    for (const event of this.events) {
+      counts[event.event_type] = (counts[event.event_type] ?? 0) + 1;
+    }
+    return counts;
+  }
+
   timeBounds(): { start_s: number | null; end_s: number | null } {
     const frameBounds = finiteBounds(this.frameTs);
     const eventBounds = finiteBounds(this.events.map((event) => event.timestamp_s));

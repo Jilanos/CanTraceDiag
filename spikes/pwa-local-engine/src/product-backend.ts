@@ -34,7 +34,10 @@ export function createLocalProductBackend(): {
     if (url.pathname === "/api/signals") return backend.signals();
     if (url.pathname === "/api/import-job") return backend.importJob();
     if (url.pathname === "/api/import-cancel") return { cancelled: false, reason: "Local imports finish synchronously in this MVP adapter." };
-    if (url.pathname === "/api/dbc-library") return { dbcs: readLibrary().map(({ text, ...entry }) => entry), last_session: lastSessionDbcs };
+    if (url.pathname === "/api/dbc-library") {
+      const library = await readLibrary();
+      return { dbcs: library.map(({ text, ...entry }) => entry), last_session: lastSessionDbcs };
+    }
     if (url.pathname === "/api/report") return backend.report();
     if (url.pathname === "/api/workspace-purge") {
       backend.purge();
@@ -92,7 +95,7 @@ export function createLocalProductBackend(): {
     if (!(trace instanceof File)) throw new Error("Trace file must be selected.");
     const freshDbcs = formData.getAll("dbcs").filter((entry): entry is File => entry instanceof File);
     const libraryDigests = formData.getAll("library").map(String);
-    const library = readLibrary();
+    const library = await readLibrary();
     const libraryDbcs = library
       .filter((entry) => libraryDigests.includes(entry.digest))
       .map((entry) => ({ name: entry.name, text: entry.text }));
@@ -106,7 +109,7 @@ export function createLocalProductBackend(): {
     backend.traceName = trace.name;
     lastSessionDbcs = dbcs.map((dbc) => dbc.name);
     try {
-      saveDbcs(uploadedDbcs);
+      await saveDbcs(uploadedDbcs);
     } catch (error) {
       throw new Error(storageErrorMessage(error));
     }
@@ -184,24 +187,40 @@ function parseResolution(input: Record<string, string>): Record<number, string> 
   return Object.fromEntries(Object.entries(input).map(([id, choice]) => [Number.parseInt(id, 16), choice]));
 }
 
-function readLibrary(): LocalDbc[] {
+async function readLibrary(): Promise<LocalDbc[]> {
   try {
     const parsed = JSON.parse(localStorage.getItem(LIBRARY_KEY) || "[]");
-    return Array.isArray(parsed) ? parsed.filter(isLocalDbc) : [];
+    if (!Array.isArray(parsed)) return [];
+    return migrateLibrary(parsed.filter(isLocalDbc));
   } catch {
     return [];
   }
 }
 
-function saveDbcs(dbcs: Array<{ name: string; text: string }>): void {
+async function saveDbcs(dbcs: Array<{ name: string; text: string }>): Promise<void> {
   const now = new Date().toISOString();
-  const current = readLibrary();
+  const current = await readLibrary();
   const byDigest = new Map(current.map((entry) => [entry.digest, entry]));
   for (const dbc of dbcs) {
-    const digest = digestText(dbc.text);
+    const digest = await digestText(dbc.text);
     byDigest.set(digest, { digest, name: dbc.name, text: dbc.text, last_used: now });
   }
   localStorage.setItem(LIBRARY_KEY, JSON.stringify([...byDigest.values()].slice(-20)));
+}
+
+async function migrateLibrary(entries: LocalDbc[]): Promise<LocalDbc[]> {
+  const byDigest = new Map<string, LocalDbc>();
+  let changed = false;
+  for (const entry of entries) {
+    const digest = await digestText(entry.text);
+    if (digest !== entry.digest) changed = true;
+    byDigest.set(digest, { ...entry, digest });
+  }
+  const migrated = [...byDigest.values()].slice(-20);
+  if (changed || migrated.length !== entries.length) {
+    localStorage.setItem(LIBRARY_KEY, JSON.stringify(migrated));
+  }
+  return migrated;
 }
 
 function storageErrorMessage(error: unknown): string {
@@ -212,13 +231,13 @@ function storageErrorMessage(error: unknown): string {
   return "Local DBC library storage failed.";
 }
 
-function digestText(text: string): string {
-  let hash = 2166136261;
-  for (let i = 0; i < text.length; i += 1) {
-    hash ^= text.charCodeAt(i);
-    hash = Math.imul(hash, 16777619);
+async function digestText(text: string): Promise<string> {
+  if (!globalThis.crypto?.subtle) {
+    throw new Error("Secure browser cryptography is required to store DBC files safely.");
   }
-  return (hash >>> 0).toString(16).padStart(8, "0");
+  const bytes = new TextEncoder().encode(text);
+  const hash = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  return Array.from(new Uint8Array(hash), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function isLocalDbc(value: unknown): value is LocalDbc {

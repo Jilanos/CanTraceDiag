@@ -143,8 +143,7 @@ export class LocalPwaBackend {
     const start = summary.start_s as number | null;
     const end = summary.end_s as number | null;
     const status = summary.decode_status as Record<string, number>;
-    const eventCounts: Record<string, number> = {};
-    for (const eventType of summary.event_types as string[]) eventCounts[eventType] = (eventCounts[eventType] ?? 0) + 1;
+    const eventCounts = this.store.eventTypeCounts();
     return {
       trace_path: this.traceName ?? "browser-local trace",
       dbc_paths: this.dbcNames,
