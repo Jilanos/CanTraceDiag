@@ -1,14 +1,14 @@
 ## item_047_preserve_exact_anomaly_counts_in_browser_local_reports - Preserve exact anomaly counts in browser-local reports
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 60%
+> Progress: 100%
 > Complexity: Low
 > Theme: Diagnostic report correctness
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-22 12:25:36
+> Indicators reviewed: 2026-08-22 12:37:57
 
 # AI Context
 - Summary: Separate unique event-type discovery from exact event counting so browser-local reports preserve anomaly multiplicities.
@@ -56,3 +56,9 @@
 # Priority
 - Priority: High
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_044_deliver_browser_local_diagnostic_integrity_remediation`
+
+# Notes
+- Task `task_044_deliver_browser_local_diagnostic_integrity_remediation` was finished via `logics-manager flow finish task` on 2026-08-22.

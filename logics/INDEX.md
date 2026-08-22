@@ -20,7 +20,7 @@
 | [prod_009_efficient_multi_dbc_signal_exploration](product/prod_009_efficient_multi_dbc_signal_exploration.md) | Efficient multi-DBC signal exploration | Settled |  |  | product/prod_009_efficient_multi_dbc_signal_exploration.md |
 | [prod_010_interoperable_classic_can_trace_import](product/prod_010_interoperable_classic_can_trace_import.md) | Interoperable classic CAN trace import | Proposed |  |  | product/prod_010_interoperable_classic_can_trace_import.md |
 | [prod_011_reliable_logics_workflow_governance](product/prod_011_reliable_logics_workflow_governance.md) | Reliable Logics workflow governance | Settled |  |  | product/prod_011_reliable_logics_workflow_governance.md |
-| [prod_012_trustworthy_browser_local_diagnostics](product/prod_012_trustworthy_browser_local_diagnostics.md) | Trustworthy browser-local diagnostics | Proposed |  |  | product/prod_012_trustworthy_browser_local_diagnostics.md |
+| [prod_012_trustworthy_browser_local_diagnostics](product/prod_012_trustworthy_browser_local_diagnostics.md) | Trustworthy browser-local diagnostics | Settled |  |  | product/prod_012_trustworthy_browser_local_diagnostics.md |
 
 ## Roadmaps
 
@@ -60,7 +60,7 @@
 | [req_023_import_text_trc_can_trace_recordings](request/req_023_import_text_trc_can_trace_recordings.md) | Import text TRC CAN trace recordings | Draft |  |  | request/req_023_import_text_trc_can_trace_recordings.md |
 | [req_024_restore_logics_workflow_integrity_and_audit_closure](request/req_024_restore_logics_workflow_integrity_and_audit_closure.md) | Restore Logics workflow integrity and audit closure | Done |  |  | request/req_024_restore_logics_workflow_integrity_and_audit_closure.md |
 | [req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication](request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md) | Review findings: PWA report integrity and DBC library deduplication | Draft |  |  | request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md |
-| [req_026_restore_browser_local_diagnostic_data_integrity](request/req_026_restore_browser_local_diagnostic_data_integrity.md) | Restore browser-local diagnostic data integrity | Draft |  |  | request/req_026_restore_browser_local_diagnostic_data_integrity.md |
+| [req_026_restore_browser_local_diagnostic_data_integrity](request/req_026_restore_browser_local_diagnostic_data_integrity.md) | Restore browser-local diagnostic data integrity | Done |  |  | request/req_026_restore_browser_local_diagnostic_data_integrity.md |
 
 ## Backlog
 
@@ -120,8 +120,8 @@
 | [item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt](backlog/item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt.md) | Resolve legacy acceptance-criteria traceability and lifecycle debt | Done |  | 100% | backlog/item_044_resolve_legacy_acceptance_criteria_traceability_and_lifecycle_debt.md |
 | [item_045_repair_workflow_companion_documents_and_metadata_hygiene](backlog/item_045_repair_workflow_companion_documents_and_metadata_hygiene.md) | Repair workflow companion documents and metadata hygiene | Done |  | 100% | backlog/item_045_repair_workflow_companion_documents_and_metadata_hygiene.md |
 | [item_046_establish_a_repeatable_clean_audit_workflow_baseline](backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md) | Establish a repeatable clean-audit workflow baseline | Done |  | 100% | backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md |
-| [item_047_preserve_exact_anomaly_counts_in_browser_local_reports](backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md) | Preserve exact anomaly counts in browser-local reports | Ready |  | 0% | backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md |
-| [item_048_adopt_collision_safe_browser_local_dbc_content_identity](backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md) | Adopt collision-safe browser-local DBC content identity | Ready |  | 0% | backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md |
+| [item_047_preserve_exact_anomaly_counts_in_browser_local_reports](backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md) | Preserve exact anomaly counts in browser-local reports | Done |  | 100% | backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md |
+| [item_048_adopt_collision_safe_browser_local_dbc_content_identity](backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md) | Adopt collision-safe browser-local DBC content identity | Done |  | 100% | backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md |
 
 ## Tasks
 
@@ -178,7 +178,7 @@
 | [task_041_deliver_concise_multi_dbc_explorer_navigation](tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md) | Deliver concise multi-DBC explorer navigation | Done | codex | 100% | tasks/task_041_deliver_concise_multi_dbc_explorer_navigation.md |
 | [task_042_deliver_verified_text_trc_trace_import](tasks/task_042_deliver_verified_text_trc_trace_import.md) | Deliver verified text TRC trace import | In progress | codex | 90% | tasks/task_042_deliver_verified_text_trc_trace_import.md |
 | [task_043_deliver_clean_logics_workflow_audit_baseline](tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md) | Deliver clean Logics workflow audit baseline | Done | codex | 100% | tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md |
-| [task_044_deliver_browser_local_diagnostic_integrity_remediation](tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md) | Deliver browser-local diagnostic integrity remediation | Ready |  | 0% | tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md |
+| [task_044_deliver_browser_local_diagnostic_integrity_remediation](tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md) | Deliver browser-local diagnostic integrity remediation | Done | codex | 100% | tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md |
 
 ## Runbooks
 

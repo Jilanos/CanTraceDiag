@@ -1,12 +1,12 @@
 ## prod_012_trustworthy_browser_local_diagnostics - Trustworthy browser-local diagnostics
 > Date: 2026-08-22
-> Status: Proposed
+> Status: Settled
 > Related request: `req_026_restore_browser_local_diagnostic_data_integrity`
-> Related backlog: `item_047_preserve_exact_anomaly_counts_in_browser_local_reports`, `item_048_adopt_collision_safe_browser_local_dbc_content_identity`
+> Related backlog: `item_047_preserve_exact_anomaly_counts_in_browser_local_reports`
 > Related task: `task_044_deliver_browser_local_diagnostic_integrity_remediation`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
-> Indicators reviewed: 2026-08-22 12:23:25
+> Indicators reviewed: 2026-08-22 12:37:57
 
 # Overview
 Ensure that the static PWA preserves diagnostic evidence and local DBC assets accurately enough for operators to trust reports and repeated analysis sessions.
@@ -48,5 +48,5 @@ flowchart LR
 - Focused and full validations pass, and commit, CI, tag, and release evidence are recorded before closeout.
 
 # References
-- Product back-reference: `req_026_restore_browser_local_diagnostic_data_integrity`
+- Product back-reference: `item_047_preserve_exact_anomaly_counts_in_browser_local_reports`
 - Task back-reference: `task_044_deliver_browser_local_diagnostic_integrity_remediation`

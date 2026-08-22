@@ -1,13 +1,13 @@
 ## req_026_restore_browser_local_diagnostic_data_integrity - Restore browser-local diagnostic data integrity
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: Medium
 > Theme: Browser-local diagnostic integrity
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-08-22 12:22:26
+> Indicators reviewed: 2026-08-22 12:37:56
 
 # AI Context
 - Summary: Remediate two reproduced PWA integrity failures: repeated anomaly undercounting and collision-prone DBC library identity.

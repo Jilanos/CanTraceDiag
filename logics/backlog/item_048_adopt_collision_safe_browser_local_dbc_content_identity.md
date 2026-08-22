@@ -1,14 +1,14 @@
 ## item_048_adopt_collision_safe_browser_local_dbc_content_identity - Adopt collision-safe browser-local DBC content identity
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 60%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Local library data integrity
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-22 12:25:36
+> Indicators reviewed: 2026-08-22 12:37:57
 
 # AI Context
 - Summary: Replace sole reliance on the browser library's 32-bit digest while preserving deduplication and legacy-entry compatibility.
@@ -58,3 +58,9 @@
 # Priority
 - Priority: High
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_044_deliver_browser_local_diagnostic_integrity_remediation`
+
+# Notes
+- Task `task_044_deliver_browser_local_diagnostic_integrity_remediation` was finished via `logics-manager flow finish task` on 2026-08-22.
