@@ -1,0 +1,190 @@
+{
+  "title": "Harden static PWA delivery and release validation",
+  "references": [
+    "logics/request/req_027_review_findings_pwa_delivery_integrity_and_release_hardening.md",
+    "docs/audit-2026-08-23.md",
+    "spikes/pwa-local-engine/build-browser.mjs",
+    "spikes/pwa-local-engine/browser-smoke.mjs",
+    "src/cantracediag/web/index.html",
+    "src/cantracediag/web/js/fullscreen.js",
+    ".github/workflows/ci.yml",
+    ".github/workflows/release.yml",
+    ".dockerignore",
+    "Dockerfile",
+    "tests/conftest.py"
+  ],
+  "request": {
+    "complexity": "Medium",
+    "theme": "Static PWA delivery integrity",
+    "needs": [
+      "Make the generated static PWA include every product web module required by the HTML shell, including the fullscreen controller.",
+      "Exercise the generated browser application in automated pull-request and release validation so delivered-site regressions are caught before publication.",
+      "Reduce delivery and governance drift found by the 2026-08-23 audit without expanding into unrelated product redesign."
+    ],
+    "context": [
+      "The source audit is `docs/audit-2026-08-23.md`, captured from revision `f9d4365` and summarized in `req_027_review_findings_pwa_delivery_integrity_and_release_hardening`.",
+      "The immediate P0 defect is that `buildProductAppSource()` in `spikes/pwa-local-engine/build-browser.mjs` hard-codes a product module list that omits `fullscreen.js`, while `src/cantracediag/web/index.html` exposes `#fullscreenBtn` and `#fullscreenNote` and loads the missing module in the source shell.",
+      "The generated PWA bundle contained no `fullscreen` reference during the audit, leaving the visible fullscreen button inert without a console error.",
+      "The CI PWA job runs Node tests, the static build, static HTTP checks, and Docker MIME checks, but it does not invoke `spikes/pwa-local-engine/browser-smoke.mjs`; release validation is weaker than CI and likewise does not exercise the delivered browser surface.",
+      "The Docker build context measured about 933 MB, with `.pydeps` contributing about 383 MB; `.dockerignore` also leaves tests, docs, Logics records, `.github`, `tmp`, and the historical `spikes/pwa-500mb` material in the broad `COPY . .` context.",
+      "The audit also identified structural follow-up work: fragile text-marker source rewriting, production code still living under `spikes/`, stale Logics records, inconsistent or mutable supply-chain pins, and a Starlette test-client deprecation warning.",
+      "The corpus is intended to make the audit actionable. Implementation must follow the repository release policy for functional changes: local validation, implementation commit, version-preparation commit, push, CI on the exact SHA, annotated tag, release verification, and closeout evidence."
+    ],
+    "acceptance_criteria": [
+      "AC1: The generated static PWA includes every product web module required by the HTML shell, and a regression test fails if the source shell and build module set diverge.",
+      "AC2: The delivered fullscreen control is exercised against the generated site and has observable behavior or explicit unsupported-browser feedback.",
+      "AC3: Pull-request CI and release validation run a generated-site browser smoke that covers service worker/app-shell behavior, workspace persistence, and the fullscreen control.",
+      "AC4: The Docker context excludes local dependency caches and non-production inputs without removing files required to build and serve the static PWA.",
+      "AC5: Structural follow-ups for the fragile PWA assembly, production location under `spikes/`, stale workflow records, supply-chain pinning, and the Starlette deprecation are explicitly resolved, deferred with rationale, or split into follow-on work.",
+      "AC6: Before closeout, Ruff, Python tests, Node PWA tests, PWA build, browser smoke, Logics lint, Logics audit, and the required release evidence are recorded."
+    ]
+  },
+  "product": {
+    "title": "Reliable static PWA delivery",
+    "overview": "Make the static PWA build and release path trustworthy enough that documented browser features cannot disappear silently between the source shell and the deployed artifact.",
+    "goals": [
+      "Keep source HTML, JavaScript modules, generated bundles, and delivered-browser behavior in sync.",
+      "Run the same user-relevant PWA checks during development, CI, and release validation.",
+      "Trim avoidable build context and record the remaining audit debt in scoped, traceable workflow items."
+    ],
+    "non_goals": [
+      "Redesign the diagnostic workspace UI, parser model, charting behavior, or DBC workflows.",
+      "Replace the full PWA architecture in this request beyond the scoped delivery-hardening changes.",
+      "Perform a broad dependency modernization unrelated to the specific audit findings.",
+      "Close stale historical Logics chains without reviewing their actual implementation and release evidence."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Prevent static PWA module omissions and restore fullscreen delivery",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "PWA bundle integrity",
+      "request_acs": ["AC1", "AC2", "AC6"],
+      "problem": [
+        "The production PWA build duplicates the source shell script order in a hard-coded list, and the reviewed list omitted `fullscreen.js`.",
+        "A visible documented control can therefore ship without behavior while existing tests remain green."
+      ],
+      "scope_in": [
+        "Derive the product module list from the source HTML shell or fail the build when the declared scripts and bundled modules diverge.",
+        "Preserve the required JavaScript execution order when assembling the generated PWA bundle.",
+        "Restore the delivered fullscreen controller in the generated artifact and keep unsupported or refused fullscreen requests visible to the user.",
+        "Add focused tests that fail when a product web module loaded by `src/cantracediag/web/index.html` is absent from the generated PWA bundle.",
+        "Verify the generated artifact contains and serves the fullscreen controller behavior."
+      ],
+      "scope_out": [
+        "Changing the fullscreen UX beyond restoring the documented delivered behavior.",
+        "Moving the PWA out of `spikes/` or replacing the transport abstraction as part of this slice.",
+        "Changing Python/FastAPI behavior except where a shared fixture is needed for verification."
+      ],
+      "acceptance_criteria": [
+        "AC1: The build reads or validates the product script list from `src/cantracediag/web/index.html`, including `fullscreen.js`, and preserves the source script order.",
+        "AC2: A regression test fails if any product `web/js` module referenced by the source shell is missing from the generated bundle or generated site.",
+        "AC3: The built site contains the fullscreen control implementation, and the browser smoke can observe a click path that either enters fullscreen or reports a supported refusal state.",
+        "AC4: Existing Node PWA tests and the PWA build remain green after the change."
+      ]
+    },
+    {
+      "title": "Run generated-site browser smoke in CI and release validation",
+      "priority": "High",
+      "complexity": "Medium",
+      "theme": "Delivered-browser automation",
+      "request_acs": ["AC2", "AC3", "AC6"],
+      "problem": [
+        "`spikes/pwa-local-engine/browser-smoke.mjs` validates generated-site behavior but is not invoked by CI or release validation.",
+        "Release validation currently repeats less than CI, making the release gate depend on external assumptions about prior push validation."
+      ],
+      "scope_in": [
+        "Make the generated-site browser smoke deterministic and suitable for CI execution if any environment setup is currently implicit.",
+        "Add the browser smoke to the pull-request PWA workflow after the generated site is built and served.",
+        "Add equivalent generated-site browser smoke coverage to release validation, alongside the static build and Node tests.",
+        "Extend the smoke to cover the restored fullscreen control at a behavior level that remains stable in headless Chromium.",
+        "Document any required browser or Playwright dependency setup in the workflow rather than relying on a developer machine state."
+      ],
+      "scope_out": [
+        "Replacing unit tests with browser-only checks.",
+        "Adding large fixture uploads or long-running performance tests to the default CI path.",
+        "Changing release publishing, tagging, or deployment semantics beyond validation coverage."
+      ],
+      "acceptance_criteria": [
+        "AC1: Pull-request CI runs the generated-site browser smoke on the built PWA artifact and fails on delivered app-shell, service-worker, workspace-persistence, or fullscreen-control regressions.",
+        "AC2: Release validation runs the same generated-site smoke before publication steps and records the check in release evidence.",
+        "AC3: Workflow setup installs or reuses the required browser runtime deterministically on GitHub-hosted runners.",
+        "AC4: Local validation commands for the browser smoke are documented in the task closeout and pass with the rest of the standard suite."
+      ]
+    },
+    {
+      "title": "Shrink Docker build context for the static PWA image",
+      "priority": "Medium",
+      "complexity": "Low",
+      "theme": "Container delivery efficiency",
+      "request_acs": ["AC4", "AC6"],
+      "problem": [
+        "The Docker build sends a broad repository context even though the image serves a small generated static PWA.",
+        "Local caches and non-production sources increase build time and the chance of accidental file exposure."
+      ],
+      "scope_in": [
+        "Update `.dockerignore` to exclude `.pydeps`, Python and Node caches, tests, docs, Logics records, temporary files, CI metadata, and historical spike artifacts that are not required by the Docker build.",
+        "Verify that the Docker image build still has every required input to generate and serve the canonical static PWA.",
+        "Measure and record the before/after context size or an equivalent Docker build transfer indicator.",
+        "Keep the image runtime behavior and Nginx security headers unchanged."
+      ],
+      "scope_out": [
+        "Rewriting the Dockerfile into a new build system unless the existing broad context cannot be made safe enough.",
+        "Changing the served artifact path or deployment target.",
+        "Deleting historical files from the repository."
+      ],
+      "acceptance_criteria": [
+        "AC1: `.dockerignore` excludes `.pydeps` and other non-production directories identified in the audit while retaining all inputs required by `Dockerfile`.",
+        "AC2: A Docker build of the static PWA image succeeds from a clean worktree after the ignore change.",
+        "AC3: The measured context transfer is materially lower than the audited broad context, with the measurement recorded in closeout evidence.",
+        "AC4: The existing static HTTP and MIME checks still pass against the built image."
+      ]
+    },
+    {
+      "title": "Resolve residual audit governance and release-hardening debt",
+      "priority": "Medium",
+      "complexity": "Medium",
+      "theme": "Release governance",
+      "request_acs": ["AC5", "AC6"],
+      "problem": [
+        "The audit found several lower-priority risks that should not be mixed into the P0 fix but should not remain implicit.",
+        "Production code under `spikes/`, text-marker rewriting, stale Logics records, mutable pins, and the Starlette deprecation each need a recorded disposition."
+      ],
+      "scope_in": [
+        "Review the stale Logics chains named by `logics-manager health` and either close, obsolete, or split them using Logics lifecycle commands with evidence.",
+        "Create or update scoped follow-up work for replacing fragile PWA text rewrites and promoting the production PWA out of `spikes/`, unless that work is already covered by an active chain.",
+        "Harmonize the release-validation checklist with CI where appropriate and record any intentionally deferred checks with rationale.",
+        "Plan or implement the smallest safe step for supply-chain pinning consistency, starting with release workflow and Docker image mutability.",
+        "Plan or implement the Starlette/httpx test-client deprecation fix if it is still present when this slice starts."
+      ],
+      "scope_out": [
+        "Large-scale frontend architecture migration without a dedicated implementation task.",
+        "Forced closeout of workflow documents that lack evidence.",
+        "Project-wide dependency upgrades not needed for release validation, pinning policy, or the test-client deprecation."
+      ],
+      "acceptance_criteria": [
+        "AC1: Each residual audit item C3, C4, C5, C7, and C8 has a concrete outcome: fixed, linked to existing work, split into new work, or explicitly deferred with rationale.",
+        "AC2: Logics lifecycle changes are made through `logics-manager flow` commands and pass lint and audit afterward.",
+        "AC3: Any supply-chain or dependency changes include focused validation and do not weaken current CI or release gates.",
+        "AC4: The task closeout records the final disposition table and links to any follow-up docs created."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver static PWA delivery and release hardening",
+    "plan": [
+      "Start by reproducing the audited fullscreen omission against the generated PWA bundle and adding a failing module-parity regression test.",
+      "Fix static PWA module discovery or validation so the source HTML shell and generated bundle cannot diverge silently, then verify fullscreen behavior in the built site.",
+      "Make the generated-site browser smoke deterministic and wire it into pull-request CI and release validation with a stable fullscreen-control assertion.",
+      "Reduce Docker context size without changing the served PWA artifact, then record the measured effect.",
+      "Work through the residual audit items as a disposition table, using Logics lifecycle commands for stale records and scoped follow-up docs for larger architecture or supply-chain work.",
+      "Run the standard local validation suite, Logics lint, Logics audit, and the repository release workflow sequence required for functional changes; record all evidence before closeout."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/pwa_delivery_release_hardening.json",
+    "mode": "diff-first",
+    "profile": "normal"
+  }
+}

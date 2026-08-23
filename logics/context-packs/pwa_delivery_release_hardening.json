@@ -1,0 +1,478 @@
+{
+  "budgets": {
+    "max_docs": 24,
+    "max_docs_per_ref": 4
+  },
+  "changed_paths": [
+    "logics/backlog/item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery.md",
+    "logics/backlog/item_050_run_generated_site_browser_smoke_in_ci_and_release_validation.md",
+    "logics/backlog/item_051_shrink_docker_build_context_for_the_static_pwa_image.md",
+    "logics/backlog/item_052_resolve_residual_audit_governance_and_release_hardening_debt.md",
+    "logics/product/prod_013_reliable_static_pwa_delivery.md",
+    "logics/request/req_028_harden_static_pwa_delivery_and_release_validation.md",
+    "logics/scaffold/pwa_delivery_release_hardening.json",
+    "logics/tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md"
+  ],
+  "command": "logics-manager sync context-pack req_028_harden_static_pwa_delivery_and_release_validation item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery item_050_run_generated_site_browser_smoke_in_ci_and_release_validation item_051_shrink_docker_build_context_for_the_static_pwa_image item_052_resolve_residual_audit_governance_and_release_hardening_debt task_045_deliver_static_pwa_delivery_and_release_hardening --mode diff-first --profile normal --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery",
+          "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation",
+          "item_051_shrink_docker_build_context_for_the_static_pwa_image",
+          "item_052_resolve_residual_audit_governance_and_release_hardening_debt"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ],
+        "task": [
+          "task_045_deliver_static_pwa_delivery_and_release_hardening"
+        ]
+      },
+      "path": "logics/product/prod_013_reliable_static_pwa_delivery.md",
+      "ref": "prod_013_reliable_static_pwa_delivery",
+      "sections": {
+        "Goals": [
+          "- Keep source HTML, JavaScript modules, generated bundles, and delivered-browser behavior in sync.",
+          "- Run the same user-relevant PWA checks during development, CI, and release validation.",
+          "- Trim avoidable build context and record the remaining audit debt in scoped, traceable workflow items."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Make the static PWA build and release path trustworthy enough that documented browser features cannot disappear silently between the source shell and the deployed artifact."
+        ],
+        "References": [
+          "- Product back-reference: `req_028_harden_static_pwa_delivery_and_release_validation`",
+          "- Task back-reference: `task_045_deliver_static_pwa_delivery_and_release_hardening`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Reliable static PWA delivery"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "harden, static, pwa, delivery, release, validation",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery",
+          "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation",
+          "item_051_shrink_docker_build_context_for_the_static_pwa_image",
+          "item_052_resolve_residual_audit_governance_and_release_hardening_debt"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_027_review_findings_pwa_delivery_integrity_and_release_hardening",
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ]
+      },
+      "path": "logics/request/req_028_harden_static_pwa_delivery_and_release_validation.md",
+      "ref": "req_028_harden_static_pwa_delivery_and_release_validation",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: The generated static PWA includes every product web module required by the HTML shell, and a regression test fails if the source shell and build module set diverge.",
+          "- AC2: The delivered fullscreen control is exercised against the generated site and has observable behavior or explicit unsupported-browser feedback.",
+          "- AC3: Pull-request CI and release validation run a generated-site browser smoke that covers service worker/app-shell behavior, workspace persistence, and the fullscreen control.",
+          "- AC4: The Docker context excludes local dependency caches and non-production inputs without removing files required to build and serve the static PWA.",
+          "- AC5: Structural follow-ups for the fragile PWA assembly, production location under `spikes/`, stale workflow records, supply-chain pinning, and the Starlette deprecation are explicitly resolved, deferred with rationale, or split into follow-on work.",
+          "- AC6: Before closeout, Ruff, Python tests, Node PWA tests, PWA build, browser smoke, Logics lint, Logics audit, and the required release evidence are recorded."
+        ],
+        "Needs": [
+          "- Make the generated static PWA include every product web module required by the HTML shell, including the fullscreen controller.",
+          "- Exercise the generated browser application in automated pull-request and release validation so delivered-site regressions are caught before publication.",
+          "- Reduce delivery and governance drift found by the 2026-08-23 audit without expanding into unrelated product redesign."
+        ]
+      },
+      "status": "Draft",
+      "title": "Harden static PWA delivery and release validation"
+    },
+    {
+      "ai_context": {
+        "keywords": "review, findings, pwa, delivery, integrity, release, hardening",
+        "skip when": "Implementing a remediation that has already been scoped into a backlog item.",
+        "summary": "Capture verified audit findings about static PWA assembly, delivered-browser coverage, delivery efficiency, and release assurance.",
+        "use when": "Triage the 2026-08-23 audit into independently scoped remediation work."
+      },
+      "kind": "request",
+      "linked_refs": {
+        "req": [
+          "req_027_review_findings_pwa_delivery_integrity_and_release_hardening"
+        ]
+      },
+      "path": "logics/request/req_027_review_findings_pwa_delivery_integrity_and_release_hardening.md",
+      "ref": "req_027_review_findings_pwa_delivery_integrity_and_release_hardening",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Any scoped remediation ensures every product web module required by the HTML shell is included in the generated PWA bundle, with a regression test that fails when the module set diverges.",
+          "- AC2: Any scoped remediation runs a generated-site browser smoke test in both pull-request CI and release validation, including an observable fullscreen-control check.",
+          "- AC3: Any scoped remediation reduces the Docker build context by excluding local dependency caches and other non-production sources without removing required build inputs.",
+          "- AC4: Later scoped work explicitly decides the disposition of the fragile PWA text-rewrite architecture, obsolete spike material, stale workflow records, supply-chain pinning, the test-client deprecation, and release-validation parity.",
+          "- AC5: Scope boundaries are explicit: this review does not change product code, alter deployment, or close existing workflow documents."
+        ],
+        "Needs": [
+          "- Preserve the audit candidates that affect the delivered static PWA and its release path. The immediate user-facing defect is that the built PWA omits the fullscreen controller although the control is present in its HTML shell and documented as available.",
+          "- Ensure any later remediation prevents source modules from silently disappearing during static-PWA assembly and exercises real built-site behavior in automation.",
+          "- Reduce delivery risk and maintenance drift identified in the audit: an oversized Docker context, an obsolete spike location/fragile text rewriting, stale workflow records, inconsistent dependency pinning, and a pending test-client deprecation."
+        ]
+      },
+      "status": "Draft",
+      "title": "Review findings: PWA delivery integrity and release hardening"
+    },
+    {
+      "ai_context": {
+        "keywords": "prevent, static, pwa, module, omissions, restore, fullscreen, delivery",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ],
+        "task": [
+          "task_045_deliver_static_pwa_delivery_and_release_hardening"
+        ]
+      },
+      "path": "logics/backlog/item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery.md",
+      "ref": "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: The build reads or validates the product script list from `src/cantracediag/web/index.html`, including `fullscreen.js`, and preserves the source script order.",
+          "- AC2: A regression test fails if any product `web/js` module referenced by the source shell is missing from the generated bundle or generated site.",
+          "- AC3: The built site contains the fullscreen control implementation, and the browser smoke can observe a click path that either enters fullscreen or reports a supported refusal state.",
+          "- AC4: Existing Node PWA tests and the PWA build remain green after the change."
+        ],
+        "Problem": [
+          "- The production PWA build duplicates the source shell script order in a hard-coded list, and the reviewed list omitted `fullscreen.js`.",
+          "- A visible documented control can therefore ship without behavior while existing tests remain green."
+        ]
+      },
+      "status": "Ready",
+      "title": "Prevent static PWA module omissions and restore fullscreen delivery"
+    },
+    {
+      "ai_context": {
+        "keywords": "run, generated, site, browser, smoke, release, validation",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ],
+        "task": [
+          "task_045_deliver_static_pwa_delivery_and_release_hardening"
+        ]
+      },
+      "path": "logics/backlog/item_050_run_generated_site_browser_smoke_in_ci_and_release_validation.md",
+      "ref": "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Pull-request CI runs the generated-site browser smoke on the built PWA artifact and fails on delivered app-shell, service-worker, workspace-persistence, or fullscreen-control regressions.",
+          "- AC2: Release validation runs the same generated-site smoke before publication steps and records the check in release evidence.",
+          "- AC3: Workflow setup installs or reuses the required browser runtime deterministically on GitHub-hosted runners.",
+          "- AC4: Local validation commands for the browser smoke are documented in the task closeout and pass with the rest of the standard suite."
+        ],
+        "Problem": [
+          "- `spikes/pwa-local-engine/browser-smoke.mjs` validates generated-site behavior but is not invoked by CI or release validation.",
+          "- Release validation currently repeats less than CI, making the release gate depend on external assumptions about prior push validation."
+        ]
+      },
+      "status": "Ready",
+      "title": "Run generated-site browser smoke in CI and release validation"
+    },
+    {
+      "ai_context": {
+        "keywords": "deliver, static, pwa, delivery, release, hardening",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery",
+          "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation",
+          "item_051_shrink_docker_build_context_for_the_static_pwa_image",
+          "item_052_resolve_residual_audit_governance_and_release_hardening_debt"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ],
+        "task": [
+          "task_045_deliver_static_pwa_delivery_and_release_hardening"
+        ]
+      },
+      "path": "logics/tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md",
+      "ref": "task_045_deliver_static_pwa_delivery_and_release_hardening",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Orchestrate the scaffolded request chain and keep sibling implementation slices linked."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver static PWA delivery and release hardening"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery",
+          "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation",
+          "item_051_shrink_docker_build_context_for_the_static_pwa_image",
+          "item_052_resolve_residual_audit_governance_and_release_hardening_debt"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ],
+        "task": [
+          "task_045_deliver_static_pwa_delivery_and_release_hardening"
+        ]
+      },
+      "path": "logics/product/prod_013_reliable_static_pwa_delivery.md",
+      "ref": "prod_013_reliable_static_pwa_delivery",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Reliable static PWA delivery"
+    },
+    {
+      "ai_context": {
+        "keywords": "shrink, docker, build, context, static, pwa, image",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_051_shrink_docker_build_context_for_the_static_pwa_image"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ],
+        "task": [
+          "task_045_deliver_static_pwa_delivery_and_release_hardening"
+        ]
+      },
+      "path": "logics/backlog/item_051_shrink_docker_build_context_for_the_static_pwa_image.md",
+      "ref": "item_051_shrink_docker_build_context_for_the_static_pwa_image",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: `.dockerignore` excludes `.pydeps` and other non-production directories identified in the audit while retaining all inputs required by `Dockerfile`.",
+          "- AC2: A Docker build of the static PWA image succeeds from a clean worktree after the ignore change.",
+          "- AC3: The measured context transfer is materially lower than the audited broad context, with the measurement recorded in closeout evidence.",
+          "- AC4: The existing static HTTP and MIME checks still pass against the built image."
+        ],
+        "Problem": [
+          "- The Docker build sends a broad repository context even though the image serves a small generated static PWA.",
+          "- Local caches and non-production sources increase build time and the chance of accidental file exposure."
+        ]
+      },
+      "status": "Ready",
+      "title": "Shrink Docker build context for the static PWA image"
+    },
+    {
+      "ai_context": {
+        "keywords": "resolve, residual, audit, governance, release, hardening, debt",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_052_resolve_residual_audit_governance_and_release_hardening_debt"
+        ],
+        "prod": [
+          "prod_013_reliable_static_pwa_delivery"
+        ],
+        "req": [
+          "req_028_harden_static_pwa_delivery_and_release_validation"
+        ],
+        "task": [
+          "task_045_deliver_static_pwa_delivery_and_release_hardening"
+        ]
+      },
+      "path": "logics/backlog/item_052_resolve_residual_audit_governance_and_release_hardening_debt.md",
+      "ref": "item_052_resolve_residual_audit_governance_and_release_hardening_debt",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Each residual audit item C3, C4, C5, C7, and C8 has a concrete outcome: fixed, linked to existing work, split into new work, or explicitly deferred with rationale.",
+          "- AC2: Logics lifecycle changes are made through `logics-manager flow` commands and pass lint and audit afterward.",
+          "- AC3: Any supply-chain or dependency changes include focused validation and do not weaken current CI or release gates.",
+          "- AC4: The task closeout records the final disposition table and links to any follow-up docs created."
+        ],
+        "Problem": [
+          "- The audit found several lower-priority risks that should not be mixed into the P0 fix but should not remain implicit.",
+          "- Production code under `spikes/`, text-marker rewriting, stale Logics records, mutable pins, and the Starlette deprecation each need a recorded disposition."
+        ]
+      },
+      "status": "Ready",
+      "title": "Resolve residual audit governance and release-hardening debt"
+    }
+  ],
+  "estimates": {
+    "char_count": 15566,
+    "companion_doc_count": 1,
+    "doc_count": 8
+  },
+  "generated_at": "2026-08-23T07:45:36Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_028_harden_static_pwa_delivery_and_release_validation",
+      "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery",
+      "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation",
+      "item_051_shrink_docker_build_context_for_the_static_pwa_image",
+      "item_052_resolve_residual_audit_governance_and_release_hardening_debt",
+      "task_045_deliver_static_pwa_delivery_and_release_hardening"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "normal",
+  "ref": "req_028_harden_static_pwa_delivery_and_release_validation,item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery,item_050_run_generated_site_browser_smoke_in_ci_and_release_validation,item_051_shrink_docker_build_context_for_the_static_pwa_image,item_052_resolve_residual_audit_governance_and_release_hardening_debt,task_045_deliver_static_pwa_delivery_and_release_hardening",
+  "refs": [
+    "req_028_harden_static_pwa_delivery_and_release_validation",
+    "item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery",
+    "item_050_run_generated_site_browser_smoke_in_ci_and_release_validation",
+    "item_051_shrink_docker_build_context_for_the_static_pwa_image",
+    "item_052_resolve_residual_audit_governance_and_release_hardening_debt",
+    "task_045_deliver_static_pwa_delivery_and_release_hardening"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_version": "1.0.18"
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md",
+      "ref": "task_045_deliver_static_pwa_delivery_and_release_hardening"
+    }
+  ]
+}

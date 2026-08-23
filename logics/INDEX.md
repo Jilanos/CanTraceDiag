@@ -21,6 +21,7 @@
 | [prod_010_interoperable_classic_can_trace_import](product/prod_010_interoperable_classic_can_trace_import.md) | Interoperable classic CAN trace import | Proposed |  |  | product/prod_010_interoperable_classic_can_trace_import.md |
 | [prod_011_reliable_logics_workflow_governance](product/prod_011_reliable_logics_workflow_governance.md) | Reliable Logics workflow governance | Settled |  |  | product/prod_011_reliable_logics_workflow_governance.md |
 | [prod_012_trustworthy_browser_local_diagnostics](product/prod_012_trustworthy_browser_local_diagnostics.md) | Trustworthy browser-local diagnostics | Settled |  |  | product/prod_012_trustworthy_browser_local_diagnostics.md |
+| [prod_013_reliable_static_pwa_delivery](product/prod_013_reliable_static_pwa_delivery.md) | Reliable static PWA delivery | Proposed |  |  | product/prod_013_reliable_static_pwa_delivery.md |
 
 ## Roadmaps
 
@@ -62,6 +63,7 @@
 | [req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication](request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md) | Review findings: PWA report integrity and DBC library deduplication | Draft |  |  | request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md |
 | [req_026_restore_browser_local_diagnostic_data_integrity](request/req_026_restore_browser_local_diagnostic_data_integrity.md) | Restore browser-local diagnostic data integrity | Done |  |  | request/req_026_restore_browser_local_diagnostic_data_integrity.md |
 | [req_027_review_findings_pwa_delivery_integrity_and_release_hardening](request/req_027_review_findings_pwa_delivery_integrity_and_release_hardening.md) | Review findings: PWA delivery integrity and release hardening | Draft |  |  | request/req_027_review_findings_pwa_delivery_integrity_and_release_hardening.md |
+| [req_028_harden_static_pwa_delivery_and_release_validation](request/req_028_harden_static_pwa_delivery_and_release_validation.md) | Harden static PWA delivery and release validation | Draft |  |  | request/req_028_harden_static_pwa_delivery_and_release_validation.md |
 
 ## Backlog
 
@@ -123,6 +125,10 @@
 | [item_046_establish_a_repeatable_clean_audit_workflow_baseline](backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md) | Establish a repeatable clean-audit workflow baseline | Done |  | 100% | backlog/item_046_establish_a_repeatable_clean_audit_workflow_baseline.md |
 | [item_047_preserve_exact_anomaly_counts_in_browser_local_reports](backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md) | Preserve exact anomaly counts in browser-local reports | Done |  | 100% | backlog/item_047_preserve_exact_anomaly_counts_in_browser_local_reports.md |
 | [item_048_adopt_collision_safe_browser_local_dbc_content_identity](backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md) | Adopt collision-safe browser-local DBC content identity | Done |  | 100% | backlog/item_048_adopt_collision_safe_browser_local_dbc_content_identity.md |
+| [item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery](backlog/item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery.md) | Prevent static PWA module omissions and restore fullscreen delivery | Ready |  | 0% | backlog/item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery.md |
+| [item_050_run_generated_site_browser_smoke_in_ci_and_release_validation](backlog/item_050_run_generated_site_browser_smoke_in_ci_and_release_validation.md) | Run generated-site browser smoke in CI and release validation | Ready |  | 0% | backlog/item_050_run_generated_site_browser_smoke_in_ci_and_release_validation.md |
+| [item_051_shrink_docker_build_context_for_the_static_pwa_image](backlog/item_051_shrink_docker_build_context_for_the_static_pwa_image.md) | Shrink Docker build context for the static PWA image | Ready |  | 0% | backlog/item_051_shrink_docker_build_context_for_the_static_pwa_image.md |
+| [item_052_resolve_residual_audit_governance_and_release_hardening_debt](backlog/item_052_resolve_residual_audit_governance_and_release_hardening_debt.md) | Resolve residual audit governance and release-hardening debt | Ready |  | 0% | backlog/item_052_resolve_residual_audit_governance_and_release_hardening_debt.md |
 
 ## Tasks
 
@@ -180,6 +186,7 @@
 | [task_042_deliver_verified_text_trc_trace_import](tasks/task_042_deliver_verified_text_trc_trace_import.md) | Deliver verified text TRC trace import | In progress | codex | 90% | tasks/task_042_deliver_verified_text_trc_trace_import.md |
 | [task_043_deliver_clean_logics_workflow_audit_baseline](tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md) | Deliver clean Logics workflow audit baseline | Done | codex | 100% | tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md |
 | [task_044_deliver_browser_local_diagnostic_integrity_remediation](tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md) | Deliver browser-local diagnostic integrity remediation | Done | codex | 100% | tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md |
+| [task_045_deliver_static_pwa_delivery_and_release_hardening](tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md) | Deliver static PWA delivery and release hardening | Ready |  | 0% | tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md |
 
 ## Runbooks
 
