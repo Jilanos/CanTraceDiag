@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
 import { stripTypeScriptTypes } from "node:module";
+import { moduleManifestComment, resolveProductModules, WEB_JS_DIR } from "./product-modules.mjs";
 
 const srcDir = path.resolve("spikes/pwa-local-engine/src");
 const distDir = path.resolve("spikes/pwa-local-engine/browser");
@@ -111,10 +112,12 @@ function appVersion() {
 }
 
 function buildProductAppSource() {
-  const webJsDir = path.resolve("src/cantracediag/web/js");
-  const modules = ["core.js", "import.js", "signals.js", "plot.js", "report.js", "trace.js", "inspector.js", "main.js"];
+  // The module set and its execution order come from the source HTML shell.
+  // A second hard-coded list here is what let `fullscreen.js` be delivered as
+  // an inert control; `resolveProductModules` fails the build on divergence.
+  const modules = resolveProductModules();
   let source = modules
-    .map((entry) => fs.readFileSync(path.join(webJsDir, entry), "utf8"))
+    .map((entry) => fs.readFileSync(path.join(WEB_JS_DIR, entry), "utf8"))
     .join("\n\n");
   source = replaceBlock(
     source,
@@ -145,7 +148,8 @@ function uploadWithProgress(url, formData, onProgress, onUploadComplete) {
     downloadBlob(blob, \`cantracediag_export.\${format === "parquet" ? "parquet" : "csv"}\`);
     $("exportDialog").close();`,
   );
-  return `import { createLocalProductBackend } from "./product-backend.mjs";
+  return `${moduleManifestComment(modules)}
+import { createLocalProductBackend } from "./product-backend.mjs";
 import { exportLocalProductBlob } from "./product-backend.mjs";
 
 const localProductBackend = createLocalProductBackend();
