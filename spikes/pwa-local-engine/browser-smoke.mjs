@@ -1,20 +1,54 @@
 import fs from "node:fs";
 import http from "node:http";
+import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
-const chromePath = process.env.CHROME_PATH
-  || "/home/paul/.cache/ms-playwright/chromium-1228/chrome-linux64/chrome";
+const chromePath = resolveChromePath();
 const port = Number(process.env.CTD_ENGINE_PORT || 9880);
 const debuggingPort = Number(process.env.CTD_ENGINE_DEBUG_PORT || 9230);
-const root = path.resolve(process.env.CTD_ENGINE_ROOT || "spikes/pwa-local-engine");
+// Default to the generated site: the delivered artifact is what CI and release
+// validation must exercise, not the historical spike shell.
+const root = path.resolve(process.env.CTD_ENGINE_ROOT || "spikes/pwa-local-engine/site");
 const tracePath = path.resolve(process.env.CTD_ENGINE_TRACE || "tests/fixtures/sample.asc");
 const dbcPath = path.resolve("tests/fixtures/sample.dbc");
 const expectedTraceRows = Number(process.env.CTD_ENGINE_EXPECT_TRACE_ROWS || 8);
 const expectedReportText = (process.env.CTD_ENGINE_EXPECT_REPORT_TEXT || "")
   .split("|")
   .filter(Boolean);
+
+/* Chromium discovery must not depend on one developer's cache layout: CI
+ * installs Playwright's Chromium, and a workstation may have any revision of
+ * it or a distro browser. Honour CHROME_PATH first, then search in a stable
+ * order so the same command works on a runner and locally. */
+function resolveChromePath() {
+  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
+  const candidates = [];
+  const playwrightRoots = [
+    process.env.PLAYWRIGHT_BROWSERS_PATH,
+    path.join(os.homedir(), ".cache", "ms-playwright"),
+    "/ms-playwright",
+  ].filter(Boolean);
+  for (const browsersRoot of playwrightRoots) {
+    if (!fs.existsSync(browsersRoot)) continue;
+    const revisions = fs.readdirSync(browsersRoot)
+      .filter((entry) => entry.startsWith("chromium-"))
+      // Highest revision first: a stale one may predate the tested behavior.
+      .sort((a, b) => Number(b.split("-")[1]) - Number(a.split("-")[1]));
+    for (const revision of revisions) {
+      for (const layout of ["chrome-linux64/chrome", "chrome-linux/chrome", "chrome-mac/Chromium.app/Contents/MacOS/Chromium"]) {
+        candidates.push(path.join(browsersRoot, revision, layout));
+      }
+    }
+  }
+  candidates.push("/usr/bin/google-chrome", "/usr/bin/chromium", "/usr/bin/chromium-browser");
+  const found = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!found) {
+    throw new Error(`Chromium not found. Set CHROME_PATH or install Playwright Chromium. Looked at:\n${candidates.join("\n")}`);
+  }
+  return found;
+}
 
 async function main() {
   if (!fs.existsSync(chromePath)) throw new Error(`Chromium not found: ${chromePath}`);
@@ -209,6 +243,8 @@ async function main() {
     if (!pwaValue.serviceWorkerActive) throw new Error("Service worker is not active.");
     if (!pwaValue.shellCache) throw new Error("App shell cache missing.");
 
+    const fullscreen = await exerciseFullscreen(cdp);
+
     const network = await cdp.call("Runtime.evaluate", {
       expression: `window.__ctdNetworkCalls.filter((entry) => entry.url.includes('/api/'))`,
       returnByValue: true,
@@ -227,7 +263,7 @@ async function main() {
     });
     if (!String(libraryText.result.value).includes("sample.dbc")) throw new Error(`DBC library missing uploaded fixture: ${libraryText.result.value}`);
 
-    console.log(JSON.stringify({ ok: true, root, tracePath, dbcPath, snapshot: value, plotState, explorer: explorerValue, workspace: workspaceValue, pwa: pwaValue, apiCalls }, null, 2));
+    console.log(JSON.stringify({ ok: true, root, chromePath, tracePath, dbcPath, snapshot: value, plotState, explorer: explorerValue, workspace: workspaceValue, pwa: pwaValue, fullscreen, apiCalls }, null, 2));
     await cdp.close();
   } finally {
     chrome.kill("SIGTERM");
@@ -244,6 +280,63 @@ async function main() {
       }
     }
   }
+}
+
+/* The delivered fullscreen control is the defect this smoke exists to catch:
+ * a bundle that omits `fullscreen.js` leaves a visible button with no listener
+ * and no console error. Headless Chromium may enter fullscreen or refuse it, so
+ * assert on the contract instead of on one outcome: after a user-gesture click
+ * the control must either be in fullscreen or show a refusal note, and
+ * `aria-pressed` must mirror the native state either way. */
+async function exerciseFullscreen(cdp) {
+  const before = await evaluateValue(cdp, fullscreenStateExpression());
+  if (!before.present) throw new Error("Fullscreen control is missing from the delivered site.");
+  if (before.pressed !== "false") throw new Error(`Fullscreen control did not start unpressed: ${JSON.stringify(before)}`);
+
+  await cdp.call("Runtime.evaluate", {
+    expression: "document.querySelector('#fullscreenBtn').click()",
+    userGesture: true,
+    awaitPromise: false,
+  });
+
+  const after = await waitForExpression(
+    cdp,
+    fullscreenStateExpression(),
+    (state) => state.fullscreen || Boolean(state.note),
+  );
+  if (after.pressed !== String(after.fullscreen)) {
+    throw new Error(`Fullscreen aria-pressed did not follow the native state: ${JSON.stringify(after)}`);
+  }
+
+  let restored = after;
+  if (after.fullscreen) {
+    await cdp.call("Runtime.evaluate", {
+      expression: "document.querySelector('#fullscreenBtn').click()",
+      userGesture: true,
+    });
+    restored = await waitForExpression(cdp, fullscreenStateExpression(), (state) => !state.fullscreen);
+    if (restored.pressed !== "false") throw new Error(`Fullscreen control stayed pressed after exit: ${JSON.stringify(restored)}`);
+  }
+  return { before, after, restored };
+}
+
+function fullscreenStateExpression() {
+  return `(() => {
+    const btn = document.querySelector('#fullscreenBtn');
+    const note = document.querySelector('#fullscreenNote');
+    return {
+      present: Boolean(btn),
+      pressed: btn ? btn.getAttribute('aria-pressed') : null,
+      label: btn ? btn.getAttribute('aria-label') : null,
+      fullscreen: Boolean(document.fullscreenElement),
+      note: note && !note.hidden ? note.textContent.trim() : ''
+    };
+  })()`;
+}
+
+async function evaluateValue(cdp, expression) {
+  const result = await cdp.call("Runtime.evaluate", { expression, returnByValue: true });
+  return result.result.value;
 }
 
 async function setFile(cdp, rootNodeId, selector, filePath) {

@@ -44,6 +44,18 @@ jobs:
               with urllib.request.urlopen("http://127.0.0.1:8770" + path) as response:
                   assert response.status == 200, (path, response.status)
           PY
+      - name: Install Playwright Chromium for the generated-site smoke
+        # Pinned so the delivered-site check runs against a known browser
+        # revision instead of whatever the runner image happens to ship.
+        run: npx --yes playwright@1.49.1 install --with-deps chromium
+      - name: Generated site browser smoke test
+        # Exercises the built artifact: app shell, service worker, workspace
+        # persistence, CSV export, and the fullscreen control.
+        run: node spikes/pwa-local-engine/browser-smoke.mjs
+        env:
+          CTD_ENGINE_ROOT: spikes/pwa-local-engine/site
+          CTD_ENGINE_PORT: "9880"
+          CTD_ENGINE_DEBUG_PORT: "9230"
       - name: Container MIME smoke test
         run: |
           docker build -t cantracediag-pwa-smoke .
