@@ -1,8 +1,46 @@
+# The image only serves the generated static PWA. Everything the build stage
+# does not read is excluded so `COPY . .` transfers kilobytes, not hundreds of
+# megabytes of local caches, and so no local-only file can reach the context.
+# Required inputs: spikes/pwa-local-engine/{src,assets,manifest.webmanifest,
+# sw.js,build-browser.mjs,product-modules.mjs}, src/cantracediag/web/,
+# pyproject.toml (app version), nginx.conf.
+
+# Version control and editor state
 .git
+.gitignore
+.github
+.vscode
+.idea
+
+# Local dependency caches and virtual environments
+.pydeps
+.venv
+venv
+node_modules
 __pycache__
 *.pyc
-.venv
+*.pyo
+.mypy_cache
+.pytest_cache
+.ruff_cache
+.cache
+
+# Build outputs regenerated inside the image
 dist
+build
+*.egg-info
 site
 browser
-node_modules
+spikes/pwa-local-engine/site
+spikes/pwa-local-engine/browser
+
+# Non-production inputs
+tests
+docs
+logics
+tmp
+scripts
+spikes/pwa-500mb
+spikes/pwa-local-engine/tests
+*.md
+CanTraceDiag.local.cmd
