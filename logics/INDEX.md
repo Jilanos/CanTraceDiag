@@ -61,6 +61,7 @@
 | [req_024_restore_logics_workflow_integrity_and_audit_closure](request/req_024_restore_logics_workflow_integrity_and_audit_closure.md) | Restore Logics workflow integrity and audit closure | Done |  |  | request/req_024_restore_logics_workflow_integrity_and_audit_closure.md |
 | [req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication](request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md) | Review findings: PWA report integrity and DBC library deduplication | Draft |  |  | request/req_025_review_findings_pwa_report_integrity_and_dbc_library_deduplication.md |
 | [req_026_restore_browser_local_diagnostic_data_integrity](request/req_026_restore_browser_local_diagnostic_data_integrity.md) | Restore browser-local diagnostic data integrity | Done |  |  | request/req_026_restore_browser_local_diagnostic_data_integrity.md |
+| [req_027_review_findings_pwa_delivery_integrity_and_release_hardening](request/req_027_review_findings_pwa_delivery_integrity_and_release_hardening.md) | Review findings: PWA delivery integrity and release hardening | Draft |  |  | request/req_027_review_findings_pwa_delivery_integrity_and_release_hardening.md |
 
 ## Backlog
 
