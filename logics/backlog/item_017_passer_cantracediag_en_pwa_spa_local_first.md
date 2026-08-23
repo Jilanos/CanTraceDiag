@@ -1,13 +1,14 @@
 ## item_017_passer_cantracediag_en_pwa_spa_local_first - Passer CanTraceDiag en PWA SPA local-first
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Obsolete
 > Understanding: 90%
 > Confidence: 85%
 > Progress: 0%
 > Complexity: High
 > Theme: Operator workflow and runtime integration
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
+> Indicators reviewed: 2026-08-23 10:04:04
 
 # Problem
 CanTraceDiag peut potentiellement devenir une SPA/PWA local-first hébergée
@@ -70,6 +71,7 @@ bloquant sur la lecture/parsing par chunks de fichiers pouvant atteindre 500 Mo.
 - Architecture decision(s): (none yet)
 - Request: `logics/request/req_007_passer_cantracediag_en_pwa_spa_local_first.md`
 - Primary task(s): `task_017_passer_cantracediag_en_pwa_spa_local_first`
+- Superseded by: `req_011_migrer_ui_produit_pwa_local_first_parite_mvp`
 
 # AI Context
 - Summary: Passer CanTraceDiag en PWA SPA local-first

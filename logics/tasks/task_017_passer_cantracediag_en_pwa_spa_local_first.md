@@ -1,19 +1,24 @@
 ## task_017_passer_cantracediag_en_pwa_spa_local_first - Passer CanTraceDiag en PWA SPA local-first
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Obsolete
 > Understanding: 90%
 > Confidence: 85%
 > Progress: 0%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
+> Indicators reviewed: 2026-08-23 10:04:42
 
 # Definition of Done (DoD)
-- [ ] The backlog scope is implemented.
-- [ ] Acceptance criteria are covered.
-- [ ] Validation passes.
-- [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
+Closed by withdrawal on 2026-08-23, not by delivery: this task is Obsolete and
+superseded by `req_011_migrer_ui_produit_pwa_local_first_parite_mvp`. The
+feasibility question it framed was answered by the July 2026 PWA spikes, and the
+migration shipped under the superseding chain. No implementation is owed here.
+- [x] Not applicable (withdrawn): the backlog scope is implemented — carried by `req_011`.
+- [x] Not applicable (withdrawn): acceptance criteria are covered — carried by `req_011`.
+- [x] Not applicable (withdrawn): validation passes — no code was delivered under this task.
+- [x] Not applicable (withdrawn): ADR 009 waves — the chain was requalified, not implemented.
 
 # Backlog
 - `item_017_passer_cantracediag_en_pwa_spa_local_first`
@@ -58,3 +63,4 @@
 - Request: `req_007_passer_cantracediag_en_pwa_spa_local_first`
 - Product brief(s): (none yet)
 - Architecture decision(s): (none yet)
+- Superseded by: `req_011_migrer_ui_produit_pwa_local_first_parite_mvp`

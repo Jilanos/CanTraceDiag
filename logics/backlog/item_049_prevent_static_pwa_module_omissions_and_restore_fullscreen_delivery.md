@@ -1,14 +1,14 @@
 ## item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery - Prevent static PWA module omissions and restore fullscreen delivery
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 10%
 > Complexity: Medium
 > Theme: PWA bundle integrity
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-23 09:47:01
+> Indicators reviewed: 2026-08-23 09:50:36
 
 # AI Context
 - Summary: Fix the audited static PWA module omission by making the generated bundle track source shell scripts and restoring delivered fullscreen behavior.

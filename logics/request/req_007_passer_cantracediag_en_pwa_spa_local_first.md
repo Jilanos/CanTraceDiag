@@ -1,12 +1,13 @@
 ## req_007_passer_cantracediag_en_pwa_spa_local_first - Passer CanTraceDiag en PWA SPA local-first
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Obsolete
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: Medium
 > Theme: General
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
+> Indicators reviewed: 2026-08-23 10:04:04
 
 # Needs
 - Explorer une nouvelle architecture CanTraceDiag en SPA/PWA local-first sur une
@@ -83,3 +84,6 @@
 
 # Backlog
 - `item_017_passer_cantracediag_en_pwa_spa_local_first`
+
+# Links
+- Superseded by: `req_011_migrer_ui_produit_pwa_local_first_parite_mvp`

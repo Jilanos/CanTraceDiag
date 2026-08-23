@@ -1,14 +1,14 @@
 ## item_050_run_generated_site_browser_smoke_in_ci_and_release_validation - Run generated-site browser smoke in CI and release validation
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 10%
 > Complexity: Medium
 > Theme: Delivered-browser automation
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-08-23 09:47:01
+> Indicators reviewed: 2026-08-23 09:50:36
 
 # AI Context
 - Summary: Wire the generated-site browser smoke into PR and release validation so delivered PWA behavior is checked automatically.
