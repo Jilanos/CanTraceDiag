@@ -7,7 +7,7 @@
 > Complexity: Medium
 > Theme: Static PWA delivery integrity
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-08-23 09:47:01
+> Indicators reviewed: 2026-08-23 10:07:15
 
 # AI Context
 - Summary: Turn the 2026-08-23 PWA delivery audit into scoped remediation work for bundle completeness, generated-site automation, Docker context size, and release hardening.
@@ -36,6 +36,14 @@
 - AC4: The Docker context excludes local dependency caches and non-production inputs without removing files required to build and serve the static PWA.
 - AC5: Structural follow-ups for the fragile PWA assembly, production location under `spikes/`, stale workflow records, supply-chain pinning, and the Starlette deprecation are explicitly resolved, deferred with rationale, or split into follow-on work.
 - AC6: Before closeout, Ruff, Python tests, Node PWA tests, PWA build, browser smoke, Logics lint, Logics audit, and the required release evidence are recorded.
+
+# AC Traceability
+- request-AC1 -> This task. Proof: the build derives its ordered module list from `src/cantracediag/web/index.html` via `spikes/pwa-local-engine/product-modules.mjs` and fails on divergence in either direction; `spikes/pwa-local-engine/tests/product-bundle.test.ts` failed on the audited omission at cab567b and passes at e91cb8d.
+- request-AC2 -> This task. Proof: the delivered bundle contains `fullscreen.js`, and the generated-site browser smoke clicks `#fullscreenBtn` with a user gesture and requires either `document.fullscreenElement` or a visible refusal note, with `aria-pressed` mirroring the native state; on 2026-08-23 the delivered site entered and left fullscreen. Removing only the click listener from the built bundle makes the smoke fail.
+- request-AC3 -> This task. Proof: `.github/workflows/ci.yml` and the `validate` job of `.github/workflows/release.yml` both install a pinned Playwright Chromium and run `node spikes/pwa-local-engine/browser-smoke.mjs` against the generated site, which asserts app shell, service worker, workspace persistence, CSV export, zero `/api` calls, and the fullscreen control (573f9f4).
+- request-AC4 -> This task. Proof: `.dockerignore` became an explicit exclusion list; the measured build context fell from 395.9 MB to 951.3 kB while `sha256` over `/usr/share/nginx/html` stayed identical between the before and after images, and the container still served `browser/product-app.mjs` as `application/javascript` (ffc4b15).
+- request-AC5 -> This task. Proof: the residual disposition table in `task_045_deliver_static_pwa_delivery_and_release_hardening` gives C3, C4, C5, C7 and C8 a concrete outcome - C4/C7/C8 fixed here, C3 split into `req_029`, C5 partly fixed and the remainder split into `req_030` (b04e7ec, 4415c0c).
+- request-AC6 -> This task. Proof: recorded in the task's Validation section - Ruff, 166 pytest tests, 32 Node PWA tests, the static build, the generated-site browser smoke, `logics-manager lint --require-status`, `logics-manager audit`, and the release evidence for the version published from this chain.
 
 # Definition of Ready (DoR)
 - [x] Problem statement is explicit and user impact is clear.

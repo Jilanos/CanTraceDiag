@@ -8,7 +8,7 @@
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-08-23 09:50:36
+> Indicators reviewed: 2026-08-23 10:07:15
 > Owner: codex
 
 # AI Context
@@ -44,16 +44,16 @@
 - [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
 
 # AC Traceability
-- request-AC1 -> `item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery`. Proof deferred to slice closeout.
-- request-AC2 -> `item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery`. Proof deferred to slice closeout.
-- request-AC6 -> `item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery`. Proof deferred to slice closeout.
-- request-AC2 -> `item_050_run_generated_site_browser_smoke_in_ci_and_release_validation`. Proof deferred to slice closeout.
-- request-AC3 -> `item_050_run_generated_site_browser_smoke_in_ci_and_release_validation`. Proof deferred to slice closeout.
-- request-AC6 -> `item_050_run_generated_site_browser_smoke_in_ci_and_release_validation`. Proof deferred to slice closeout.
-- request-AC4 -> `item_051_shrink_docker_build_context_for_the_static_pwa_image`. Proof deferred to slice closeout.
-- request-AC6 -> `item_051_shrink_docker_build_context_for_the_static_pwa_image`. Proof deferred to slice closeout.
-- request-AC5 -> `item_052_resolve_residual_audit_governance_and_release_hardening_debt`. Proof deferred to slice closeout.
-- request-AC6 -> `item_052_resolve_residual_audit_governance_and_release_hardening_debt`. Proof deferred to slice closeout.
+- request-AC1 -> `item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery`. Proof: module list derived from the HTML shell with a build-time divergence guard and a regression test that failed at cab567b and passes at e91cb8d.
+- request-AC2 -> `item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery`. Proof: module list derived from the HTML shell with a build-time divergence guard and a regression test that failed at cab567b and passes at e91cb8d.
+- request-AC6 -> `item_049_prevent_static_pwa_module_omissions_and_restore_fullscreen_delivery`. Proof: module list derived from the HTML shell with a build-time divergence guard and a regression test that failed at cab567b and passes at e91cb8d.
+- request-AC2 -> `item_050_run_generated_site_browser_smoke_in_ci_and_release_validation`. Proof: the generated-site browser smoke runs in the pull-request PWA job and the release validate job, and covers the fullscreen control (573f9f4).
+- request-AC3 -> `item_050_run_generated_site_browser_smoke_in_ci_and_release_validation`. Proof: the generated-site browser smoke runs in the pull-request PWA job and the release validate job, and covers the fullscreen control (573f9f4).
+- request-AC6 -> `item_050_run_generated_site_browser_smoke_in_ci_and_release_validation`. Proof: the generated-site browser smoke runs in the pull-request PWA job and the release validate job, and covers the fullscreen control (573f9f4).
+- request-AC4 -> `item_051_shrink_docker_build_context_for_the_static_pwa_image`. Proof: build context 395.9 MB -> 951.3 kB with a byte-identical served artifact (ffc4b15).
+- request-AC6 -> `item_051_shrink_docker_build_context_for_the_static_pwa_image`. Proof: build context 395.9 MB -> 951.3 kB with a byte-identical served artifact (ffc4b15).
+- request-AC5 -> `item_052_resolve_residual_audit_governance_and_release_hardening_debt`. Proof: disposition table in this task's Report, with req_029 and req_030 opened for the split items (b04e7ec, 4415c0c).
+- request-AC6 -> `item_052_resolve_residual_audit_governance_and_release_hardening_debt`. Proof: disposition table in this task's Report, with req_029 and req_030 opened for the split items (b04e7ec, 4415c0c).
 
 # Validation
 - (no validation recorded yet)
