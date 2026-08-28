@@ -4,7 +4,7 @@
 > Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 55%
+> Progress: 85%
 > Complexity: High
 > Theme: Binary trace import interoperability
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
