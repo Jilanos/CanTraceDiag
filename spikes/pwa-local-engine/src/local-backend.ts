@@ -231,6 +231,29 @@ export class LocalPwaBackend {
   }
 }
 
+/* Trace formats the browser-local engine can read.
+ *
+ * The engine parses text: it reads a whole trace into a JS string and holds
+ * every frame in memory, with no DuckDB to spill to. Vector BLF is a zlib
+ * container, so importing one locally would mean shipping a binary reader in
+ * the static bundle *and* holding the decompressed object stream in memory on
+ * top of the frames it produces. That is the constraint that settles it -- the
+ * static PWA does not import BLF, and says so before the file is read rather
+ * than failing somewhere inside the parser. Server-backed CanTraceDiag imports
+ * BLF; see spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md.
+ */
+export const LOCAL_TRACE_SUFFIXES = [".asc", ".trc"] as const;
+
+/** Why this trace cannot be imported locally, or null when it can be. */
+export function localTraceRejection(name: string): string | null {
+  const lowered = name.toLowerCase();
+  if (LOCAL_TRACE_SUFFIXES.some((suffix) => lowered.endsWith(suffix))) return null;
+  if (lowered.endsWith(".blf")) {
+    return "Binary BLF traces are not supported in the browser app. Open this recording with the CanTraceDiag server, which imports BLF.";
+  }
+  return `Unsupported trace format: choose an ${LOCAL_TRACE_SUFFIXES.join(" or ")} file.`;
+}
+
 function timestamp(item: AscItem | TrcItem): number {
   return item.kind === "frame" ? item.frame.timestamp_s : item.event.timestamp_s;
 }

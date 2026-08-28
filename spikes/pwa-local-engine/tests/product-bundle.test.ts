@@ -50,6 +50,15 @@ describe("Static PWA bundle parity", () => {
     }
   });
 
+  it("does not offer BLF in the static picker the bundle cannot read", () => {
+    const shell = fs.readFileSync(path.resolve("src/cantracediag/web/index.html"), "utf8");
+    assert.ok(shell.includes('accept=".asc,.trc,.blf"'), "server shell must still offer BLF");
+
+    const html = fs.readFileSync(indexPath, "utf8");
+    assert.ok(html.includes('accept=".asc,.trc"'), "static picker lost its text trace formats");
+    assert.ok(!html.includes(".blf"), "static picker offers BLF, which the bundle cannot import");
+  });
+
   it("serves the generated site without stale FastAPI script tags", () => {
     const html = fs.readFileSync(indexPath, "utf8");
     assert.ok(!html.includes("/static/js/"), "generated shell still loads FastAPI script tags");

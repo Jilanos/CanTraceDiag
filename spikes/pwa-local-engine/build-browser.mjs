@@ -9,6 +9,22 @@ const distDir = path.resolve("spikes/pwa-local-engine/browser");
 const siteDir = path.resolve("spikes/pwa-local-engine/site");
 fs.mkdirSync(distDir, { recursive: true });
 
+/* The shell is shared with the server-backed app, which imports BLF; the static
+ * bundle cannot (see src/local-backend.ts). These rewrites take BLF back out of
+ * the generated picker, and `replaceOnce` fails the build if the source shell
+ * stops matching -- a silent no-op would ship a picker offering a format the
+ * bundle has no reader for. */
+const STATIC_SHELL_REWRITES = [
+  [
+    '<input id="traceFile" type="file" accept=".asc,.trc,.blf" hidden />',
+    '<input id="traceFile" type="file" accept=".asc,.trc" hidden />',
+  ],
+  [
+    'title="Choose an ASC, text TRC, or binary BLF CAN trace"',
+    'title="Choose an ASC or text TRC CAN trace"',
+  ],
+];
+
 for (const entry of fs.readdirSync(srcDir)) {
   if (!entry.endsWith(".ts")) continue;
   const inputPath = path.join(srcDir, entry);
@@ -50,6 +66,14 @@ fs.copyFileSync(path.resolve("src/cantracediag/web/paulmondou-emblem.svg"), path
 console.log(`Built browser modules in ${path.relative(process.cwd(), distDir)}`);
 console.log(`Built static site in ${path.relative(process.cwd(), siteDir)}`);
 
+function replaceOnce(html, from, to) {
+  const parts = html.split(from);
+  if (parts.length !== 2) {
+    throw new Error(`Static shell rewrite matched ${parts.length - 1} times, expected 1: ${from}`);
+  }
+  return parts.join(to);
+}
+
 function buildProductIndex(version) {
   let html = fs.readFileSync(path.resolve("src/cantracediag/web/index.html"), "utf8")
     .replace('<link rel="icon" href="/static/app-icon.svg" type="image/svg+xml" />', '<link rel="icon" href="./assets/app-icon.svg" type="image/svg+xml" />')
@@ -58,6 +82,7 @@ function buildProductIndex(version) {
     .replace('src="/static/app-emblem.svg"', 'src="./assets/app-emblem.svg"')
     .replace('src="/static/paulmondou-emblem.svg"', 'src="./assets/paulmondou-emblem.svg"')
     .replaceAll("__CTD_APP_VERSION__", appVersion());
+  for (const [from, to] of STATIC_SHELL_REWRITES) html = replaceOnce(html, from, to);
   html = html.replace(
     /<script src="\/static\/js\/[^"]+"><\/script>\n?/g,
     "",

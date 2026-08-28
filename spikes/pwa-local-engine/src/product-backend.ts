@@ -1,4 +1,4 @@
-import { LocalPwaBackend } from "./local-backend.ts";
+import { LocalPwaBackend, localTraceRejection } from "./local-backend.ts";
 
 type LocalDbc = {
   digest: string;
@@ -93,6 +93,10 @@ export function createLocalProductBackend(): {
     onProgress(0.05);
     const trace = formData.get("trace");
     if (!(trace instanceof File)) throw new Error("Trace file must be selected.");
+    // The picker's accept filter is advisory -- an operator can still choose
+    // "All files" -- so the boundary is enforced here, before any read.
+    const rejection = localTraceRejection(trace.name);
+    if (rejection) throw new Error(rejection);
     const freshDbcs = formData.getAll("dbcs").filter((entry): entry is File => entry instanceof File);
     const libraryDigests = formData.getAll("library").map(String);
     const library = await readLibrary();

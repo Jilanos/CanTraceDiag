@@ -5,7 +5,7 @@ import path from "node:path";
 
 import { DbcCatalog } from "../src/dbc.ts";
 import { Decoder } from "../src/decode.ts";
-import { LocalPwaBackend } from "../src/local-backend.ts";
+import { LocalPwaBackend, LOCAL_TRACE_SUFFIXES, localTraceRejection } from "../src/local-backend.ts";
 import { createLocalProductBackend } from "../src/product-backend.ts";
 import type { RawCanFrame } from "../src/types.ts";
 
@@ -284,6 +284,68 @@ describe("LocalPwaBackend", () => {
     assert.equal(result.needs_resolution, true);
     const conflicts = result.conflicts as Array<{ id_hex: string }>;
     assert.ok(conflicts.some((conflict) => conflict.id_hex === "100"));
+  });
+});
+
+describe("Browser-local BLF capability boundary", () => {
+  it("supports exactly the text trace formats the engine can parse", () => {
+    assert.deepEqual([...LOCAL_TRACE_SUFFIXES], [".asc", ".trc"]);
+    assert.equal(localTraceRejection("sample.asc"), null);
+    assert.equal(localTraceRejection("sample.trc"), null);
+    assert.equal(localTraceRejection("SAMPLE.TRC"), null);
+  });
+
+  it("names the server as the way to open a BLF recording", () => {
+    const rejection = localTraceRejection("acquisition.blf") ?? "";
+    assert.match(rejection, /BLF/);
+    assert.match(rejection, /server/i);
+  });
+
+  it("rejects a BLF selection before reading the file", async () => {
+    const backend = createLocalProductBackend();
+    const form = new FormData();
+    // A file the engine must never try to parse as text, chosen past the
+    // picker's advisory accept filter.
+    form.append("trace", new File([new Uint8Array([0x4c, 0x4f, 0x47, 0x47])], "acquisition.blf"));
+    form.append("dbcs", new File([readFixture("sample.dbc")], "sample.dbc"));
+
+    await assert.rejects(
+      () => backend.uploadWithProgress(form, () => {}),
+      /Binary BLF traces are not supported in the browser app/,
+    );
+    // Nothing was imported, so the previous (empty) session is untouched.
+    assert.equal(Number((backend.__backend.status() as { summary: Record<string, unknown> }).summary.frames), 0);
+  });
+
+  it("still imports ASC and TRC traces locally", async () => {
+    // The import path persists DBCs to the library, which node has no
+    // localStorage for; the stub keeps the assertion about the trace formats.
+    const originalStorage = globalThis.localStorage;
+    let stored = "[]";
+    Object.defineProperty(globalThis, "localStorage", {
+      configurable: true,
+      value: {
+        getItem() { return stored; },
+        removeItem() { stored = "[]"; },
+        setItem(_key: string, value: string) { stored = value; },
+      },
+    });
+    try {
+      for (const name of ["sample.asc", "sample.trc"]) {
+        const backend = createLocalProductBackend();
+        const form = new FormData();
+        form.append("trace", new File([readFixture(name)], name));
+        form.append("dbcs", new File([readFixture("sample.dbc")], "sample.dbc"));
+        await backend.uploadWithProgress(form, () => {});
+        const status = backend.__backend.status() as { summary: Record<string, unknown> };
+        assert.ok(Number(status.summary.frames) > 0, `${name} imported no frames`);
+      }
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", {
+        configurable: true,
+        value: originalStorage,
+      });
+    }
   });
 });
 

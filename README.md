@@ -9,7 +9,7 @@ is retained as a local/API reference implementation and compatibility suite;
 it is not the artifact served by the production Docker image. See
 `docs/architecture-pwa-canonique.md` for the boundary and validation contract.
 
-**CanTraceDiag turns an ASC or supported text `.trc` CAN trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
+**CanTraceDiag turns an ASC, supported text `.trc`, or Vector `.blf` CAN trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
 
 The goal is direct: inspect real CAN acquisitions away from the vehicle, without a remote server, without keeping a proprietary tool open, and without loading the whole trace into the browser.
 
@@ -17,7 +17,7 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 
 ## Core Features
 
-- **ASC/TRC + DBC import** from the browser or server-side paths. The supported PCAN-View text TRC v1.1 layout and ASC both retain malformed records as explicit import anomalies instead of corrupt frames.
+- **ASC/TRC/BLF + DBC import** from the browser or server-side paths. The supported PCAN-View text TRC v1.1 layout and ASC both retain malformed records as explicit import anomalies instead of corrupt frames. Vector BLF imports the classic-CAN object subset the same way, turning CAN FD/XL objects, remote requests, error frames, and integrity failures into inspectable diagnostics; a corrupt container fails the import rather than publishing a partial trace.
 - **Multi-DBC decoding** with ambiguous arbitration ID detection.
 - **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
 - **Workspace views** from a single control — Plots, Plots + trace (split with a resizable divider), Trace, and Report — that switch layout while preserving selection, cursors, and filters.
@@ -159,7 +159,7 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 
 ## User Workflow
 
-1. **Import** one `.asc` or supported text `.trc` trace and one or more `.dbc` files.
+1. **Import** one `.asc`, supported text `.trc`, or Vector `.blf` trace and one or more `.dbc` files.
 2. **Resolve DBC conflicts** when several databases define the same arbitration ID with non-equivalent messages.
 3. **Select signals** present in the trace or available in the DBC catalog.
 4. **Switch workspace views** — Plots, Plots + trace (split), Trace, or Report — from the single view control; switching keeps your selection, cursors, and filters.
@@ -175,6 +175,8 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 cantracediag info /path/to/trace.asc --dbc system.dbc --dbc auxiliary.dbc
 # A verified PCAN-View text TRC v1.1 file is supported too.
 cantracediag info /path/to/trace.trc --dbc system.dbc --dbc auxiliary.dbc
+# So is a Vector BLF recording (classic CAN data frames).
+cantracediag info /path/to/trace.blf --dbc system.dbc --dbc auxiliary.dbc
 
 # List messages and signals from one or more DBC files
 cantracediag signals system.dbc
@@ -250,7 +252,9 @@ src/cantracediag/
 ├── dbc.py          # multi-DBC loading + conflicts
 ├── decode.py       # physical signal decoding
 ├── formats/asc.py  # CANalyzer ASCII reader
-├── pipeline.py     # ASC import -> index
+├── formats/trc.py  # PCAN-View text TRC v1.1 reader
+├── formats/blf.py  # Vector BLF adapter (classic CAN subset)
+├── pipeline.py     # trace import -> index
 ├── store.py        # DuckDB + windowed queries
 ├── security.py     # Host/Origin/token/upload hardening
 ├── export.py       # streamed CSV/Parquet export
@@ -287,7 +291,7 @@ In that mode, plotted series come from the loaded trace, but business labels sho
 
 Delivered today:
 
-- ASC import;
+- ASC, text TRC, and Vector BLF import;
 - DBC decoding;
 - DuckDB index;
 - local UI with plots, trace table, inspector, and cursors;
@@ -298,7 +302,9 @@ Delivered today:
 
 Known limits:
 
-- BLF/MF4 support is not complete;
+- BLF covers classic CAN data frames only, and MF4 is not supported;
+- the static browser PWA does not import BLF (server-backed import does) --
+  see `spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md`;
 - no real-time replay;
 - no native Windows package yet;
 - no representative CI performance budget for large traces around 150 MB yet.
