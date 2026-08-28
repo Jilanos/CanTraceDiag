@@ -5,6 +5,7 @@ serves bounded queries so the browser never loads the whole trace (AC4-AC6,
 AC8). It is local-first: it binds to localhost by default. Traces and DBCs are
 supplied either as uploads from the browser's native file picker
 (``/api/import-files``) or as server-side paths (``/api/import``, for the CLI).
+Accepted trace formats are ASC, text TRC, and binary BLF (``TRACE_SUFFIXES``).
 """
 
 from __future__ import annotations
@@ -37,6 +38,10 @@ from cantracediag.workspace import Workspace
 
 _WEB_DIR = Path(__file__).parent / "web"
 _TOKEN_HEADER = "x-ctd-token"
+
+# Trace file suffixes the server-backed import accepts. Kept next to the upload
+# guard so the picker copy, the guard, and the pipeline dispatch stay in step.
+TRACE_SUFFIXES = (".asc", ".trc", ".blf")
 
 # Rewrite same-origin references to bundled assets so we can append the asset
 # version below (e.g. ``src="/static/js/main.js"`` -> ``...?v=<token>``).
@@ -538,8 +543,8 @@ def create_app(
         (including ``/api/import-job`` polling and ``/api/import-cancel``)
         could be served in the meantime (AC1).
         """
-        if not (trace.filename or "").lower().endswith((".asc", ".trc")):
-            raise HTTPException(400, "Trace file must be an .asc or .trc file.")
+        if not (trace.filename or "").lower().endswith(TRACE_SUFFIXES):
+            raise HTTPException(400, "Trace file must be an .asc, .trc, or .blf file.")
 
         # Reject oversized requests early via the declared length, then enforce
         # the same aggregate cap while streaming so a lying Content-Length cannot

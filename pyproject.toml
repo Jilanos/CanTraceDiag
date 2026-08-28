@@ -13,6 +13,9 @@ dependencies = [
   "duckdb>=1.1",
   "pandas>=2.2",
   "pyarrow>=17",
+  # BLF container decoding only; the project's own adapter re-normalizes every
+  # object, so nothing from python-can reaches the rest of the product.
+  "python-can>=4.6",
   "typer>=0.12",
 ]
 

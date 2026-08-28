@@ -16,12 +16,14 @@ import typer
 from cantracediag.dbc import DbcCatalog
 from cantracediag.pipeline import import_trace
 
-app = typer.Typer(help="Local analysis of ASC and text TRC CAN traces with DBC decoding.")
+app = typer.Typer(
+    help="Local analysis of ASC, text TRC, and binary BLF CAN traces with DBC decoding."
+)
 
 
 @app.command()
 def info(
-    trace: Path = typer.Argument(..., help="Path to a local .asc or .trc trace"),
+    trace: Path = typer.Argument(..., help="Path to a local .asc, .trc, or .blf trace"),
     dbc: list[Path] = typer.Option([], "--dbc", "-d", help="Local DBC file(s)"),
 ) -> None:
     """Import a trace and print a summary without launching the UI."""

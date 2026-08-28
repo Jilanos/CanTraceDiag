@@ -1,4 +1,4 @@
-"""Orchestration: import a supported text trace, decode against DBCs, index locally."""
+"""Orchestration: import a supported trace, decode against DBCs, index locally."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ def import_trace(
     cancel_check: Callable[[], bool] | None = None,
     decode_samples: bool = False,
 ) -> tuple[TraceStore, ImportResult]:
-    """Parse a supported ASC or text TRC trace, decode frames, and populate a TraceStore.
+    """Parse a supported ASC, text TRC, or binary BLF trace, decode frames, and index it.
 
     Real trace and DBC files are read from local disk only; nothing is written
     back to the repository (AC1, AC8). ``resolution`` maps an arbitration id to
@@ -116,6 +116,12 @@ def import_trace(
             scanner, items = stream_trc(trace_path, on_progress=_report if on_progress else None)
         elif suffix == ".asc":
             scanner, items = stream_asc(trace_path, on_progress=_report if on_progress else None)
+        elif suffix == ".blf":
+            # Imported here rather than at module scope: the BLF adapter pulls in
+            # python-can, and an ASC/TRC import should not pay for it.
+            from cantracediag.formats.blf import stream_blf
+
+            scanner, items = stream_blf(trace_path, on_progress=_report if on_progress else None)
         else:
             raise ValueError(f"Unsupported trace format: {suffix or '(no extension)'}")
         for item in items:
