@@ -1,13 +1,13 @@
 ## req_031_import_binary_blf_can_trace_recordings - Import binary BLF CAN trace recordings
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: High
 > Theme: Binary trace import interoperability
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-08-28 10:15:38
+> Indicators reviewed: 2026-08-28 10:56:23
 
 # AI Context
 - Summary: Define a bounded Vector BLF ingestion contract that keeps binary-recording risks outside the normalized diagnostic pipeline.

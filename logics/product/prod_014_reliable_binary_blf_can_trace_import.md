@@ -1,12 +1,12 @@
 ## prod_014_reliable_binary_blf_can_trace_import - Reliable binary BLF CAN trace import
 > Date: 2026-08-28
-> Status: Proposed
+> Status: Settled
 > Related request: `req_031_import_binary_blf_can_trace_recordings`
 > Related backlog: `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`
 > Related task: `task_046_deliver_reliable_binary_blf_trace_import`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
-> Indicators reviewed: 2026-08-28 10:15:38
+> Indicators reviewed: 2026-08-28 10:56:24
 
 # Overview
 Extend the diagnostic workstation with a bounded, safe Vector BLF import path while preserving the existing normalized CAN model and established ASC/TRC workflows.
@@ -41,5 +41,5 @@ flowchart LR
 - Context-pack output can be handed to an implementation agent directly.
 
 # References
-- Product back-reference: `req_031_import_binary_blf_can_trace_recordings`
+- Product back-reference: `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`
 - Task back-reference: `task_046_deliver_reliable_binary_blf_trace_import`

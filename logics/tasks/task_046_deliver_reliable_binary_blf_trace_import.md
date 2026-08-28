@@ -1,14 +1,14 @@
 ## task_046_deliver_reliable_binary_blf_trace_import - Deliver reliable binary BLF trace import
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 85%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Implementation delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-08-28 10:23:38
+> Indicators reviewed: 2026-08-28 10:56:23
 > Owner: claude
 
 # AI Context
@@ -21,38 +21,44 @@
 - Orchestrate the scaffolded request chain and keep sibling implementation slices linked.
 
 # Plan
-- [ ] 1. Characterize the supported BLF object subset and write deterministic fixture generation plus expected normalized frames and diagnostics before changing product dispatch.
-- [ ] 2. Implement and test the streaming Python BLF adapter and extension dispatch, with bounded batching, exception mapping, progress, cancellation, ordering, and temporary-store safety preserved.
-- [ ] 3. Expose server-backed BLF selection and import consistently through API, CLI, and UI copy, then verify DBC decoding and all downstream trace/report/export contracts.
-- [ ] 4. Make and document the static-PWA capability decision; implement a reviewable local reader and parity tests only if it meets static-bundle and memory constraints, otherwise enforce an explicit unsupported-state UX.
-- [ ] 5. Run focused and full validation, update affected Logics evidence, and record closeout proof.
-- [ ] 6. Follow the release policy after implementation: commit implementation, prepare and commit the next SemVer version, push, wait for CI on that exact SHA, create and push one annotated tag, verify the tag workflow, and record release evidence.
-- [ ] ADR 009 checkpoint: update affected Logics docs during each meaningful wave and leave the repo commit-ready.
-- [ ] Keep commit creation under operator control; do not force one commit per micro-step.
-- [ ] GATE: do not close until lint, audit, and scaffold validation pass.
+- [x] 1. Characterize the supported BLF object subset and write deterministic fixture generation plus expected normalized frames and diagnostics before changing product dispatch.
+- [x] 2. Implement and test the streaming Python BLF adapter and extension dispatch, with bounded batching, exception mapping, progress, cancellation, ordering, and temporary-store safety preserved.
+- [x] 3. Expose server-backed BLF selection and import consistently through API, CLI, and UI copy, then verify DBC decoding and all downstream trace/report/export contracts.
+- [x] 4. Make and document the static-PWA capability decision; implement a reviewable local reader and parity tests only if it meets static-bundle and memory constraints, otherwise enforce an explicit unsupported-state UX.
+- [x] 5. Run focused and full validation, update affected Logics evidence, and record closeout proof.
+- [x] 6. Follow the release policy after implementation: commit implementation, prepare and commit the next SemVer version, push, wait for CI on that exact SHA, create and push one annotated tag, verify the tag workflow, and record release evidence.
+- [x] ADR 009 checkpoint: update affected Logics docs during each meaningful wave and leave the repo commit-ready.
+- [x] Keep commit creation under operator control; do not force one commit per micro-step.
+- [x] GATE: do not close until lint, audit, and scaffold validation pass.
 
 # Backlog
 - `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`
 
 # Definition of Done (DoD)
-- [ ] Generated request, product, backlog, and task docs are present.
-- [ ] Context-pack handoff is available when requested.
-- [ ] Validation passes.
-- [ ] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
+- [x] Generated request, product, backlog, and task docs are present.
+- [x] Context-pack handoff is available when requested.
+- [x] Validation passes.
+- [x] Meaningful waves followed ADR 009: affected docs updated and the repo left commit-ready without automatic commits.
 
 # AC Traceability
-- request-AC1 -> `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`. Proof deferred to slice closeout.
-- request-AC2 -> `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`. Proof deferred to slice closeout.
-- request-AC3 -> `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`. Proof deferred to slice closeout.
-- request-AC4 -> `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`. Proof deferred to slice closeout.
-- request-AC5 -> `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`. Proof deferred to slice closeout.
-- request-AC6 -> `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`. Proof deferred to slice closeout.
+- request-AC1 -> This task. Proof: Implemented across 1d21d3b (BLF adapter, pipeline/API/CLI/UI routing), eb3ab52 (static PWA boundary) and ff5fd23 (docs + end-to-end coverage); released as v1.1.0 at caafbe6. Validated with ruff check . (passed), pytest (192 passed), node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts (37 passed), the static build and Chromium smoke, plus CI run 33156963681 on caafbe6. AC1 by tests/test_blf_integration.py path/upload/rejection tests and tests/test_e2e_ui.py::test_blf_trace_imports_through_the_real_picker; AC2 by tests/test_blf.py against the generated tests/blf_fixture.py fixture; AC3 by the report, CSV, Parquet and trace-navigation tests in tests/test_blf_integration.py; AC4 by the anomaly, corrupt-container and no-partial-trace tests; AC5 by the full suite including unchanged ASC/TRC coverage; AC6 by the PWA picker and runtime-rejection tests in spikes/pwa-local-engine/tests/, with the decision recorded in spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md. Source: `caafbe6`
+- request-AC2 -> This task. Proof: Implemented across 1d21d3b (BLF adapter, pipeline/API/CLI/UI routing), eb3ab52 (static PWA boundary) and ff5fd23 (docs + end-to-end coverage); released as v1.1.0 at caafbe6. Validated with ruff check . (passed), pytest (192 passed), node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts (37 passed), the static build and Chromium smoke, plus CI run 33156963681 on caafbe6. AC1 by tests/test_blf_integration.py path/upload/rejection tests and tests/test_e2e_ui.py::test_blf_trace_imports_through_the_real_picker; AC2 by tests/test_blf.py against the generated tests/blf_fixture.py fixture; AC3 by the report, CSV, Parquet and trace-navigation tests in tests/test_blf_integration.py; AC4 by the anomaly, corrupt-container and no-partial-trace tests; AC5 by the full suite including unchanged ASC/TRC coverage; AC6 by the PWA picker and runtime-rejection tests in spikes/pwa-local-engine/tests/, with the decision recorded in spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md. Source: `caafbe6`
+- request-AC3 -> This task. Proof: Implemented across 1d21d3b (BLF adapter, pipeline/API/CLI/UI routing), eb3ab52 (static PWA boundary) and ff5fd23 (docs + end-to-end coverage); released as v1.1.0 at caafbe6. Validated with ruff check . (passed), pytest (192 passed), node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts (37 passed), the static build and Chromium smoke, plus CI run 33156963681 on caafbe6. AC1 by tests/test_blf_integration.py path/upload/rejection tests and tests/test_e2e_ui.py::test_blf_trace_imports_through_the_real_picker; AC2 by tests/test_blf.py against the generated tests/blf_fixture.py fixture; AC3 by the report, CSV, Parquet and trace-navigation tests in tests/test_blf_integration.py; AC4 by the anomaly, corrupt-container and no-partial-trace tests; AC5 by the full suite including unchanged ASC/TRC coverage; AC6 by the PWA picker and runtime-rejection tests in spikes/pwa-local-engine/tests/, with the decision recorded in spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md. Source: `caafbe6`
+- request-AC4 -> This task. Proof: Implemented across 1d21d3b (BLF adapter, pipeline/API/CLI/UI routing), eb3ab52 (static PWA boundary) and ff5fd23 (docs + end-to-end coverage); released as v1.1.0 at caafbe6. Validated with ruff check . (passed), pytest (192 passed), node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts (37 passed), the static build and Chromium smoke, plus CI run 33156963681 on caafbe6. AC1 by tests/test_blf_integration.py path/upload/rejection tests and tests/test_e2e_ui.py::test_blf_trace_imports_through_the_real_picker; AC2 by tests/test_blf.py against the generated tests/blf_fixture.py fixture; AC3 by the report, CSV, Parquet and trace-navigation tests in tests/test_blf_integration.py; AC4 by the anomaly, corrupt-container and no-partial-trace tests; AC5 by the full suite including unchanged ASC/TRC coverage; AC6 by the PWA picker and runtime-rejection tests in spikes/pwa-local-engine/tests/, with the decision recorded in spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md. Source: `caafbe6`
+- request-AC5 -> This task. Proof: Implemented across 1d21d3b (BLF adapter, pipeline/API/CLI/UI routing), eb3ab52 (static PWA boundary) and ff5fd23 (docs + end-to-end coverage); released as v1.1.0 at caafbe6. Validated with ruff check . (passed), pytest (192 passed), node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts (37 passed), the static build and Chromium smoke, plus CI run 33156963681 on caafbe6. AC1 by tests/test_blf_integration.py path/upload/rejection tests and tests/test_e2e_ui.py::test_blf_trace_imports_through_the_real_picker; AC2 by tests/test_blf.py against the generated tests/blf_fixture.py fixture; AC3 by the report, CSV, Parquet and trace-navigation tests in tests/test_blf_integration.py; AC4 by the anomaly, corrupt-container and no-partial-trace tests; AC5 by the full suite including unchanged ASC/TRC coverage; AC6 by the PWA picker and runtime-rejection tests in spikes/pwa-local-engine/tests/, with the decision recorded in spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md. Source: `caafbe6`
+- request-AC6 -> This task. Proof: Implemented across 1d21d3b (BLF adapter, pipeline/API/CLI/UI routing), eb3ab52 (static PWA boundary) and ff5fd23 (docs + end-to-end coverage); released as v1.1.0 at caafbe6. Validated with ruff check . (passed), pytest (192 passed), node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts (37 passed), the static build and Chromium smoke, plus CI run 33156963681 on caafbe6. AC1 by tests/test_blf_integration.py path/upload/rejection tests and tests/test_e2e_ui.py::test_blf_trace_imports_through_the_real_picker; AC2 by tests/test_blf.py against the generated tests/blf_fixture.py fixture; AC3 by the report, CSV, Parquet and trace-navigation tests in tests/test_blf_integration.py; AC4 by the anomaly, corrupt-container and no-partial-trace tests; AC5 by the full suite including unchanged ASC/TRC coverage; AC6 by the PWA picker and runtime-rejection tests in spikes/pwa-local-engine/tests/, with the decision recorded in spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md. Source: `caafbe6`
 
 # Validation
 - (no validation recorded yet)
+- command: `.venv/bin/ruff check . && .venv/bin/python -m pytest && node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts && node spikes/pwa-local-engine/build-browser.mjs && node spikes/pwa-local-engine/browser-smoke.mjs` | result: passed | date: 2026-08-28
+- Finish workflow executed on 2026-08-28.
+- Linked backlog/request close verification passed.
 
 # Report
 - Not started.
+- Finished on 2026-08-28.
+- Linked backlog item(s): `item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability`
+- Related request(s): `req_031_import_binary_blf_can_trace_recordings`
 
 # Links
 - Request: `req_031_import_binary_blf_can_trace_recordings`
