@@ -578,6 +578,41 @@ def test_imported_text_does_not_execute_html(browser, live_url, tmp_path):
     ctx.close()
 
 
+def test_blf_trace_imports_through_the_real_picker(browser, live_url, tmp_path):
+    """A BLF recording reaches the loaded UI through the shipped file picker.
+
+    The unit tests cover the adapter and the API; this is the one that proves
+    the picker actually accepts the extension and the trace view renders the
+    normalized frames.
+    """
+    from blf_fixture import write_sample_blf
+
+    trace = write_sample_blf(tmp_path / "acquisition.blf")
+
+    ctx = browser.new_context(viewport={"width": 1280, "height": 720})
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.evaluate("() => localStorage.clear()")
+    assert pg.get_attribute("#traceFile", "accept") == ".asc,.trc,.blf"
+
+    pg.set_input_files("#traceFile", str(trace))
+    pg.set_input_files("#dbcFiles", str(REPO / "tests" / "fixtures" / "sample.dbc"))
+    pg.click("#loadBtn")
+    pg.locator("#viewTrace").click()
+    # Wait on this fixture's own row count (4 frames + 3 diagnostics), not merely
+    # on "something is loaded": the server session outlives a page, so a fresh
+    # page can render a trace a previous test imported while this one is still
+    # importing.
+    pg.wait_for_function("() => window.__ctd && window.__ctd.state.trace.total === 7")
+    pg.wait_for_selector("#traceTable tbody tr")
+
+    table = pg.locator("#traceTable").inner_text()
+    assert "EngineData" in table
+    # The diagnostics the adapter emits are visible in the same trace view.
+    assert "BlfUnsupported" in table
+    ctx.close()
+
+
 def test_dbc_conflict_dialog_can_be_reopened_after_escape(browser, live_url):
     ctx = browser.new_context(viewport={"width": 1280, "height": 720})
     pg = ctx.new_page()

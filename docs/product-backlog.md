@@ -79,7 +79,8 @@ Acceptance criteria:
 
 ## P2 - Extensions
 
-- Import BLF.
+- Import BLF : livré pour le sous-ensemble CAN classique côté serveur
+  (`req_031`) ; reste à étudier CAN FD/XL et la lecture locale dans la PWA.
 - Import MF4 si les acquisitions évoluent vers ce format.
 - Packaging Windows natif.
 - Gestion multi-bus.

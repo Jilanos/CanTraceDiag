@@ -18,8 +18,10 @@
 - Partiellement livré : import volumineux avec batches et DuckDB temporaire ;
   progression exposée via état de job léger mais pas encore import asynchrone
   durable.
-- Non livré : BLF/MF4 complet, replay temps réel, packaging Windows natif,
-  collaboration/cloud.
+- Non livré : MF4, CAN FD/XL, replay temps réel, packaging Windows natif,
+  collaboration/cloud. L'import BLF est livré pour le sous-ensemble CAN
+  classique côté serveur ; la PWA statique le refuse explicitement
+  (`spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md`).
 - Budget de validation actuel : `ruff check .` et `pytest` passent localement
   sur fixtures synthétiques ; le budget 150 Mo réel reste à documenter dans le
   lot performance.
@@ -67,7 +69,7 @@
 
 ## Phase 5 - Formats et distribution
 
-- Étudier BLF/MF4 si nécessaire.
+- BLF livré (trames de données CAN classiques) ; étudier MF4 si nécessaire.
 - Packager l'application locale.
 - Ajouter une documentation utilisateur.
 - Ajouter des jeux de tests anonymisés.
