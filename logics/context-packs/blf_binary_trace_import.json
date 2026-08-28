@@ -1,0 +1,314 @@
+{
+  "budgets": {
+    "max_docs": 24,
+    "max_docs_per_ref": 8
+  },
+  "changed_paths": [
+    "logics/backlog/item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability.md",
+    "logics/product/prod_014_reliable_binary_blf_can_trace_import.md",
+    "logics/request/req_031_import_binary_blf_can_trace_recordings.md",
+    "logics/scaffold/blf_binary_trace_import.json",
+    "logics/tasks/task_046_deliver_reliable_binary_blf_trace_import.md"
+  ],
+  "command": "logics-manager sync context-pack req_031_import_binary_blf_can_trace_recordings item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability task_046_deliver_reliable_binary_blf_trace_import --mode diff-first --profile deep --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability"
+        ],
+        "prod": [
+          "prod_014_reliable_binary_blf_can_trace_import"
+        ],
+        "req": [
+          "req_031_import_binary_blf_can_trace_recordings"
+        ],
+        "task": [
+          "task_046_deliver_reliable_binary_blf_trace_import"
+        ]
+      },
+      "path": "logics/product/prod_014_reliable_binary_blf_can_trace_import.md",
+      "ref": "prod_014_reliable_binary_blf_can_trace_import",
+      "sections": {
+        "Goals": [
+          "- Make a documented classic-CAN subset of binary BLF recordings a first-class server-backed trace input.",
+          "- Preserve integrity, ordering, diagnostics, and bounded-memory behavior for large binary recordings.",
+          "- Make the static-PWA BLF support boundary deliberate, visible, and testable rather than advertising unsupported binary import."
+        ],
+        "Key product decisions": [
+          "- Use structured input as the source of truth for generated docs.",
+          "- Keep generated write paths local and repo-bounded."
+        ],
+        "Overview": [
+          "Extend the diagnostic workstation with a bounded, safe Vector BLF import path while preserving the existing normalized CAN model and established ASC/TRC workflows."
+        ],
+        "References": [
+          "- Product back-reference: `req_031_import_binary_blf_can_trace_recordings`",
+          "- Task back-reference: `task_046_deliver_reliable_binary_blf_trace_import`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Reliable binary BLF CAN trace import"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {
+        "keywords": "import, binary, blf, can, trace, recordings",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability"
+        ],
+        "prod": [
+          "prod_014_reliable_binary_blf_can_trace_import"
+        ],
+        "req": [
+          "req_031_import_binary_blf_can_trace_recordings"
+        ]
+      },
+      "path": "logics/request/req_031_import_binary_blf_can_trace_recordings.md",
+      "ref": "req_031_import_binary_blf_can_trace_recordings",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: A supported .blf file can be selected in the server-backed UI and accepted by server upload and path-import validation without weakening existing file-size or path-security controls.",
+          "- AC2: The supported Vector BLF subset imports classic CAN data frames with correct timestamp conversion, channel, standard or extended identifier, DLC, payload, direction when available, and deterministic ordering into RawCanFrame.",
+          "- AC3: Normalized BLF frames decode against selected DBC files and remain available through the existing trace navigation, signals, report, CSV, and Parquet contracts without format-specific consumers.",
+          "- AC4: Unsupported BLF object types, CAN FD or CAN XL payloads, remote/error frames, invalid lengths, corrupt containers, and decoder failures are rejected or represented as explicit import diagnostics without corrupting valid frames or leaking partial state.",
+          "- AC5: ASC and TRC behavior remain unchanged, and automated parser, pipeline, API/UI, cancellation/progress, and generated-fixture tests prove BLF support and non-regression.",
+          "- AC6: The static browser PWA has an explicit, tested BLF capability decision: either it imports the same supported subset locally through a bundled, reviewable binary reader with acceptance and parity coverage, or it clearly rejects BLF before selection while the server-backed import remains available; this decision must not be implicit."
+        ],
+        "Needs": [
+          "- Allow operators to select and analyze Vector BLF CAN recordings directly, without conversion to ASC or text TRC.",
+          "- Normalize supported BLF classic-CAN data frames into the existing trace, DBC decoding, plotting, reporting, and export workflow.",
+          "- Preserve visibility of unsupported BLF objects and malformed binary content through safe, inspectable import diagnostics."
+        ]
+      },
+      "status": "Draft",
+      "title": "Import binary BLF CAN trace recordings"
+    },
+    {
+      "ai_context": {
+        "keywords": "add, bounded, vector, blf, import, diagnostics, explicit, pwa, capability",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability"
+        ],
+        "prod": [
+          "prod_014_reliable_binary_blf_can_trace_import"
+        ],
+        "req": [
+          "req_031_import_binary_blf_can_trace_recordings"
+        ],
+        "task": [
+          "task_046_deliver_reliable_binary_blf_trace_import"
+        ]
+      },
+      "path": "logics/backlog/item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability.md",
+      "ref": "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Server-backed trace selection, upload, and trusted path import accept .blf alongside .asc and .trc while retaining current rejection behavior for unsupported names and unsafe paths.",
+          "- AC2: A generated deterministic BLF fixture proves correct normalized values for ordered standard and extended classic-CAN frames, timestamps, channels, DLCs, payloads, and direction metadata when present.",
+          "- AC3: BLF-derived normalized frames exercise existing DBC decode, trace navigation, report, CSV, and Parquet behavior without a format-specific downstream implementation.",
+          "- AC4: Unsupported or unsafe BLF content produces clear diagnostics or a safe import failure, never malformed RawCanFrame values, a hung job, or a partially published trace.",
+          "- AC5: Parser, pipeline, API/UI, progress/cancellation, generated-fixture, and ASC/TRC regression tests pass in the documented local validation commands.",
+          "- AC6: Browser-local PWA behavior for .blf is covered by automated tests and matches the recorded capability decision: local supported-subset import or deliberate pre-selection rejection."
+        ],
+        "Problem": [
+          "- Operators must convert BLF recordings before analysis, which adds friction and can weaken provenance.",
+          "- Binary object streams need a bounded, defensive adapter so malformed or unsupported records cannot contaminate the normalized trace pipeline.",
+          "- The browser-local PWA currently parses text only, so its BLF boundary must be implemented or explicitly constrained before its picker claims support."
+        ]
+      },
+      "status": "Ready",
+      "title": "Add bounded Vector BLF import with diagnostics and explicit PWA capability"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability"
+        ],
+        "prod": [
+          "prod_014_reliable_binary_blf_can_trace_import"
+        ],
+        "req": [
+          "req_031_import_binary_blf_can_trace_recordings"
+        ],
+        "task": [
+          "task_046_deliver_reliable_binary_blf_trace_import"
+        ]
+      },
+      "path": "logics/product/prod_014_reliable_binary_blf_can_trace_import.md",
+      "ref": "prod_014_reliable_binary_blf_can_trace_import",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Reliable binary BLF CAN trace import"
+    },
+    {
+      "ai_context": {
+        "keywords": "deliver, reliable, binary, blf, trace, import",
+        "skip when": "(unfilled: replace before this doc is used)",
+        "summary": "(unfilled: replace before this doc is used)",
+        "use when": "(unfilled: replace before this doc is used)"
+      },
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability"
+        ],
+        "prod": [
+          "prod_014_reliable_binary_blf_can_trace_import"
+        ],
+        "req": [
+          "req_031_import_binary_blf_can_trace_recordings"
+        ],
+        "task": [
+          "task_046_deliver_reliable_binary_blf_trace_import"
+        ]
+      },
+      "path": "logics/tasks/task_046_deliver_reliable_binary_blf_trace_import.md",
+      "ref": "task_046_deliver_reliable_binary_blf_trace_import",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Orchestrate the scaffolded request chain and keep sibling implementation slices linked."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver reliable binary BLF trace import"
+    }
+  ],
+  "estimates": {
+    "char_count": 8010,
+    "companion_doc_count": 1,
+    "doc_count": 4
+  },
+  "generated_at": "2026-08-28T08:15:04Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_031_import_binary_blf_can_trace_recordings",
+      "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability",
+      "task_046_deliver_reliable_binary_blf_trace_import"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "deep",
+  "ref": "req_031_import_binary_blf_can_trace_recordings,item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability,task_046_deliver_reliable_binary_blf_trace_import",
+  "refs": [
+    "req_031_import_binary_blf_can_trace_recordings",
+    "item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability",
+    "task_046_deliver_reliable_binary_blf_trace_import"
+  ],
+  "release": {
+    "blocking_reasons": [
+      "version_metadata: evidence targets a different commit (release)",
+      "local_validation: evidence targets a different commit (release)",
+      "git_push: evidence targets a different version",
+      "ci: evidence targets a different version",
+      "github_release: evidence targets a different version"
+    ],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "version_metadata: evidence targets a different commit (release)",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": "evidence targets a different commit (release)",
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "stale"
+      },
+      {
+        "blocking_reason": "evidence targets a different commit (release)",
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "stale"
+      },
+      {
+        "blocking_reason": "evidence targets a different version",
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "stale"
+      },
+      {
+        "blocking_reason": "evidence targets a different version",
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "stale"
+      },
+      {
+        "blocking_reason": "evidence targets a different version",
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "stale"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "blocked",
+    "target_id": null,
+    "target_version": "1.0.19",
+    "targets": []
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_046_deliver_reliable_binary_blf_trace_import.md",
+      "ref": "task_046_deliver_reliable_binary_blf_trace_import"
+    }
+  ]
+}

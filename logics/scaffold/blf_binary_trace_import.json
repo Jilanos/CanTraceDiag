@@ -1,0 +1,105 @@
+{
+  "title": "Import binary BLF CAN trace recordings",
+  "references": [
+    "README.md",
+    "docs/adr/0002-format-asc-et-cache-local.md",
+    "src/cantracediag/formats/asc.py",
+    "src/cantracediag/formats/trc.py",
+    "src/cantracediag/pipeline.py",
+    "src/cantracediag/api.py",
+    "src/cantracediag/web/index.html",
+    "src/cantracediag/web/js/import.js",
+    "spikes/pwa-local-engine/src/local-backend.ts",
+    "tests/test_api.py"
+  ],
+  "request": {
+    "complexity": "High",
+    "theme": "Binary trace import interoperability",
+    "needs": [
+      "Allow operators to select and analyze Vector BLF CAN recordings directly, without conversion to ASC or text TRC.",
+      "Normalize supported BLF classic-CAN data frames into the existing trace, DBC decoding, plotting, reporting, and export workflow.",
+      "Preserve visibility of unsupported BLF objects and malformed binary content through safe, inspectable import diagnostics."
+    ],
+    "context": [
+      "The current product imports ASC and verified text TRC only; the API explicitly rejects .blf uploads and both product file pickers exclude the extension.",
+      "The internal RawCanFrame and NonDataEvent models were designed to isolate source formats from DBC decoding, local DuckDB indexing, trace navigation, reports, and exports.",
+      "The Python environment already includes python-can 4.6.1, whose BLF reader can be evaluated behind a project-owned adapter; the static browser PWA cannot use that Python dependency and needs a separate binary-capable strategy.",
+      "Representative trace files can be large and must remain outside the repository. Automated tests must generate a compact deterministic BLF fixture or use a checked-in generator rather than committing operational recordings.",
+      "This delivery must keep existing ASC and TRC behavior, asynchronous server-import progress and cancellation, local upload and path security limits, and the release evidence policy unchanged."
+    ],
+    "acceptance_criteria": [
+      "AC1: A supported .blf file can be selected in the server-backed UI and accepted by server upload and path-import validation without weakening existing file-size or path-security controls.",
+      "AC2: The supported Vector BLF subset imports classic CAN data frames with correct timestamp conversion, channel, standard or extended identifier, DLC, payload, direction when available, and deterministic ordering into RawCanFrame.",
+      "AC3: Normalized BLF frames decode against selected DBC files and remain available through the existing trace navigation, signals, report, CSV, and Parquet contracts without format-specific consumers.",
+      "AC4: Unsupported BLF object types, CAN FD or CAN XL payloads, remote/error frames, invalid lengths, corrupt containers, and decoder failures are rejected or represented as explicit import diagnostics without corrupting valid frames or leaking partial state.",
+      "AC5: ASC and TRC behavior remain unchanged, and automated parser, pipeline, API/UI, cancellation/progress, and generated-fixture tests prove BLF support and non-regression.",
+      "AC6: The static browser PWA has an explicit, tested BLF capability decision: either it imports the same supported subset locally through a bundled, reviewable binary reader with acceptance and parity coverage, or it clearly rejects BLF before selection while the server-backed import remains available; this decision must not be implicit."
+    ]
+  },
+  "product": {
+    "title": "Reliable binary BLF CAN trace import",
+    "overview": "Extend the diagnostic workstation with a bounded, safe Vector BLF import path while preserving the existing normalized CAN model and established ASC/TRC workflows.",
+    "goals": [
+      "Make a documented classic-CAN subset of binary BLF recordings a first-class server-backed trace input.",
+      "Preserve integrity, ordering, diagnostics, and bounded-memory behavior for large binary recordings.",
+      "Make the static-PWA BLF support boundary deliberate, visible, and testable rather than advertising unsupported binary import."
+    ],
+    "non_goals": [
+      "Implement MF4, PCAP, replay, or automatic conversion through external desktop tools.",
+      "Promise support for every BLF object type, CAN FD, CAN XL, LIN, FlexRay, or other bus protocols in this delivery.",
+      "Change ASC/TRC parsing semantics, DBC conflict handling, report schemas, or export schemas."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Add bounded Vector BLF import with diagnostics and explicit PWA capability",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Binary trace import interoperability",
+      "request_acs": ["AC1", "AC2", "AC3", "AC4", "AC5", "AC6"],
+      "problem": [
+        "Operators must convert BLF recordings before analysis, which adds friction and can weaken provenance.",
+        "Binary object streams need a bounded, defensive adapter so malformed or unsupported records cannot contaminate the normalized trace pipeline.",
+        "The browser-local PWA currently parses text only, so its BLF boundary must be implemented or explicitly constrained before its picker claims support."
+      ],
+      "scope_in": [
+        "Define and document the supported Vector BLF classic-CAN object subset, timestamp origin and conversion, channel mapping, direction semantics, ordering rules, and diagnostic taxonomy.",
+        "Add a streaming Python BLF adapter behind the existing format-dispatch boundary, evaluating the installed python-can reader and wrapping its exceptions, unsupported objects, and metadata into safe project-owned behavior.",
+        "Route .blf through server upload, path import, CLI/help copy, and the server-backed UI picker while retaining size, suffix, path, progress, cancellation, and temporary-store safeguards.",
+        "Ensure BLF frames pass through the current DBC decoder, DuckDB store, trace, report, CSV, and Parquet paths with no BLF-specific consumer branch.",
+        "Generate deterministic compact BLF test data from source code and add focused coverage for standard and extended frames, multiple channels, ordering, timestamps, zero DLC, unsupported objects, corruption, cancellation, progress, API/UI import, ASC/TRC non-regression, and representative large-input batching.",
+        "Decide and record the static-PWA BLF boundary: implement a bundled local binary reader with equivalent supported-subset tests if feasible within bundle and memory constraints, otherwise reject .blf explicitly in the PWA picker and product copy while preserving its ASC/TRC support.",
+        "Record implementation, CI, release-tag, and release-workflow evidence at task closeout according to the project release policy."
+      ],
+      "scope_out": [
+        "MF4 and other binary trace formats.",
+        "CAN FD, CAN XL, LIN, FlexRay, and replay support.",
+        "Committing operational BLF recordings or broadening file-upload size and security limits."
+      ],
+      "acceptance_criteria": [
+        "AC1: Server-backed trace selection, upload, and trusted path import accept .blf alongside .asc and .trc while retaining current rejection behavior for unsupported names and unsafe paths.",
+        "AC2: A generated deterministic BLF fixture proves correct normalized values for ordered standard and extended classic-CAN frames, timestamps, channels, DLCs, payloads, and direction metadata when present.",
+        "AC3: BLF-derived normalized frames exercise existing DBC decode, trace navigation, report, CSV, and Parquet behavior without a format-specific downstream implementation.",
+        "AC4: Unsupported or unsafe BLF content produces clear diagnostics or a safe import failure, never malformed RawCanFrame values, a hung job, or a partially published trace.",
+        "AC5: Parser, pipeline, API/UI, progress/cancellation, generated-fixture, and ASC/TRC regression tests pass in the documented local validation commands.",
+        "AC6: Browser-local PWA behavior for .blf is covered by automated tests and matches the recorded capability decision: local supported-subset import or deliberate pre-selection rejection."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver reliable binary BLF trace import",
+    "plan": [
+      "Characterize the supported BLF object subset and write deterministic fixture generation plus expected normalized frames and diagnostics before changing product dispatch.",
+      "Implement and test the streaming Python BLF adapter and extension dispatch, with bounded batching, exception mapping, progress, cancellation, ordering, and temporary-store safety preserved.",
+      "Expose server-backed BLF selection and import consistently through API, CLI, and UI copy, then verify DBC decoding and all downstream trace/report/export contracts.",
+      "Make and document the static-PWA capability decision; implement a reviewable local reader and parity tests only if it meets static-bundle and memory constraints, otherwise enforce an explicit unsupported-state UX.",
+      "Run focused and full validation, update affected Logics evidence, and record closeout proof.",
+      "Follow the release policy after implementation: commit implementation, prepare and commit the next SemVer version, push, wait for CI on that exact SHA, create and push one annotated tag, verify the tag workflow, and record release evidence."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/blf_binary_trace_import.json",
+    "mode": "diff-first",
+    "profile": "deep"
+  }
+}
