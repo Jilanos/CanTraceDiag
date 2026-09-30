@@ -22,7 +22,8 @@
 | [prod_011_reliable_logics_workflow_governance](product/prod_011_reliable_logics_workflow_governance.md) | Reliable Logics workflow governance | Settled |  |  | product/prod_011_reliable_logics_workflow_governance.md |
 | [prod_012_trustworthy_browser_local_diagnostics](product/prod_012_trustworthy_browser_local_diagnostics.md) | Trustworthy browser-local diagnostics | Settled |  |  | product/prod_012_trustworthy_browser_local_diagnostics.md |
 | [prod_013_reliable_static_pwa_delivery](product/prod_013_reliable_static_pwa_delivery.md) | Reliable static PWA delivery | Proposed |  |  | product/prod_013_reliable_static_pwa_delivery.md |
-| [prod_014_reliable_binary_blf_can_trace_import](product/prod_014_reliable_binary_blf_can_trace_import.md) | Reliable binary BLF CAN trace import | Proposed |  |  | product/prod_014_reliable_binary_blf_can_trace_import.md |
+| [prod_014_reliable_binary_blf_can_trace_import](product/prod_014_reliable_binary_blf_can_trace_import.md) | Reliable binary BLF CAN trace import | Settled |  |  | product/prod_014_reliable_binary_blf_can_trace_import.md |
+| [prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults](product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md) | Optional cursor integration and reusable DBC import defaults | Proposed |  |  | product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md |
 
 ## Roadmaps
 
@@ -67,7 +68,8 @@
 | [req_028_harden_static_pwa_delivery_and_release_validation](request/req_028_harden_static_pwa_delivery_and_release_validation.md) | Harden static PWA delivery and release validation | Draft |  |  | request/req_028_harden_static_pwa_delivery_and_release_validation.md |
 | [req_029_promote_the_pwa_out_of_spikes_and_replace_text_marker_bundle_assembly](request/req_029_promote_the_pwa_out_of_spikes_and_replace_text_marker_bundle_assembly.md) | Promote the PWA out of spikes and replace text-marker bundle assembly | Draft |  |  | request/req_029_promote_the_pwa_out_of_spikes_and_replace_text_marker_bundle_assembly.md |
 | [req_030_pin_supply_chain_images_and_actions_immutably](request/req_030_pin_supply_chain_images_and_actions_immutably.md) | Pin supply-chain images and actions immutably | Draft |  |  | request/req_030_pin_supply_chain_images_and_actions_immutably.md |
-| [req_031_import_binary_blf_can_trace_recordings](request/req_031_import_binary_blf_can_trace_recordings.md) | Import binary BLF CAN trace recordings | Draft |  |  | request/req_031_import_binary_blf_can_trace_recordings.md |
+| [req_031_import_binary_blf_can_trace_recordings](request/req_031_import_binary_blf_can_trace_recordings.md) | Import binary BLF CAN trace recordings | Done |  |  | request/req_031_import_binary_blf_can_trace_recordings.md |
+| [req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection](request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md) | Add opt-in cursor integral analysis and restore the last loaded DBC selection | Ready |  |  | request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md |
 
 ## Backlog
 
@@ -133,7 +135,10 @@
 | [item_050_run_generated_site_browser_smoke_in_ci_and_release_validation](backlog/item_050_run_generated_site_browser_smoke_in_ci_and_release_validation.md) | Run generated-site browser smoke in CI and release validation | In progress |  | 90% | backlog/item_050_run_generated_site_browser_smoke_in_ci_and_release_validation.md |
 | [item_051_shrink_docker_build_context_for_the_static_pwa_image](backlog/item_051_shrink_docker_build_context_for_the_static_pwa_image.md) | Shrink Docker build context for the static PWA image | In progress |  | 90% | backlog/item_051_shrink_docker_build_context_for_the_static_pwa_image.md |
 | [item_052_resolve_residual_audit_governance_and_release_hardening_debt](backlog/item_052_resolve_residual_audit_governance_and_release_hardening_debt.md) | Resolve residual audit governance and release-hardening debt | In progress |  | 90% | backlog/item_052_resolve_residual_audit_governance_and_release_hardening_debt.md |
-| [item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability](backlog/item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability.md) | Add bounded Vector BLF import with diagnostics and explicit PWA capability | Ready |  | 0% | backlog/item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability.md |
+| [item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability](backlog/item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability.md) | Add bounded Vector BLF import with diagnostics and explicit PWA capability | Done |  | 100% | backlog/item_053_add_bounded_vector_blf_import_with_diagnostics_and_explicit_pwa_capability.md |
+| [item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores](backlog/item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores.md) | Compute exact-range numeric signal integrals in local and server stores | Ready |  | 0% | backlog/item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores.md |
+| [item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation](backlog/item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation.md) | Expose per-signal cursor integral analysis only after explicit activation | Ready |  | 0% | backlog/item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation.md |
+| [item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set](backlog/item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set.md) | Persist and preselect the exact last successful DBC load set | Ready |  | 0% | backlog/item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set.md |
 
 ## Tasks
 
@@ -192,7 +197,8 @@
 | [task_043_deliver_clean_logics_workflow_audit_baseline](tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md) | Deliver clean Logics workflow audit baseline | Done | codex | 100% | tasks/task_043_deliver_clean_logics_workflow_audit_baseline.md |
 | [task_044_deliver_browser_local_diagnostic_integrity_remediation](tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md) | Deliver browser-local diagnostic integrity remediation | Done | codex | 100% | tasks/task_044_deliver_browser_local_diagnostic_integrity_remediation.md |
 | [task_045_deliver_static_pwa_delivery_and_release_hardening](tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md) | Deliver static PWA delivery and release hardening | In progress | codex | 90% | tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md |
-| [task_046_deliver_reliable_binary_blf_trace_import](tasks/task_046_deliver_reliable_binary_blf_trace_import.md) | Deliver reliable binary BLF trace import | Ready |  | 0% | tasks/task_046_deliver_reliable_binary_blf_trace_import.md |
+| [task_046_deliver_reliable_binary_blf_trace_import](tasks/task_046_deliver_reliable_binary_blf_trace_import.md) | Deliver reliable binary BLF trace import | Done | claude | 100% | tasks/task_046_deliver_reliable_binary_blf_trace_import.md |
+| [task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading](tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md) | Deliver opt-in signal integral analysis and remembered DBC loading | Ready |  | 0% | tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md |
 
 ## Runbooks
 

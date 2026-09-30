@@ -1,0 +1,174 @@
+{
+  "title": "Add opt-in cursor integral analysis and restore the last loaded DBC selection",
+  "references": [
+    "src/cantracediag/web/js/plot.js",
+    "src/cantracediag/web/js/core.js",
+    "src/cantracediag/web/js/import.js",
+    "src/cantracediag/web/js/main.js",
+    "src/cantracediag/web/index.html",
+    "src/cantracediag/api.py",
+    "src/cantracediag/store.py",
+    "src/cantracediag/workspace.py",
+    "spikes/pwa-local-engine/src/store.ts",
+    "spikes/pwa-local-engine/src/local-backend.ts",
+    "spikes/pwa-local-engine/src/product-backend.ts",
+    "spikes/pwa-local-engine/browser-smoke.mjs",
+    "spikes/pwa-local-engine/tests/store.test.ts",
+    "tests/test_workspace.py",
+    "tests/test_e2e_ui.py"
+  ],
+  "request": {
+    "complexity": "Medium",
+    "theme": "Optional signal analysis and repeat import usability",
+    "needs": [
+      "Let an operator explicitly calculate the time integral of one chosen numeric signal between cursors A and B.",
+      "Keep integral analysis disabled and its result absent by default.",
+      "Preselect the library DBCs chosen for the last successful load so the next load only requires choosing a new trace, while preserving manual selection."
+    ],
+    "context": [
+      "The shared plot UI already combines cursor values and range statistics; integral computation is not implemented.",
+      "The current canvas plots use sample-and-hold steps; the chosen trapezoidal analysis method must be made explicit to avoid confusing a numerical estimate with the drawn step area.",
+      "The shared import UI currently preselects library entries by last-session display names and retries defaulting whenever the selected set is empty.",
+      "The local product backend stores the DBC library persistently but keeps lastSessionDbcs only in memory, so browser reload loses the previous chosen set.",
+      "The server workspace manifest already records DBC digests; its library endpoint currently exposes last_session as basenames.",
+      "The deployed product is the local PWA; server UI compatibility remains supported. Existing PWA relocation work may move referenced modules: implement in their current canonical locations without duplicating the engine."
+    ],
+    "acceptance_criteria": [
+      "AC1: Integral mode is off on initial load and on each new trace; no integral result, placeholder column, or integral-specific computation/request appears until explicit activation for a chosen signal. A compact accessible opt-in action remains discoverable.",
+      "AC2: An operator can enable integral analysis for a selected numeric signal, move either cursor, switch the target signal, and disable analysis; missing cursors or unavailable data show a clear reason only while the mode is enabled. Cursor placement and other statistics keep working.",
+      "AC3: Integral calculation follows the documented signed trapezoidal full-resolution contract, boundary interpolation, duplicate handling, unavailable cases, and unit semantics identically in the PWA and server engine.",
+      "AC4: After a successful load and browser/application restart, the next import prechecks precisely the still-available library DBC content identities from that load, including uploaded and reused entries, and permits loading with only a new trace selected.",
+      "AC5: Manual selection changes, including uncheck-all, survive picker reopen and refresh; same-name content, failed/cancelled/unresolved imports, absent history, library removal, legacy history, and purge behave according to the documented persistence contract.",
+      "AC6: Automated numeric, persistence, and browser checks prove the new behavior in the local PWA and supported server UI, including zero integral work while disabled and unchanged existing cursor/import interactions."
+    ]
+  },
+  "product": {
+    "title": "Optional cursor integration and reusable DBC import defaults",
+    "overview": "Extend cursor diagnostics with a deliberately enabled integral for one signal and make repeated trace loading reuse the exact previous DBC selection across restarts.",
+    "goals": [
+      "Provide trustworthy optional numeric integration without crowding the default analysis panel.",
+      "Reduce repeated import clicks while keeping the operator in control of DBC selection.",
+      "Maintain consistent local PWA and server behavior."
+    ],
+    "non_goals": [
+      "Implement symbolic integration, cumulative integral plots, differentiation, automatic unit conversion, or multiple integration methods.",
+      "Enable integral analysis automatically or persist its enabled state between traces or page reloads.",
+      "Autoload a trace, automatically select the entire library, change decoding/conflict policy, or restore an entire PWA analysis session.",
+      "Change DBC hashing or library deduplication independently of existing identity contracts."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Compute exact-range numeric signal integrals in local and server stores",
+      "priority": "Medium",
+      "complexity": "Medium",
+      "theme": "Numerical signal analysis",
+      "request_acs": [
+        "AC3",
+        "AC6"
+      ],
+      "problem": [
+        "Existing range statistics do not expose an integral; plot decimation cannot be used for trustworthy area computation.",
+        "Cursor timestamps may fall between samples or outside signal coverage."
+      ],
+      "scope_in": [
+        "Priority rationale: add requested analysis after existing High priority correctness work; this slice enables the opt-in UI.",
+        "Use signed numerical trapezoidal integration of decoded physical values over [min(A,B), max(A,B)] with timestamps in seconds; swapping cursor labels preserves the result and negative values subtract area. This explicitly uses piecewise linear interpolation even though the existing plot draws sample-and-hold steps; identify the method in the enabled analysis UI.",
+        "Use full-resolution stored samples, never the downsampled /api/series plot arrays. Retrieve at most the adjacent bracketing samples outside the interval to interpolate exact cursor boundaries; never extrapolate beyond available signal data.",
+        "For positive duration require finite numeric coverage at both boundaries and at least two distinct timestamps. Return a structured unavailable reason for missing coverage, text-only signals, or invalid/non-finite segments; do not silently bridge explicit invalid samples. Irregular finite sampling is interpolated without inventing a gap threshold.",
+        "Collapse duplicate timestamps deterministically to the last sample in stable ingestion order before interpolation. A zero-width interval with a defined finite value returns 0; otherwise it is unavailable.",
+        "Return interval bounds, method, integral, and unit metadata; show DBC-unit multiplied by seconds (for example A·s), or s for a dimensionless signal. Do not silently convert A·s into Ah or other derived units.",
+        "Analytical fixtures: constant 2 on [1,4] gives 6; linear v(t)=t on [0.5,2.5] gives 3; values -2 at t=0 and 2 at t=2 give 0. Cover reversed cursors, equal cursors, irregular spacing, duplicate timestamps, interpolated boundaries, missing boundaries, non-finite values, and text signals with Python/TypeScript parity.",
+        "Expose an explicit integral operation through the server API and local adapter with input validation and existing signal identity semantics. Query only the target signal/range plus boundary neighbors; no full-trace payload to the browser."
+      ],
+      "scope_out": [
+        "Changing default range statistics, plot interpolation, decoding, or unit conversion."
+      ],
+      "acceptance_criteria": [
+        "AC1: Full-resolution signed trapezoidal output matches the constant, ramp, and sign-changing analytical fixtures and is invariant under zoom, decimation, and swapped cursor labels.",
+        "AC2: Both engines implement exact boundary interpolation, stable duplicate handling, zero-width semantics, and explicit unavailable results without extrapolation or invalid-data bridging.",
+        "AC3: API/adapter output contains value, unit, method, bounds, and unavailable reason as applicable; equivalent fixtures produce equivalent Python and TypeScript results."
+      ]
+    },
+    {
+      "title": "Expose per-signal cursor integral analysis only after explicit activation",
+      "priority": "Medium",
+      "complexity": "Medium",
+      "theme": "Optional analysis UI",
+      "request_acs": [
+        "AC1",
+        "AC2",
+        "AC6"
+      ],
+      "problem": [
+        "An always-visible integral column would add clutter and violate the requested opt-in behavior."
+      ],
+      "scope_in": [
+        "Priority rationale: requested optional diagnostic capability; implement after the numeric integral contract.",
+        "Add a compact keyboard-operable integral action and a single target selected-signal choice; activation is explicit and independent of existing range statistics.",
+        "Store enabled/target state only in the current trace analysis; reset on new trace, purge, and reload. Removing the target signal disables integral mode until another explicit activation.",
+        "Create integral result UI only while enabled, identify trapezoidal interpolation and unit, and handle absent cursors or unavailable numeric coverage.",
+        "Recompute for target/cursor changes using existing debounce patterns and reject stale async responses after newer requests, disable, or trace replacement. Zero integral computation or requests while disabled; do not fan out across all selected signals.",
+        "Add browser checks for default absence, activation, target switch, movement, disable, reset, stale responses, keyboard operation, and existing cursor dragging/statistics."
+      ],
+      "scope_out": [
+        "Persistent opt-in preferences, always-visible result columns, integral plots, and automatic activation."
+      ],
+      "acceptance_criteria": [
+        "AC1: Fresh and newly imported traces show no integral result or integral-specific work; an accessible explicit action enables analysis for one signal.",
+        "AC2: Enabled results follow current signal and cursor bounds, expose units/method and unavailable reasons, and cannot be overwritten by stale responses.",
+        "AC3: Disabling, removing the target, changing trace, or purging removes the result and stops integral work; regression coverage preserves ordinary cursor statistics and dragging."
+      ]
+    },
+    {
+      "title": "Persist and preselect the exact last successful DBC load set",
+      "priority": "Medium",
+      "complexity": "Medium",
+      "theme": "Repeat import defaults",
+      "request_acs": [
+        "AC4",
+        "AC5",
+        "AC6"
+      ],
+      "problem": [
+        "PWA DBC history is volatile and filename-based UI matching can select the wrong content.",
+        "The empty-set defaulting condition can override intentional uncheck-all choices."
+      ],
+      "scope_in": [
+        "Priority rationale: repeated-load usability improvement independent of numeric integration; may be delivered before the integration slices.",
+        "Persist the exact ordered set of library content digests used by the last successfully completed trace import, including newly uploaded DBCs after insertion and reused library entries. Store it locally in the PWA and use the persistent workspace manifest on the server.",
+        "On initial picker setup after a browser reload or application restart, precheck only remembered digests still present in the library. DBCs with no matching frames in the trace still belong to the chosen set; do not substitute dbcs_used or recency-ranked files.",
+        "Use content identity rather than filenames: two different files with the same name remain distinct; identical content is selected once. Reuse the canonical library digest and respect its migration contract; do not create a second hashing algorithm.",
+        "Defaulting happens once per new picker state, after library/history hydration and before submitting a trace-only import. Preserve manual changes, including deselecting every entry, across modal reopen and background library refresh. Distinguish untouched empty selection from deliberately cleared selection.",
+        "Commit replacement history only after import completion and any required DBC conflict resolution and successful persistence. Failed, cancelled, or unresolved imports keep the previous successful set. A newly completed import seeds the next fresh picker state; edits for the current picker remain authoritative.",
+        "First use, missing or malformed history, deleted library entries, and storage unavailability degrade without arbitrary selections or blocked manual import. Handle legacy name-only history only when an exact name match is unique; ambiguous names remain unchecked. Purge clears library and remembered selection.",
+        "Browser coverage must import two DBCs, reload the page, verify prechecked entries, import a new trace without selecting DBCs again, and preserve manual uncheck-all. Add same-name/different-content, deleted entry, failed import, conflict resolution, purge, and server restart coverage."
+      ],
+      "scope_out": [
+        "Restoring a full browser analysis session, automatically loading traces, and redefining DBC identity."
+      ],
+      "acceptance_criteria": [
+        "AC1: A successful mixed uploaded/reused DBC load persists its ordered content-identity set and prechecks precisely the surviving entries after browser reload or server workspace restart.",
+        "AC2: A trace-only subsequent load reuses the prechecked set without reopening the library; manual edits and uncheck-all survive reopening and refresh.",
+        "AC3: Same-name content stays distinct, missing entries are skipped, unique legacy names migrate safely, failures and unresolved imports preserve prior history, and purge clears history.",
+        "AC4: Focused adapter, workspace, and browser tests cover persistence lifecycle and storage failure without blocking manual import."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver opt-in signal integral analysis and remembered DBC loading",
+    "plan": [
+      "Confirm canonical module locations and baseline cursor/import tests; retain this corpus scope during any ongoing PWA relocation.",
+      "Implement the independent remembered-DBC slice, migrate history safely, and verify reload/restart plus manual deselection behavior.",
+      "Implement and validate the shared trapezoidal integral contract in full-resolution local and server stores and adapters.",
+      "Build the opt-in per-signal UI after the numeric contract; verify disabled mode causes no integral requests/computation and protect against stale results.",
+      "Run focused numerical parity, storage lifecycle, and browser regression suites; record per-AC evidence and update affected Logics documents at meaningful checkpoints.",
+      "For functional release delivery follow the repository policy: validate locally, implementation commit, prepare and commit next SemVer version, push, wait for CI on that exact preparation SHA, push an annotated version tag, verify tag-triggered release, and record SHA/CI/tag/release evidence before closeout."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/opt_in_signal_integral_and_last_dbc_selection.json",
+    "mode": "diff-first",
+    "profile": "normal"
+  }
+}

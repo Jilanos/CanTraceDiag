@@ -1,0 +1,375 @@
+{
+  "budgets": {
+    "max_docs": 40,
+    "max_docs_per_ref": 8
+  },
+  "changed_paths": [
+    "logics/backlog/item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores.md",
+    "logics/backlog/item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation.md",
+    "logics/backlog/item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set.md",
+    "logics/context-packs/opt_in_signal_integral_and_last_dbc_selection.json",
+    "logics/product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md",
+    "logics/request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md",
+    "logics/scaffold/opt_in_signal_integral_and_last_dbc_selection.json",
+    "logics/tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md"
+  ],
+  "command": "logics-manager sync context-pack req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading --mode diff-first --profile deep --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores",
+          "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation",
+          "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set"
+        ],
+        "prod": [
+          "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults"
+        ],
+        "req": [
+          "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection"
+        ],
+        "task": [
+          "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+        ]
+      },
+      "path": "logics/product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md",
+      "ref": "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults",
+      "sections": {
+        "Goals": [
+          "- Provide trustworthy optional numeric integration without crowding the default analysis panel.",
+          "- Reduce repeated import clicks while keeping the operator in control of DBC selection.",
+          "- Maintain consistent local PWA and server behavior."
+        ],
+        "Key product decisions": [
+          "- Integral mode is off for every fresh trace and browser reload; only one explicitly chosen signal is analyzed.",
+          "- Use signed trapezoidal integration with interpolated boundaries on full-resolution samples, disclose the method, and avoid extrapolation.",
+          "- Remember the DBC set from the last completed successful import by canonical content identity, including uploaded and library-reused files.",
+          "- Apply defaults once to untouched picker state; manual changes remain authoritative, including an empty set.",
+          "- Failed or unresolved imports preserve the last successful set; workspace purge clears it."
+        ],
+        "Overview": [
+          "Extend cursor diagnostics with a deliberately enabled integral for one signal and make repeated trace loading reuse the exact previous DBC selection across restarts."
+        ],
+        "References": [
+          "- Product back-reference: `req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection`",
+          "- Task back-reference: `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading`"
+        ]
+      },
+      "status": "Proposed",
+      "title": "Optional cursor integration and reusable DBC import defaults"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {},
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores",
+          "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation",
+          "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set"
+        ],
+        "prod": [
+          "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults"
+        ],
+        "req": [
+          "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection"
+        ]
+      },
+      "path": "logics/request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md",
+      "ref": "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Integral mode is off on initial load and on each new trace; no integral result, placeholder column, or integral-specific computation/request appears until explicit activation for a chosen signal. A compact accessible opt-in action remains discoverable.",
+          "- AC2: An operator can enable integral analysis for a selected numeric signal, move either cursor, switch the target signal, and disable analysis; missing cursors or unavailable data show a clear reason only while the mode is enabled. Cursor placement and other statistics keep working.",
+          "- AC3: Integral calculation follows the documented signed trapezoidal full-resolution contract, boundary interpolation, duplicate handling, unavailable cases, and unit semantics identically in the PWA and server engine.",
+          "- AC4: After a successful load and browser/application restart, the next import prechecks precisely the still-available library DBC content identities from that load, including uploaded and reused entries, and permits loading with only a new trace selected.",
+          "- AC5: Manual selection changes, including uncheck-all, survive picker reopen and refresh; same-name content, failed/cancelled/unresolved imports, absent history, library removal, legacy history, and purge behave according to the documented persistence contract.",
+          "- AC6: Automated numeric, persistence, and browser checks prove the new behavior in the local PWA and supported server UI, including zero integral work while disabled and unchanged existing cursor/import interactions."
+        ],
+        "Needs": [
+          "- Let an operator explicitly calculate the time integral of one chosen numeric signal between cursors A and B.",
+          "- Keep integral analysis disabled and its result absent by default.",
+          "- Preselect the library DBCs chosen for the last successful load so the next load only requires choosing a new trace, while preserving manual selection."
+        ]
+      },
+      "status": "Ready",
+      "title": "Add opt-in cursor integral analysis and restore the last loaded DBC selection"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores"
+        ],
+        "prod": [
+          "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults"
+        ],
+        "req": [
+          "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection"
+        ],
+        "task": [
+          "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+        ]
+      },
+      "path": "logics/backlog/item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores.md",
+      "ref": "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Full-resolution signed trapezoidal output matches the constant, ramp, and sign-changing analytical fixtures and is invariant under zoom, decimation, and swapped cursor labels.",
+          "- AC2: Both engines implement exact boundary interpolation, stable duplicate handling, zero-width semantics, and explicit unavailable results without extrapolation or invalid-data bridging.",
+          "- AC3: API/adapter output contains value, unit, method, bounds, and unavailable reason as applicable; equivalent fixtures produce equivalent Python and TypeScript results."
+        ],
+        "Problem": [
+          "- Existing range statistics do not expose an integral; plot decimation cannot be used for trustworthy area computation.",
+          "- Cursor timestamps may fall between samples or outside signal coverage."
+        ]
+      },
+      "status": "Ready",
+      "title": "Compute exact-range numeric signal integrals in local and server stores"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation"
+        ],
+        "prod": [
+          "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults"
+        ],
+        "req": [
+          "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection"
+        ],
+        "task": [
+          "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+        ]
+      },
+      "path": "logics/backlog/item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation.md",
+      "ref": "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Fresh and newly imported traces show no integral result or integral-specific work; an accessible explicit action enables analysis for one signal.",
+          "- AC2: Enabled results follow current signal and cursor bounds, expose units/method and unavailable reasons, and cannot be overwritten by stale responses.",
+          "- AC3: Disabling, removing the target, changing trace, or purging removes the result and stops integral work; regression coverage preserves ordinary cursor statistics and dragging."
+        ],
+        "Problem": [
+          "- An always-visible integral column would add clutter and violate the requested opt-in behavior."
+        ]
+      },
+      "status": "Ready",
+      "title": "Expose per-signal cursor integral analysis only after explicit activation"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set"
+        ],
+        "prod": [
+          "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults"
+        ],
+        "req": [
+          "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection"
+        ],
+        "task": [
+          "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+        ]
+      },
+      "path": "logics/backlog/item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set.md",
+      "ref": "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: A successful mixed uploaded/reused DBC load persists its ordered content-identity set and prechecks precisely the surviving entries after browser reload or server workspace restart.",
+          "- AC2: A trace-only subsequent load reuses the prechecked set without reopening the library; manual edits and uncheck-all survive reopening and refresh.",
+          "- AC3: Same-name content stays distinct, missing entries are skipped, unique legacy names migrate safely, failures and unresolved imports preserve prior history, and purge clears history.",
+          "- AC4: Focused adapter, workspace, and browser tests cover persistence lifecycle and storage failure without blocking manual import."
+        ],
+        "Problem": [
+          "- PWA DBC history is volatile and filename-based UI matching can select the wrong content.",
+          "- The empty-set defaulting condition can override intentional uncheck-all choices."
+        ]
+      },
+      "status": "Ready",
+      "title": "Persist and preselect the exact last successful DBC load set"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores",
+          "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation",
+          "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set"
+        ],
+        "prod": [
+          "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults"
+        ],
+        "req": [
+          "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection"
+        ],
+        "task": [
+          "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+        ]
+      },
+      "path": "logics/product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md",
+      "ref": "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Optional cursor integration and reusable DBC import defaults"
+    },
+    {
+      "ai_context": {},
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores",
+          "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation",
+          "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set"
+        ],
+        "prod": [
+          "prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults"
+        ],
+        "req": [
+          "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection"
+        ],
+        "task": [
+          "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+        ]
+      },
+      "path": "logics/tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md",
+      "ref": "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Existing cursor statistics stay available; integral results require explicit opt-in. DBC selection history must survive browser reload without overwriting manual choices."
+        ],
+        "Validation": [
+          "- (no validation recorded yet)"
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver opt-in signal integral analysis and remembered DBC loading"
+    }
+  ],
+  "estimates": {
+    "char_count": 11507,
+    "companion_doc_count": 1,
+    "doc_count": 6
+  },
+  "generated_at": "2026-09-30T10:27:09Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection",
+      "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores",
+      "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation",
+      "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set",
+      "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "deep",
+  "ref": "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection,item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores,item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation,item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set,task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading",
+  "refs": [
+    "req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection",
+    "item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores",
+    "item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation",
+    "item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set",
+    "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_id": null,
+    "target_version": "1.1.0",
+    "targets": []
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- (no validation recorded yet)"
+      ],
+      "path": "logics/tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md",
+      "ref": "task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading"
+    }
+  ]
+}
