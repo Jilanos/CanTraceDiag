@@ -1,14 +1,14 @@
 ## item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation - Expose per-signal cursor integral analysis only after explicit activation
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 30%
 > Complexity: Medium
 > Theme: Optional analysis UI
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-09-30 12:26:46
+> Indicators reviewed: 2026-09-30 13:04:12
 
 # AI Context
 Integral mode belongs to one chosen signal in the current trace. Gate both rendering and backend work, and invalidate pending responses whenever activation, target, or trace changes.

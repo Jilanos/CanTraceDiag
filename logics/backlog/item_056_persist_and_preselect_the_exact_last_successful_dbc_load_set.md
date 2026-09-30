@@ -1,14 +1,14 @@
 ## item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set - Persist and preselect the exact last successful DBC load set
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 30%
 > Complexity: Medium
 > Theme: Repeat import defaults
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-09-30 12:26:46
+> Indicators reviewed: 2026-09-30 13:04:12
 
 # AI Context
 The PWA currently loses last-session names on reload, and the shared picker reapplies defaults to any empty set. Persist canonical digests and distinguish initial hydration from intentional uncheck-all.
