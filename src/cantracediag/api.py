@@ -11,6 +11,7 @@ Accepted trace formats are ASC, text TRC, and binary BLF (``TRACE_SUFFIXES``).
 from __future__ import annotations
 
 import hashlib
+import math
 import os
 import re
 import shutil
@@ -904,6 +905,40 @@ def create_app(
         with session.use_store() as store:
             _ensure_series_cached(store, message, signal, start, end)
             return store.signal_stats(message, signal, start, end)
+
+    def _neighbour_sample_time(
+        store: TraceStore, frame_times: list[float], message: str, signal: str,
+        arbitration_id: int,
+    ) -> float | None:
+        """First frame time (in the given order) whose frame decodes the signal."""
+        decoder = _decoder()
+        for ts in frame_times:
+            for frame in store.frames_for_signal(arbitration_id, ts, ts):
+                if decoder.decode_signal(frame, message, signal) is not None:
+                    return ts
+        return None
+
+    @app.get("/api/signal-integral")
+    def api_signal_integral(message: str, signal: str, a: float, b: float) -> dict:
+        """Opt-in signed trapezoidal integral of one signal between cursors A/B.
+
+        Only the target signal is decoded, over ``[min, max]`` widened to the
+        nearest bracketing sample on each side so the boundaries interpolate
+        exactly; no full-trace payload is returned (request AC3).
+        """
+        if not (math.isfinite(a) and math.isfinite(b)):
+            raise HTTPException(400, "Cursor bounds must be finite numbers.")
+        lo, hi = min(a, b), max(a, b)
+        info = _signal_info(message, signal)
+        with session.use_store() as store:
+            before, after = store.bracketing_frame_times(info.arbitration_id, lo, hi)
+            start = _neighbour_sample_time(store, before, message, signal, info.arbitration_id)
+            end = _neighbour_sample_time(store, after, message, signal, info.arbitration_id)
+            _ensure_series_cached(
+                store, message, signal,
+                lo if start is None else start, hi if end is None else end,
+            )
+            return store.signal_integral(message, signal, a, b)
 
     @app.post("/api/export")
     def api_export(req: ExportRequest) -> StreamingResponse:

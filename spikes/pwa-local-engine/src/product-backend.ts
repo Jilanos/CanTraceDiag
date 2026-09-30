@@ -79,6 +79,14 @@ export function createLocalProductBackend(): {
         numberParam(url, "end"),
       );
     }
+    if (url.pathname === "/api/signal-integral") {
+      return backend.signalIntegral(
+        required(url, "message"),
+        required(url, "signal"),
+        Number(required(url, "a")),
+        Number(required(url, "b")),
+      );
+    }
     if (url.pathname === "/api/trace") return backend.trace(traceParams(url));
     if (url.pathname === "/api/trace-locate") return backend.traceLocate(Number(required(url, "at")), traceParams(url));
     if (url.pathname === "/api/frame-signals") return backend.frameSignals(Number(required(url, "at")), Number(required(url, "id")));

@@ -19,6 +19,7 @@ from dataclasses import dataclass
 import duckdb
 import pandas as pd
 
+from cantracediag.integral import integrate
 from cantracediag.models import DecodedSignalSample, NonDataEvent, RawCanFrame
 
 _SCHEMA = """
@@ -452,6 +453,66 @@ class TraceStore:
             "kind": "text",
             "distribution": [{"value": r[0], "count": int(r[1])} for r in dist],
         }
+
+    def signal_integral(
+        self,
+        message_name: str,
+        signal_name: str,
+        a: float,
+        b: float,
+    ) -> dict:
+        """Signed trapezoidal integral of one signal between cursors ``a``/``b``.
+
+        Reads only full-resolution stored samples inside ``[min, max]`` plus the
+        single bracketing sample timestamp on each side (never the decimated
+        plot series); duplicates keep stable ingestion (``rowid``) order so the
+        last one wins. See :mod:`cantracediag.integral` for the contract.
+        """
+        lo, hi = (a, b) if a <= b else (b, a)
+        rows = self._all(
+            """
+            WITH s AS (
+                SELECT rowid AS rid, timestamp_s, value_num, value_text
+                FROM samples
+                WHERE message_name = ? AND signal_name = ? AND isfinite(timestamp_s)
+            )
+            SELECT timestamp_s, value_num, value_text FROM s
+            WHERE (timestamp_s >= ? AND timestamp_s <= ?)
+               OR timestamp_s = (SELECT max(timestamp_s) FROM s WHERE timestamp_s < ?)
+               OR timestamp_s = (SELECT min(timestamp_s) FROM s WHERE timestamp_s > ?)
+            ORDER BY timestamp_s, rid
+            """,
+            [message_name, signal_name, lo, hi, lo, hi],
+        )
+        unit_row = self._one(
+            "SELECT unit FROM samples WHERE message_name = ? AND signal_name = ? "
+            "AND unit IS NOT NULL LIMIT 1",
+            [message_name, signal_name],
+        )
+        points = [
+            (float(ts), num if num is not None else text) for ts, num, text in rows
+        ]
+        result = integrate(points, a, b, unit_row[0] if unit_row else None)
+        return {"message_name": message_name, "signal_name": signal_name, **result}
+
+    def bracketing_frame_times(
+        self, arbitration_id: int, start_s: float, end_s: float, limit: int = 64
+    ) -> tuple[list[float], list[float]]:
+        """Up to ``limit`` frame times of an id just before ``start_s`` (latest
+        first) and just after ``end_s`` (earliest first), bounded queries."""
+        before = self._all(
+            "SELECT timestamp_s FROM frames WHERE arbitration_id = ? "
+            "AND timestamp_s < ? AND isfinite(timestamp_s) "
+            "ORDER BY timestamp_s DESC LIMIT ?",
+            [arbitration_id, start_s, limit],
+        )
+        after = self._all(
+            "SELECT timestamp_s FROM frames WHERE arbitration_id = ? "
+            "AND timestamp_s > ? AND isfinite(timestamp_s) "
+            "ORDER BY timestamp_s ASC LIMIT ?",
+            [arbitration_id, end_s, limit],
+        )
+        return [float(r[0]) for r in before], [float(r[0]) for r in after]
 
     def iter_export_batches(
         self,

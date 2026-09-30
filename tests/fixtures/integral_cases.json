@@ -1,0 +1,24 @@
+{
+  "_comment": "Shared signed-trapezoidal integral fixtures (req_032 AC3). Consumed by tests/test_integral.py and spikes/pwa-local-engine/tests/integral.test.ts. A sample value is a number, a string (text sample) or {\"nonfinite\": \"nan\"|\"inf\"|\"-inf\"}.",
+  "cases": [
+    {"name": "constant 2 on [1,4]", "samples": [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2]], "a": 1, "b": 4, "unit": "A", "expect": {"available": true, "integral": 6, "unit": "A·s"}},
+    {"name": "constant reversed cursors", "samples": [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2], [5, 2]], "a": 4, "b": 1, "unit": "A", "expect": {"available": true, "integral": 6, "unit": "A·s"}},
+    {"name": "ramp v=t on [0.5,2.5] with interpolated boundaries", "samples": [[0, 0], [1, 1], [3, 3]], "a": 0.5, "b": 2.5, "unit": "", "expect": {"available": true, "integral": 3, "unit": "s"}},
+    {"name": "sign change -2 to 2 cancels", "samples": [[0, -2], [2, 2]], "a": 0, "b": 2, "unit": "V", "expect": {"available": true, "integral": 0, "unit": "V·s"}},
+    {"name": "negative area subtracts", "samples": [[0, -1], [3, -1]], "a": 0, "b": 3, "unit": null, "expect": {"available": true, "integral": -3, "unit": "s"}},
+    {"name": "irregular spacing", "samples": [[0, 0], [1, 2], [4, 2]], "a": 0, "b": 4, "unit": "A", "expect": {"available": true, "integral": 7}},
+    {"name": "duplicate timestamp keeps last in ingestion order", "samples": [[0, 0], [1, 5], [1, 1], [2, 1]], "a": 0, "b": 2, "unit": "A", "expect": {"available": true, "integral": 1.5}},
+    {"name": "interior interpolated window", "samples": [[0, 0], [10, 10]], "a": 2, "b": 4, "unit": "A", "expect": {"available": true, "integral": 6}},
+    {"name": "equal cursors on a sample", "samples": [[0, 3], [1, 3]], "a": 1, "b": 1, "unit": "A", "expect": {"available": true, "integral": 0}},
+    {"name": "equal cursors between samples", "samples": [[0, 0], [2, 2]], "a": 1, "b": 1, "unit": "A", "expect": {"available": true, "integral": 0}},
+    {"name": "equal cursors outside coverage", "samples": [[0, 0], [2, 2]], "a": 3, "b": 3, "unit": "A", "expect": {"available": false, "reason": "no_coverage"}},
+    {"name": "missing start boundary is not extrapolated", "samples": [[1, 1], [2, 1]], "a": 0, "b": 2, "unit": "A", "expect": {"available": false, "reason": "no_coverage"}},
+    {"name": "missing end boundary is not extrapolated", "samples": [[1, 1], [2, 1]], "a": 1.5, "b": 3, "unit": "A", "expect": {"available": false, "reason": "no_coverage"}},
+    {"name": "non-finite sample inside is not bridged", "samples": [[0, 1], [1, {"nonfinite": "nan"}], [2, 1]], "a": 0, "b": 2, "unit": "A", "expect": {"available": false, "reason": "invalid_samples"}},
+    {"name": "infinite bracketing neighbour is invalid", "samples": [[0, {"nonfinite": "inf"}], [2, 1]], "a": 1, "b": 2, "unit": "A", "expect": {"available": false, "reason": "invalid_samples"}},
+    {"name": "unused non-finite neighbour is ignored", "samples": [[-1, {"nonfinite": "nan"}], [0, 1], [2, 1]], "a": 0, "b": 2, "unit": "A", "expect": {"available": true, "integral": 2}},
+    {"name": "duplicate collapsing to a non-finite last sample", "samples": [[0, 1], [1, 1], [1, {"nonfinite": "nan"}], [2, 1]], "a": 0, "b": 2, "unit": "A", "expect": {"available": false, "reason": "invalid_samples"}},
+    {"name": "text signal", "samples": [[0, "ON"], [1, "OFF"]], "a": 0, "b": 1, "unit": null, "expect": {"available": false, "reason": "text_signal"}},
+    {"name": "no samples", "samples": [], "a": 0, "b": 1, "unit": "A", "expect": {"available": false, "reason": "no_samples"}}
+  ]
+}

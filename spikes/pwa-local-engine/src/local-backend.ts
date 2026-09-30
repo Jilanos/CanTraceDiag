@@ -135,6 +135,11 @@ export class LocalPwaBackend {
     return this.store.signalStats(message, signal, start, end);
   }
 
+  signalIntegral(message: string, signal: string, a: number, b: number): Record<string, unknown> {
+    if (!Number.isFinite(a) || !Number.isFinite(b)) throw new Error("Cursor bounds must be finite numbers.");
+    return this.store.signalIntegral(message, signal, a, b);
+  }
+
   report(): Record<string, unknown> {
     const summary = this.store.summary();
     if (Number(summary.frames) === 0 && Number(summary.events) === 0) {

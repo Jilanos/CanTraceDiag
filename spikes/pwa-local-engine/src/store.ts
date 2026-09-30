@@ -1,3 +1,4 @@
+import { integrate, type IntegralPoint, type IntegralResult } from "./integral.ts";
 import type { DecodedSignalSample, NonDataEvent, RawCanFrame, TraceRow } from "./types.ts";
 
 export class LocalTraceStore {
@@ -218,6 +219,30 @@ export class LocalTraceStore {
       .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
       .map(([value, count]) => ({ value, count }));
     return { ...base, kind: "text", count: rows.length, distribution };
+  }
+
+  /* Signed trapezoidal integral between cursors a/b over full-resolution
+   * samples: the interval [min, max] plus every sample at the single bracketing
+   * timestamp on each side (duplicates keep stable ingestion order, since
+   * Array.prototype.sort is stable). Never uses the decimated plot series. */
+  signalIntegral(message: string, signal: string, a: number, b: number): IntegralResult & { message_name: string; signal_name: string } {
+    const lo = Math.min(a, b);
+    const hi = Math.max(a, b);
+    const rows = this.samples
+      .filter((sample) => sample.message_name === message && sample.signal_name === signal && Number.isFinite(sample.timestamp_s))
+      .sort((x, y) => x.timestamp_s - y.timestamp_s);
+    let beforeTs = -Infinity;
+    let afterTs = Infinity;
+    for (const sample of rows) {
+      if (sample.timestamp_s < lo && sample.timestamp_s > beforeTs) beforeTs = sample.timestamp_s;
+      if (sample.timestamp_s > hi && sample.timestamp_s < afterTs) afterTs = sample.timestamp_s;
+    }
+    const points: IntegralPoint[] = rows
+      .filter((sample) => (sample.timestamp_s >= lo && sample.timestamp_s <= hi)
+        || sample.timestamp_s === beforeTs || sample.timestamp_s === afterTs)
+      .map((sample) => [sample.timestamp_s, sample.value]);
+    const unit = rows.find((sample) => sample.unit)?.unit ?? null;
+    return { message_name: message, signal_name: signal, ...integrate(points, a, b, unit) };
   }
 
   exportRows(
