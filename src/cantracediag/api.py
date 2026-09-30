@@ -648,14 +648,23 @@ def create_app(
 
     @app.get("/api/dbc-library")
     def api_dbc_library() -> dict:
-        """List DBC files kept in the persistent library (AC4)."""
+        """List DBC files kept in the persistent library (AC4).
+
+        ``last_session_digests`` is the ordered content-identity set of the last
+        successful load, persisted in the workspace manifest so it survives a
+        restart; the picker prechecks the surviving entries from it (req_032).
+        ``last_session`` basenames remain for legacy clients only.
+        """
+        try:
+            last_digests = session.workspace.last_dbc_digests()
+        except OSError:
+            last_digests = []
         return {
             "dbcs": [
                 {"digest": e.digest, "name": e.name, "last_used": e.last_used}
                 for e in session.workspace.library()
             ],
-            # Basenames so the UI can pre-select last-session DBCs regardless of
-            # whether they were uploaded (basename) or imported by path (full).
+            "last_session_digests": last_digests,
             "last_session": [Path(p).name for p in session.dbc_paths],
         }
 

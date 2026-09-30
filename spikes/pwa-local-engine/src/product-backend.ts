@@ -11,9 +11,14 @@ type PendingImport = {
   traceText: string;
   traceName: string;
   dbcs: Array<{ name: string; text: string }>;
+  digests: string[];
 };
 
 const LIBRARY_KEY = "ctd.pwa.dbc-library.v1";
+/* Ordered content digests of the last successfully completed load (req_032).
+ * Survives a browser reload; a legacy value (plain array of DBC names) is
+ * migrated only where the name matches exactly one library entry. */
+const HISTORY_KEY = "ctd.pwa.last-dbc-selection.v1";
 
 export function createLocalProductBackend(): {
   api: (path: string, opts?: RequestInit) => Promise<unknown>;
@@ -26,7 +31,6 @@ export function createLocalProductBackend(): {
 } {
   const backend = new LocalPwaBackend();
   let pending: PendingImport | null = null;
-  let lastSessionDbcs: string[] = [];
 
   async function api(path: string, opts: RequestInit = {}): Promise<unknown> {
     const url = new URL(path, window.location.href);
@@ -36,14 +40,20 @@ export function createLocalProductBackend(): {
     if (url.pathname === "/api/import-cancel") return { cancelled: false, reason: "Local imports finish synchronously in this MVP adapter." };
     if (url.pathname === "/api/dbc-library") {
       const library = await readLibrary();
-      return { dbcs: library.map(({ text, ...entry }) => entry), last_session: lastSessionDbcs };
+      const digests = readHistory(library);
+      const names = new Map(library.map((entry) => [entry.digest, entry.name]));
+      return {
+        dbcs: library.map(({ text, ...entry }) => entry),
+        last_session_digests: digests,
+        last_session: digests.map((digest) => names.get(digest)).filter(Boolean),
+      };
     }
     if (url.pathname === "/api/report") return backend.report();
     if (url.pathname === "/api/workspace-purge") {
       backend.purge();
       pending = null;
-      lastSessionDbcs = [];
-      localStorage.removeItem(LIBRARY_KEY);
+      removeStored(LIBRARY_KEY);
+      removeStored(HISTORY_KEY);
       return { purged: true };
     }
     if (url.pathname === "/api/resolve") {
@@ -52,7 +62,10 @@ export function createLocalProductBackend(): {
       const resolution = parseResolution(body.resolution || {});
       const result = await backend.importText(pending.traceText, pending.dbcs, resolution, pending.traceName);
       backend.traceName = pending.traceName;
-      if (!result.needs_resolution) pending = null;
+      if (!result.needs_resolution) {
+        writeHistory(pending.digests);
+        pending = null;
+      }
       return result;
     }
     if (url.pathname === "/api/series") {
@@ -108,27 +121,38 @@ export function createLocalProductBackend(): {
     const freshDbcs = formData.getAll("dbcs").filter((entry): entry is File => entry instanceof File);
     const libraryDigests = formData.getAll("library").map(String);
     const library = await readLibrary();
-    const libraryDbcs = library
-      .filter((entry) => libraryDigests.includes(entry.digest))
-      .map((entry) => ({ name: entry.name, text: entry.text }));
-    const uploadedDbcs = await Promise.all(freshDbcs.map(async (file) => ({ name: file.name, text: await file.text() })));
-    const dbcs = [...uploadedDbcs, ...libraryDbcs];
+    const uploadedDbcs = await Promise.all(freshDbcs.map(async (file) => {
+      const text = await file.text();
+      return { name: file.name, text, digest: await digestText(text) };
+    }));
+    // Content identity, not names: identical content is loaded (and
+    // remembered) once, while same-name different content stays distinct.
+    const byDigest = new Map(library.map((entry) => [entry.digest, entry]));
+    const chosen = new Map<string, { name: string; text: string }>();
+    for (const dbc of uploadedDbcs) if (!chosen.has(dbc.digest)) chosen.set(dbc.digest, { name: dbc.name, text: dbc.text });
+    for (const digest of libraryDigests) {
+      const entry = byDigest.get(digest);
+      if (entry && !chosen.has(digest)) chosen.set(digest, { name: entry.name, text: entry.text });
+    }
+    const dbcs = [...chosen.values()];
+    const digests = [...chosen.keys()];
     if (!dbcs.length) throw new Error("Choose at least one DBC file or local library entry.");
     onProgress(0.35);
     const traceText = await trace.text();
     onProgress(0.75);
     const result = await backend.importText(traceText, dbcs, {}, trace.name);
     backend.traceName = trace.name;
-    lastSessionDbcs = dbcs.map((dbc) => dbc.name);
     try {
       await saveDbcs(uploadedDbcs);
     } catch (error) {
       throw new Error(storageErrorMessage(error));
     }
     if (result && typeof result === "object" && "needs_resolution" in result && result.needs_resolution) {
-      pending = { traceText, traceName: trace.name, dbcs };
+      // History only moves once the conflict is resolved (see /api/resolve).
+      pending = { traceText, traceName: trace.name, dbcs, digests };
     } else {
       pending = null;
+      writeHistory(digests);
     }
     onProgress(0.99);
     return result;
@@ -206,6 +230,50 @@ async function readLibrary(): Promise<LocalDbc[]> {
     return migrateLibrary(parsed.filter(isLocalDbc));
   } catch {
     return [];
+  }
+}
+
+function readHistory(library: LocalDbc[]): string[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(localStorage.getItem(HISTORY_KEY) || "null");
+  } catch {
+    return [];
+  }
+  const known = new Set(library.map((entry) => entry.digest));
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    const digests = (parsed as { digests?: unknown }).digests;
+    if (!Array.isArray(digests)) return [];
+    return [...new Set(digests.filter((d): d is string => typeof d === "string" && known.has(d)))];
+  }
+  if (Array.isArray(parsed)) {
+    // Legacy name-only history: migrate unique exact name matches only.
+    const migrated: string[] = [];
+    for (const name of parsed) {
+      if (typeof name !== "string") continue;
+      const matches = library.filter((entry) => entry.name === name);
+      if (matches.length === 1 && !migrated.includes(matches[0].digest)) migrated.push(matches[0].digest);
+    }
+    writeHistory(migrated);
+    return migrated;
+  }
+  return [];
+}
+
+function writeHistory(digests: string[]): void {
+  try {
+    localStorage.setItem(HISTORY_KEY, JSON.stringify({ version: 1, digests }));
+  } catch (error) {
+    // Remembered defaults are a convenience: never fail a completed import.
+    console.warn("Could not remember the DBC selection", error);
+  }
+}
+
+function removeStored(key: string): void {
+  try {
+    localStorage.removeItem(key);
+  } catch (error) {
+    console.warn("Could not clear local storage entry", key, error);
   }
 }
 

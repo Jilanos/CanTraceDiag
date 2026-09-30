@@ -176,3 +176,87 @@ def test_import_files_reuses_library_dbc(tmp_path: Path) -> None:
     )
     assert r2.status_code == 200
     assert r2.json()["summary"]["decoded_frames"] > 0  # decoded via the library DBC
+
+
+# -- remembered DBC selection by content identity (req_032 AC4/AC5) ----------
+_OCTET = "application/octet-stream"
+
+
+def _upload(c, dbcs: list[tuple[str, bytes]], library: list[str] | None = None):
+    files = [("trace", ("sample.asc", (FIX / "sample.asc").read_bytes(), _OCTET))]
+    files += [("dbcs", (name, data, _OCTET)) for name, data in dbcs]
+    return c.post("/api/import-files", files=files, data={"library": library or []})
+
+
+def _digest_of(c, name: str) -> str:
+    return next(e["digest"] for e in c.get("/api/dbc-library").json()["dbcs"] if e["name"] == name)
+
+
+def test_mixed_uploaded_and_reused_set_survives_restart(tmp_path: Path) -> None:
+    ws = _persistent(tmp_path)
+    app = create_app(ws)
+    c = make_client(app)
+    assert c.get("/api/dbc-library").json()["last_session_digests"] == []  # first use
+
+    assert _upload(c, [("sample.dbc", (FIX / "sample.dbc").read_bytes())]).status_code == 200
+    reused = _digest_of(c, "sample.dbc")
+    r = _upload(c, [("sample_body.dbc", (FIX / "sample_body.dbc").read_bytes())], [reused])
+    assert r.status_code == 200
+    uploaded = _digest_of(c, "sample_body.dbc")
+    assert c.get("/api/dbc-library").json()["last_session_digests"] == [uploaded, reused]
+
+    app.state.ctd_session.store.close()
+    c2 = make_client(create_app(Workspace(ws.root, ephemeral=False)))
+    assert c2.get("/api/dbc-library").json()["last_session_digests"] == [uploaded, reused]
+    # A trace-only load reusing the remembered set decodes without re-upload.
+    r2 = _upload(c2, [], [uploaded, reused])
+    assert r2.status_code == 200
+    assert r2.json()["summary"]["decoded_frames"] > 0
+
+
+def test_same_name_different_content_stays_distinct(tmp_path: Path) -> None:
+    c = make_client(create_app(_persistent(tmp_path)))
+    assert _upload(c, [("common.dbc", (FIX / "sample.dbc").read_bytes())]).status_code == 200
+    first = c.get("/api/dbc-library").json()["last_session_digests"]
+    assert _upload(c, [("common.dbc", (FIX / "sample_body.dbc").read_bytes())]).status_code == 200
+    payload = c.get("/api/dbc-library").json()
+    second = payload["last_session_digests"]
+    assert len(first) == len(second) == 1 and first != second
+    assert sorted(e["digest"] for e in payload["dbcs"]) == sorted(first + second)
+
+
+def test_failed_and_unresolved_imports_keep_previous_history(tmp_path: Path) -> None:
+    c = make_client(create_app(_persistent(tmp_path)))
+    assert _upload(c, [("sample.dbc", (FIX / "sample.dbc").read_bytes())]).status_code == 200
+    before = c.get("/api/dbc-library").json()["last_session_digests"]
+
+    assert _upload(c, [("broken.dbc", b"this is not a dbc")]).status_code == 400
+    assert c.get("/api/dbc-library").json()["last_session_digests"] == before
+
+    conflict = _upload(
+        c, [("sample_conflict.dbc", (FIX / "sample_conflict.dbc").read_bytes())], before,
+    )
+    assert conflict.json()["needs_resolution"] is True
+    assert c.get("/api/dbc-library").json()["last_session_digests"] == before  # unresolved
+
+    resolved = c.post("/api/resolve", json={"resolution": {"0x100": "sample.dbc"}})
+    assert resolved.status_code == 200
+    after = c.get("/api/dbc-library").json()["last_session_digests"]
+    assert len(after) == 2 and before[0] in after
+
+
+def test_malformed_history_and_purge_degrade_to_empty(tmp_path: Path) -> None:
+    ws = _persistent(tmp_path)
+    c = make_client(create_app(ws))
+    assert _upload(c, [("sample.dbc", (FIX / "sample.dbc").read_bytes())]).status_code == 200
+    manifest = json.loads(ws.manifest_path.read_text())
+    manifest["dbcs"] = [{"name": "legacy.dbc"}, "garbage", {"digest": 7}]
+    ws.manifest_path.write_text(json.dumps(manifest))
+    assert ws.last_dbc_digests() == []
+    assert c.get("/api/dbc-library").json()["last_session_digests"] == []
+
+    assert _upload(c, [("sample.dbc", (FIX / "sample.dbc").read_bytes())]).status_code == 200
+    assert c.get("/api/dbc-library").json()["last_session_digests"]
+    assert c.post("/api/workspace-purge").status_code == 200
+    payload = c.get("/api/dbc-library").json()
+    assert payload["last_session_digests"] == [] and payload["dbcs"] == []

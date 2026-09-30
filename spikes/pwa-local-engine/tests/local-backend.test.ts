@@ -324,11 +324,7 @@ describe("Browser-local BLF capability boundary", () => {
     let stored = "[]";
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
-      value: {
-        getItem() { return stored; },
-        removeItem() { stored = "[]"; },
-        setItem(_key: string, value: string) { stored = value; },
-      },
+      value: keyedStorage(() => stored, (value) => { stored = value; }),
     });
     try {
       for (const name of ["sample.asc", "sample.trc"]) {
@@ -382,11 +378,7 @@ describe("Local product backend adapter", () => {
     let stored = "[]";
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
-      value: {
-        getItem() { return stored; },
-        removeItem() { stored = "[]"; },
-        setItem(_key: string, value: string) { stored = value; },
-      },
+      value: keyedStorage(() => stored, (value) => { stored = value; }),
     });
     try {
       const suffix = '\nBO_ 256 Msg: 1 Vector__XXX\n SG_ Value : 0|8@1+ (1,0) [0|255] "" Vector__XXX\n';
@@ -427,11 +419,7 @@ describe("Local product backend adapter", () => {
     }]);
     Object.defineProperty(globalThis, "localStorage", {
       configurable: true,
-      value: {
-        getItem() { return stored; },
-        removeItem() { stored = "[]"; },
-        setItem(_key: string, value: string) { stored = value; },
-      },
+      value: keyedStorage(() => stored, (value) => { stored = value; }),
     });
     try {
       const backend = createLocalProductBackend();
@@ -457,5 +445,157 @@ describe("Local product backend adapter", () => {
         value: originalStorage,
       });
     }
+  });
+});
+
+/* localStorage stub: the DBC library slot is exposed through `get`/`set` so a
+ * test can inspect it, every other key (e.g. the remembered selection) lives
+ * in its own map. */
+function keyedStorage(get: () => string, set: (value: string) => void) {
+  const other = new Map<string, string>();
+  return {
+    getItem(key: string) { return key === LIBRARY_KEY ? get() : other.get(key) ?? null; },
+    removeItem(key: string) { if (key === LIBRARY_KEY) set("[]"); else other.delete(key); },
+    setItem(key: string, value: string) { if (key === LIBRARY_KEY) set(value); else other.set(key, value); },
+    other,
+  };
+}
+
+const LIBRARY_KEY = "ctd.pwa.dbc-library.v1";
+const HISTORY_KEY = "ctd.pwa.last-dbc-selection.v1";
+
+describe("Remembered DBC selection in the local adapter", () => {
+  async function withStorage(run: (storage: ReturnType<typeof keyedStorage>, library: () => Array<{ digest: string; name: string }>) => Promise<void>) {
+    const originalStorage = globalThis.localStorage;
+    let stored = "[]";
+    const storage = keyedStorage(() => stored, (value) => { stored = value; });
+    const originalWindow = (globalThis as { window?: unknown }).window;
+    Object.defineProperty(globalThis, "localStorage", { configurable: true, value: storage });
+    // The adapter resolves endpoint paths against the page URL.
+    Object.defineProperty(globalThis, "window", { configurable: true, value: { location: { href: "http://127.0.0.1/" } } });
+    try {
+      await run(storage, () => JSON.parse(stored));
+    } finally {
+      Object.defineProperty(globalThis, "localStorage", { configurable: true, value: originalStorage });
+      Object.defineProperty(globalThis, "window", { configurable: true, value: originalWindow });
+    }
+  }
+
+  function form(dbcs: Array<[string, string]>, library: string[] = [], trace = "sample.asc"): FormData {
+    const data = new FormData();
+    data.append("trace", new File([readFixture(trace)], trace));
+    for (const [name, text] of dbcs) data.append("dbcs", new File([text], name));
+    for (const digest of library) data.append("library", digest);
+    return data;
+  }
+
+  it("persists the ordered mixed uploaded/reused set and survives a new adapter (reload)", async () => {
+    await withStorage(async (_storage, library) => {
+      let backend = createLocalProductBackend();
+      assert.deepEqual((await backend.api("/api/dbc-library") as { last_session_digests: string[] }).last_session_digests, []);
+      await backend.uploadWithProgress(form([["sample.dbc", readFixture("sample.dbc")]]), () => {});
+      const reused = library()[0].digest;
+      await backend.uploadWithProgress(form([["sample_body.dbc", readFixture("sample_body.dbc")]], [reused]), () => {});
+      const uploaded = library().find((entry) => entry.name === "sample_body.dbc")!.digest;
+
+      backend = createLocalProductBackend();   // a browser reload builds a fresh adapter
+      const payload = await backend.api("/api/dbc-library") as { last_session_digests: string[]; last_session: string[] };
+      assert.deepEqual(payload.last_session_digests, [uploaded, reused]);
+      assert.deepEqual(payload.last_session, ["sample_body.dbc", "sample.dbc"]);
+      // Trace-only load with the remembered set.
+      await backend.uploadWithProgress(form([], payload.last_session_digests), () => {});
+      assert.ok(Number(backend.__backend.status().summary.decoded_frames) > 0);
+    });
+  });
+
+  it("selects identical content once and keeps same-name different content distinct", async () => {
+    await withStorage(async (storage, library) => {
+      const backend = createLocalProductBackend();
+      await backend.uploadWithProgress(form([["common.dbc", readFixture("sample.dbc")]]), () => {});
+      const first = library()[0].digest;
+      // Re-upload of identical content while also checking its library entry.
+      await backend.uploadWithProgress(form([["copy.dbc", readFixture("sample.dbc")]], [first]), () => {});
+      assert.deepEqual(JSON.parse(storage.other.get(HISTORY_KEY)!).digests, [first]);
+      await backend.uploadWithProgress(form([["common.dbc", readFixture("sample_body.dbc")]]), () => {});
+      const history = JSON.parse(storage.other.get(HISTORY_KEY)!).digests;
+      assert.equal(history.length, 1);
+      assert.notEqual(history[0], first);
+      assert.equal(library().filter((entry) => entry.name === "common.dbc").length, 1);
+    });
+  });
+
+  it("keeps the previous set on failed or unresolved imports and commits after resolution", async () => {
+    await withStorage(async (storage, library) => {
+      const backend = createLocalProductBackend();
+      await backend.uploadWithProgress(form([["sample.dbc", readFixture("sample.dbc")]]), () => {});
+      const before = storage.other.get(HISTORY_KEY);
+      await assert.rejects(() => backend.uploadWithProgress(form([], []), () => {}));
+      assert.equal(storage.other.get(HISTORY_KEY), before);
+
+      const digest = library()[0].digest;
+      const conflict = await backend.uploadWithProgress(
+        form([["sample_conflict.dbc", readFixture("sample_conflict.dbc")]], [digest]), () => {},
+      ) as { needs_resolution: boolean };
+      assert.equal(conflict.needs_resolution, true);
+      assert.equal(storage.other.get(HISTORY_KEY), before);
+
+      await backend.api("/api/resolve", { method: "POST", body: JSON.stringify({ resolution: { "0x100": "sample.dbc" } }) });
+      const after = JSON.parse(storage.other.get(HISTORY_KEY)!).digests;
+      assert.equal(after.length, 2);
+      assert.ok(after.includes(digest));
+    });
+  });
+
+  it("skips deleted entries, migrates only unique legacy names, and clears on purge", async () => {
+    await withStorage(async (storage, library) => {
+      const backend = createLocalProductBackend();
+      await backend.uploadWithProgress(form([["a.dbc", readFixture("sample.dbc")]]), () => {});
+      await backend.uploadWithProgress(form([["body.dbc", readFixture("sample_body.dbc")]]), () => {});
+      storage.other.set(HISTORY_KEY, JSON.stringify({ version: 1, digests: ["gone", library()[0].digest] }));
+      let payload = await backend.api("/api/dbc-library") as { last_session_digests: string[] };
+      assert.deepEqual(payload.last_session_digests, [library()[0].digest]);
+
+      storage.other.set(HISTORY_KEY, JSON.stringify(["a.dbc", "missing.dbc"]));
+      payload = await backend.api("/api/dbc-library") as { last_session_digests: string[] };
+      assert.deepEqual(payload.last_session_digests, [library()[0].digest]);
+      assert.deepEqual(JSON.parse(storage.other.get(HISTORY_KEY)!), { version: 1, digests: [library()[0].digest] });
+
+      // Two entries named alike: an ambiguous legacy name stays unchecked.
+      const entries = library();
+      entries[1].name = "a.dbc";
+      storage.setItem(LIBRARY_KEY, JSON.stringify(entries));
+      storage.other.set(HISTORY_KEY, JSON.stringify(["a.dbc"]));
+      payload = await backend.api("/api/dbc-library") as { last_session_digests: string[] };
+      assert.deepEqual(payload.last_session_digests, []);
+
+      storage.other.set(HISTORY_KEY, "{not json");
+      payload = await backend.api("/api/dbc-library") as { last_session_digests: string[] };
+      assert.deepEqual(payload.last_session_digests, []);
+
+      await backend.api("/api/workspace-purge", { method: "POST" });
+      assert.equal(storage.other.has(HISTORY_KEY), false);
+      assert.deepEqual(library(), []);
+    });
+  });
+
+  it("never blocks a completed import when the history cannot be written", async () => {
+    await withStorage(async (storage) => {
+      const original = storage.setItem;
+      storage.setItem = (key: string, value: string) => {
+        if (key === HISTORY_KEY) throw new DOMException("quota", "QuotaExceededError");
+        original(key, value);
+      };
+      const warn = console.warn;
+      console.warn = () => {};
+      try {
+        const backend = createLocalProductBackend();
+        const result = await backend.uploadWithProgress(form([["sample.dbc", readFixture("sample.dbc")]]), () => {}) as { needs_resolution: boolean };
+        assert.equal(result.needs_resolution, false);
+        const payload = await backend.api("/api/dbc-library") as { last_session_digests: string[] };
+        assert.deepEqual(payload.last_session_digests, []);
+      } finally {
+        console.warn = warn;
+      }
+    });
   });
 });

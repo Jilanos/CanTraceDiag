@@ -251,6 +251,24 @@ class Workspace:
             return None
         return data
 
+    def last_dbc_digests(self) -> list[str]:
+        """Ordered library digests of the last successfully committed load.
+
+        Read from the last-analysis manifest (written only after a load
+        completes, conflicts included, and persists), so a failed, cancelled or
+        unresolved import leaves the previous set untouched and purge clears it.
+        Missing or malformed history degrades to an empty list.
+        """
+        manifest = self.load_manifest()
+        if not manifest or not isinstance(manifest.get("dbcs"), list):
+            return []
+        digests: list[str] = []
+        for entry in manifest["dbcs"]:
+            digest = entry.get("digest") if isinstance(entry, dict) else None
+            if isinstance(digest, str) and digest and digest not in digests:
+                digests.append(digest)
+        return digests
+
     def analysis_db_path(self, manifest: dict) -> Path | None:
         holder = manifest.get("holder")
         db = manifest.get("duckdb", "analysis.duckdb")
