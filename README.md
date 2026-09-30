@@ -22,12 +22,13 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
 - **Workspace views** from a single control — Plots, Plots + trace (split with a resizable divider), Trace, and Report — that switch layout while preserving selection, cursors, and filters.
 - **Unified measurement table** below the plot, combining A/B cursor values with the A–B range statistics (count, min, max, mean, std, RMS), plus value distributions for text/enum signals.
+- **Opt-in cursor integral**: an explicit **∫ Integral** action computes the signed time integral of one plotted signal between cursors A and B (unit × s, e.g. A·s). It uses trapezoidal (linear) interpolation over the full-resolution samples — not the plot's sample-and-hold steps nor its downsampled points — interpolates exact cursor boundaries, never extrapolates, and reports an explicit reason when coverage is missing, the signal is text, or samples are invalid. It is off by default and on every new trace.
 - **Diagnostic report** summarizing the import: time range, volumes, DBCs used, and anomalies by type.
 - **Streamed export** of selected signals to CSV or Parquet over a chosen range, with bounded memory.
 - **Trace table** with pagination, filtering, and configurable columns.
 - **Frame inspector** with raw payload, decoded message, and physical signals.
 - **Compact signal explorer**: collapsible DBC groups with the active database first and expanded, plus displayed-only and favorites-only filters that intersect with the text search.
-- **Local DBC library** to reuse databases without uploading them again.
+- **Local DBC library** to reuse databases without uploading them again; the exact DBC set of the last successful load (by content, not file name) is prechecked after a browser reload or restart, so the next load only needs a new trace.
 - **Keyboard-accessible controls** (favorites, filters, table rows, dialogs, resizers) with Pointer-Events graph and resize interactions, verified across the 1024×768 / 1280×720 / 1600×900 desktop viewports plus minimal 390×844 support.
 - **Browser fullscreen control** requesting document fullscreen from the user gesture, following native exits (Escape, F11, browser UI) and reporting a refusal inline.
 - **Session restore** through a local workspace outside the repository.
@@ -67,7 +68,7 @@ The trace view is built for repeated inspection: filters, pagination, decode sta
 
 ### DBC Library
 
-Imported DBC files are kept in the user workspace, deduplicated by content, and reusable on the next load.
+Imported DBC files are kept in the user workspace, deduplicated by content, and reusable on the next load. The picker prechecks the DBCs of the last successful load that are still in the library, once per picker state; manual changes, including unchecking everything, are kept across reopening the library. Failed, cancelled, or unresolved imports keep the previous set, and **Clear cache** forgets it.
 
 ![DBC library](docs/assets/cantracediag-library.png)
 
@@ -163,7 +164,7 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 2. **Resolve DBC conflicts** when several databases define the same arbitration ID with non-equivalent messages.
 3. **Select signals** present in the trace or available in the DBC catalog.
 4. **Switch workspace views** — Plots, Plots + trace (split), Trace, or Report — from the single view control; switching keeps your selection, cursors, and filters.
-5. **Explore plots** with zoom, pan, grid, and A/B cursors, and read the unified measurement table (cursor values + A–B range statistics) below the plot.
+5. **Explore plots** with zoom, pan, grid, and A/B cursors, and read the unified measurement table (cursor values + A–B range statistics) below the plot; enable **∫ Integral** when you need the integral of one signal between the cursors.
 6. **Inspect the trace** with filters, pagination, frame details, and decoded signals, using the split view to keep plots and trace side by side.
 7. **Review the report** for the import synthesis and anomalies, then **export** the selected signals to CSV or Parquet over the range you choose (between A and B, the visible window, or the full trace).
 8. **Reopen later** and let the workspace restore the last analysis and DBC library.
@@ -201,11 +202,12 @@ CanTraceDiag exposes a local FastAPI API used by the UI:
 - `GET /api/cursor`: nearest cursor value for one signal (bounded lookup);
 - `POST /api/cursors`: nearest values for N signals at cursors A and B in one call;
 - `GET /api/signal-stats`: range statistics for one signal between two bounds;
+- `GET /api/signal-integral`: signed trapezoidal integral of one signal between cursors `a` and `b` (value, unit, method, bounds, or an unavailable reason);
 - `GET /api/report`: import synthesis (volumes, DBCs used, anomalies by type);
 - `POST /api/export`: streamed CSV/Parquet export of selected signals over a range;
 - `GET /api/trace`: filtered trace view, paginated by opaque keyset cursor;
 - `GET /api/frame-signals`: decoded signals for one frame;
-- `GET /api/dbc-library`: DBC library;
+- `GET /api/dbc-library`: DBC library and the ordered digests of the last successful load (`last_session_digests`);
 - `POST /api/workspace-purge`: cache and last-analysis purge.
 
 ## Local Workspace
