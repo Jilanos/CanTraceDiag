@@ -1,14 +1,14 @@
 ## item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores - Compute exact-range numeric signal integrals in local and server stores
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 30%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Numerical signal analysis
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-09-30 13:04:12
+> Indicators reviewed: 2026-09-30 13:57:06
 
 # AI Context
 Calculate from stored decoded physical values with boundary neighbors. The canvas draws steps, but this feature deliberately reports trapezoidal interpolation; never reuse the decimated plot samples.
@@ -52,3 +52,9 @@ Calculate from stored decoded physical values with boundary neighbors. The canva
 # Priority
 - Priority: Medium
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading`
+
+# Notes
+- Task `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading` was finished via `logics-manager flow finish task` on 2026-09-30.

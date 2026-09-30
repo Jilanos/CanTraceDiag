@@ -1,13 +1,13 @@
 ## req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection - Add opt-in cursor integral analysis and restore the last loaded DBC selection
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: Medium
 > Theme: Optional signal analysis and repeat import usability
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-09-30 12:26:46
+> Indicators reviewed: 2026-09-30 13:57:05
 
 # AI Context
 Keep optional analysis ephemeral, but persist import defaults. Full-resolution integral semantics and content-based DBC history are specified in the linked backlog slices; prioritize the deployed PWA while retaining server compatibility.

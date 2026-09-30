@@ -1,14 +1,14 @@
 ## item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation - Expose per-signal cursor integral analysis only after explicit activation
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 30%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Optional analysis UI
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-09-30 13:04:12
+> Indicators reviewed: 2026-09-30 13:57:06
 
 # AI Context
 Integral mode belongs to one chosen signal in the current trace. Gate both rendering and backend work, and invalidate pending responses whenever activation, target, or trace changes.
@@ -50,3 +50,9 @@ Integral mode belongs to one chosen signal in the current trace. Gate both rende
 # Priority
 - Priority: Medium
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading`
+
+# Notes
+- Task `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading` was finished via `logics-manager flow finish task` on 2026-09-30.

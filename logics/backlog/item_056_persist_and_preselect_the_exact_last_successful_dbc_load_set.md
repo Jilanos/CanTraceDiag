@@ -1,14 +1,14 @@
 ## item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set - Persist and preselect the exact last successful DBC load set
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 30%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Repeat import defaults
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-09-30 13:04:12
+> Indicators reviewed: 2026-09-30 13:57:06
 
 # AI Context
 The PWA currently loses last-session names on reload, and the shared picker reapplies defaults to any empty set. Persist canonical digests and distinguish initial hydration from intentional uncheck-all.
@@ -54,3 +54,9 @@ The PWA currently loses last-session names on reload, and the shared picker reap
 # Priority
 - Priority: Medium
 - Rationale: Set by scaffold input or defaulted for grooming.
+
+# Tasks
+- `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading`
+
+# Notes
+- Task `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading` was finished via `logics-manager flow finish task` on 2026-09-30.

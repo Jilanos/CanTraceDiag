@@ -1,11 +1,12 @@
 ## prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults - Optional cursor integration and reusable DBC import defaults
 > Date: 2026-09-30
-> Status: Proposed
+> Status: Settled
 > Related request: `req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection`
-> Related backlog: `item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores`, `item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation`, `item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set`
+> Related backlog: `item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores`
 > Related task: `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-09-30 13:57:06
 
 # Overview
 Extend cursor diagnostics with a deliberately enabled integral for one signal and make repeated trace loading reuse the exact previous DBC selection across restarts.
@@ -53,5 +54,5 @@ flowchart LR
 ```
 
 # References
-- Product back-reference: `req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection`
+- Product back-reference: `item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores`
 - Task back-reference: `task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading`
