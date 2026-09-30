@@ -4,7 +4,11 @@
 /* ---- import ------------------------------------------------------------- */
 const picked = { trace: null, dbcs: [], library: new Set() };
 let libraryEntries = [];   // [{digest, name, last_used}] from the server
-let lastSessionDbcs = [];  // DBC display names from the restored/last analysis
+// Picker defaulting (req_032): the remembered set of the last successful load
+// is applied once per picker state, after the library/history hydrate. Any
+// manual edit -- including unchecking everything -- makes the current picker
+// authoritative until a newly completed import starts a fresh picker state.
+const pickerState = { seeded: false, touched: false };
 
 function refreshPicked() {
   const parts = [];
@@ -16,21 +20,50 @@ function refreshPicked() {
 }
 
 /* ---- DBC library (workspace reuse) -------------------------------------- */
+// Library digests to precheck: the remembered content identities still in the
+// library, in their remembered order. A legacy name-only history (no digest
+// list) maps a name only when exactly one library entry carries it.
+function rememberedDigests(r, entries) {
+  const known = new Set(entries.map((e) => e.digest));
+  if (Array.isArray(r.last_session_digests)) {
+    return [...new Set(r.last_session_digests.filter((d) => known.has(d)))];
+  }
+  const out = [];
+  for (const name of r.last_session || []) {
+    const matches = entries.filter((e) => e.name === name);
+    if (matches.length === 1 && !out.includes(matches[0].digest)) out.push(matches[0].digest);
+  }
+  return out;
+}
+
 async function loadLibrary() {
   try {
     const r = await api("/api/dbc-library");
     libraryEntries = r.dbcs || [];
-    lastSessionDbcs = r.last_session || [];
-    // Pre-select library files that belong to the last session, so reusing
-    // them needs no extra click (the trace is the only thing to pick again).
-    const lastNames = new Set(lastSessionDbcs);
-    if (picked.library.size === 0) {
-      for (const e of libraryEntries) if (lastNames.has(e.name)) picked.library.add(e.digest);
+    const known = new Set(libraryEntries.map((e) => e.digest));
+    // Entries that left the library can no longer be loaded.
+    for (const digest of [...picked.library]) if (!known.has(digest)) picked.library.delete(digest);
+    if (!pickerState.seeded && !pickerState.touched) {
+      // Precheck the last successful load so the trace is the only thing to
+      // pick again; DBCs with no frames in that trace still belong to the set.
+      picked.library = new Set(rememberedDigests(r, libraryEntries));
+      pickerState.seeded = true;
     }
     refreshPicked();
+    if ($("libDialog").open) renderLibrary();
   } catch (err) {
+    // No history or library: manual import stays available, nothing prechecked.
     console.debug("DBC library unavailable", err);
   }
+}
+
+// A newly completed import seeds the next fresh picker state: the uploaded
+// files are in the library now, so the remembered set replaces them.
+function resetPickerState() {
+  pickerState.seeded = false;
+  pickerState.touched = false;
+  picked.dbcs = [];
+  for (const id of ["dbcFiles", "dbcDir"]) { try { $(id).value = ""; } catch { /* read-only in some browsers */ } }
 }
 
 function renderLibrary() {
@@ -50,6 +83,7 @@ function renderLibrary() {
       `<span class="lmeta">${esc(when)}</span>`;
     row.querySelector("input").addEventListener("change", (ev) => {
       if (ev.target.checked) picked.library.add(e.digest); else picked.library.delete(e.digest);
+      pickerState.touched = true;
       refreshPicked();
     });
     list.appendChild(row);
@@ -61,10 +95,12 @@ async function purgeWorkspace() {
     await api("/api/workspace-purge", { method: "POST" });
     picked.library.clear();
     libraryEntries = [];
-    lastSessionDbcs = [];
+    pickerState.seeded = false;
+    pickerState.touched = false;
     renderLibrary();
     refreshPicked();
     state.loaded = false;
+    resetIntegral();
     $("summary").innerHTML = `<span class="ok">Workspace cache cleared.</span>`;
   } catch (err) {
     reportError(err, "Clearing the workspace cache failed");
@@ -142,6 +178,7 @@ async function doLoad() {
       openConflictDialog(r.conflicts);
       return;
     }
+    resetPickerState();
     await onLoaded(r);
   } catch (e) {
     stopImportPolling();
@@ -155,6 +192,7 @@ async function doLoad() {
 }
 
 async function onLoaded(r) {
+  resetIntegral();   // integral analysis is off on every new trace
   state.loaded = true;
   renderSummary(r);
   setLed("indexed");
@@ -221,6 +259,7 @@ async function applyConflictResolution() {
     });
     state.pendingConflicts = null;
     $("resolveConflictsBtn").hidden = true;
+    if (!r.needs_resolution) resetPickerState();
     await onLoaded(r);
   } catch (e) {
     reportError(e, "DBC conflict resolution failed");

@@ -333,6 +333,7 @@ const refreshCursorReadoutDebounced = debounce(() => refreshCursorReadout(), 90)
 let cursorReadoutRequest = 0;
 async function refreshCursorReadout() {
   const request = ++cursorReadoutRequest;
+  refreshIntegral();   // no-op unless integral mode was explicitly enabled
   const box = $("cursorReadout");
   const { a, b } = state.cursor;
   if ((a == null && b == null) || !state.selected.length) {

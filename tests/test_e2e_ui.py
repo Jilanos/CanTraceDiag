@@ -77,6 +77,26 @@ def _write_synth_asc(path: Path) -> None:
     path.write_text("\n".join(lines) + "\n")
 
 
+_SEED: dict = {}
+
+
+def _seed_synth_trace() -> dict:
+    """(Re)import the synthetic trace into the shared live session."""
+    req = urllib.request.Request(
+        f"{_SEED['base']}/api/import",
+        data=json.dumps(
+            {
+                "trace_path": str(_SEED["trace"]),
+                "dbc_paths": [str(REPO / "tests" / "fixtures" / "sample.dbc")],
+            }
+        ).encode(),
+        # Mutating endpoints require the session token (AC10); read it from the
+        # live app the server was built from.
+        headers={"Content-Type": "application/json", "X-CTD-Token": _SEED["token"]},
+    )
+    return json.load(urllib.request.urlopen(req))["summary"]
+
+
 @pytest.fixture(scope="session")
 def live_url(tmp_path_factory):
     import uvicorn
@@ -103,21 +123,8 @@ def live_url(tmp_path_factory):
         server.should_exit = True
         pytest.fail("uvicorn did not start")
 
-    req = urllib.request.Request(
-        f"{base}/api/import",
-        data=json.dumps(
-            {
-                "trace_path": str(trace),
-                "dbc_paths": [str(REPO / "tests" / "fixtures" / "sample.dbc")],
-            }
-        ).encode(),
-        # Mutating endpoints require the session token (AC10); read it from the
-        # live app the server was built from.
-        headers={"Content-Type": "application/json",
-                 "X-CTD-Token": app.state.ctd_security.token},
-    )
-    summary = json.load(urllib.request.urlopen(req))["summary"]
-    assert summary["frames"] == 8000
+    _SEED.update(base=base, trace=trace, token=app.state.ctd_security.token)
+    assert _seed_synth_trace()["frames"] == 8000
 
     yield base
     server.should_exit = True
@@ -141,6 +148,10 @@ def browser():
 @pytest.fixture
 def page(browser, live_url):
     """A fresh page with two signals plotted and a clean localStorage."""
+    # Import tests replace the shared session; restore the synthetic trace.
+    status = json.load(urllib.request.urlopen(f"{live_url}/api/status"))
+    if (status.get("summary") or {}).get("frames") != 8000:
+        _seed_synth_trace()
     ctx = browser.new_context(viewport={"width": 1600, "height": 900})
     pg = ctx.new_page()
 
@@ -793,3 +804,244 @@ def test_trace_empty_state_for_no_matching_filter(browser, live_url):
     pg.wait_for_timeout(400)
     assert not pg.locator("#traceEmpty").is_visible()
     ctx.close()
+
+
+# --- opt-in cursor integral (req_032 AC1/AC2/AC6) ---------------------------
+def _integral_requests(pg):
+    return pg.evaluate("() => window.__ctd.integral.requests")
+
+
+def _integral_value(pg):
+    pg.wait_for_function(
+        "() => { const o = document.getElementById('integralValue');"
+        " return o && o.dataset.state && o.dataset.state !== 'pending'; }"
+    )
+    return pg.evaluate(
+        "() => ({ text: document.getElementById('integralValue').textContent,"
+        " state: document.getElementById('integralValue').dataset.state })"
+    )
+
+
+def _direct_integral(pg, sig_index, a, b):
+    return pg.evaluate(
+        """async ({i, a, b}) => {
+            const s = state.selected[i];
+            const q = new URLSearchParams({ message: s.message, signal: s.signal, a, b });
+            const r = await api(`/api/signal-integral?${q}`);
+            return `${fmtNum(r.integral)} ${r.unit}`;
+        }""",
+        {"i": sig_index, "a": a, "b": b},
+    )
+
+
+def test_integral_is_absent_and_request_free_until_enabled(page):
+    network = []
+    page.on("request", lambda r: network.append(r.url) if "signal-integral" in r.url else None)
+    page.evaluate("() => { window.__ctd.placeCursor(6, 'a', false);"
+                  " window.__ctd.placeCursor(14, 'b', false); }")
+    page.locator("#cursorReadout th", has_text="Range analysis A–B").wait_for()
+    page.wait_for_timeout(200)
+    assert page.locator("#integralPanel").count() == 0
+    assert "integral" not in page.locator("#cursorReadout").inner_text().lower()
+    assert _integral_requests(page) == 0 and network == []
+    btn = page.locator("#integralBtn")
+    assert btn.is_visible() and btn.get_attribute("aria-pressed") == "false"
+
+
+def test_integral_enable_follow_target_and_cursors_then_disable(page):
+    page.evaluate("() => { window.__ctd.placeCursor(6, 'a', false);"
+                  " window.__ctd.placeCursor(14, 'b', false); }")
+    page.click("#integralBtn")
+    assert page.get_attribute("#integralBtn", "aria-pressed") == "true"
+    first = _integral_value(page)
+    assert first["state"] == "ok"
+    assert first["text"] == _direct_integral(page, 0, 6, 14)
+    assert "trapezoidal" in page.locator("#integralMethod").inner_text()
+    # Ordinary statistics keep rendering beside the integral.
+    assert "mean" in page.locator("#cursorReadout thead").inner_text().lower()
+
+    # Target switch.
+    second_key = page.evaluate("() => favSig(state.selected[1])")
+    page.select_option("#integralTarget", second_key)
+    page.wait_for_function(
+        "(t) => document.getElementById('integralValue').textContent === t",
+        arg=_direct_integral(page, 1, 6, 14),
+    )
+    # Cursor movement (drag cursor B) follows the new bounds.
+    page.evaluate("() => window.__ctd.setView(0, 20)")
+    p_from = _canvas_pt(page, 14.0)
+    p_to = _canvas_pt(page, 16.0)
+    _drag(page, p_from["x"], p_from["y"], p_to["x"], p_from["y"])
+    b = page.evaluate("() => window.__ctd.state.cursor.b")
+    assert b == pytest.approx(16.0, abs=0.3)
+    page.wait_for_function(
+        "(t) => document.getElementById('integralValue').textContent === t",
+        arg=_direct_integral(page, 1, 6, b),
+    )
+    # Missing cursor: a reason, not a stale value.
+    page.click("#curClearBtn")
+    assert "Place cursors" in _integral_value(page)["text"]
+
+    page.click("#integralBtn")
+    assert page.locator("#integralPanel").count() == 0
+    before = _integral_requests(page)
+    page.evaluate("() => { window.__ctd.placeCursor(5, 'a', false);"
+                  " window.__ctd.placeCursor(9, 'b', false); }")
+    page.wait_for_timeout(200)
+    assert _integral_requests(page) == before
+    assert not page._ctd_http_errors
+
+
+def test_integral_is_keyboard_operable(page):
+    page.evaluate("() => { window.__ctd.placeCursor(6, 'a', false);"
+                  " window.__ctd.placeCursor(14, 'b', false); }")
+    page.focus("#integralBtn")
+    page.keyboard.press("Enter")
+    assert _integral_value(page)["state"] == "ok"
+    page.focus("#integralTarget")
+    page.keyboard.press("ArrowDown")
+    page.wait_for_function(
+        "() => window.__ctd.integral.target === favSig(state.selected[1])"
+    )
+    page.focus("#integralBtn")
+    page.keyboard.press("Space")
+    assert page.locator("#integralPanel").count() == 0
+
+
+def test_integral_rejects_stale_responses(page):
+    page.evaluate("() => { window.__ctd.placeCursor(6, 'a', false);"
+                  " window.__ctd.placeCursor(14, 'b', false); }")
+    page.click("#integralBtn")
+    _integral_value(page)
+    # Delay the next integral response so a newer request overtakes it.
+    page.evaluate(
+        """() => {
+            const original = window.fetch;
+            window.__ctdDelayNext = true;
+            window.fetch = function(input, init) {
+                const url = String(input);
+                if (url.includes('signal-integral') && window.__ctdDelayNext) {
+                    window.__ctdDelayNext = false;
+                    return new Promise((r) => setTimeout(r, 700)).then(() => original(input, init));
+                }
+                return original(input, init);
+            };
+        }"""
+    )
+    page.evaluate("() => window.__ctd.placeCursor(10, 'b', false)")   # delayed
+    page.evaluate("() => window.__ctd.placeCursor(12, 'b', false)")   # fast, newer
+    expected = _direct_integral(page, 0, 6, 12)
+    page.wait_for_timeout(1000)
+    assert page.locator("#integralValue").inner_text() == expected
+
+    # A response arriving after disable never resurrects the result.
+    page.evaluate(
+        "() => { window.__ctdDelayNext = true; window.__ctd.placeCursor(11, 'b', false); }"
+    )
+    page.click("#integralBtn")
+    page.wait_for_timeout(1000)
+    assert page.locator("#integralPanel").count() == 0
+
+
+def test_removing_the_target_or_reloading_disables_integral(page):
+    page.evaluate("() => { window.__ctd.placeCursor(6, 'a', false);"
+                  " window.__ctd.placeCursor(14, 'b', false); }")
+    page.click("#integralBtn")
+    _integral_value(page)
+    page.evaluate("async () => { await toggleSignal(state.signals.find((s) =>"
+                  " favSig({message: s.message_name, signal: s.signal_name})"
+                  " === window.__ctd.integral.target), false); }")
+    assert page.locator("#integralPanel").count() == 0
+    assert page.get_attribute("#integralBtn", "aria-pressed") == "false"
+
+    page.click("#integralBtn")
+    _integral_value(page)
+    page.reload()
+    page.wait_for_function("() => typeof state !== 'undefined' && state.loaded")
+    assert page.locator("#integralPanel").count() == 0
+    assert page.evaluate("() => window.__ctd.integral.enabled") is False
+
+
+# --- remembered DBC selection (req_032 AC4/AC5/AC6) --------------------------
+def _serve(app):
+    import uvicorn
+
+    port = _free_port()
+    server = uvicorn.Server(uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning"))
+    threading.Thread(target=server.run, daemon=True).start()
+    base = f"http://127.0.0.1:{port}"
+    for _ in range(100):
+        try:
+            urllib.request.urlopen(f"{base}/api/status", timeout=1)
+            return server, base
+        except Exception:
+            time.sleep(0.1)
+    server.should_exit = True
+    pytest.fail("uvicorn did not start")
+
+
+def _load_via_picker(pg, trace, dbcs=()):
+    pg.set_input_files("#traceFile", str(trace))
+    if dbcs:
+        pg.set_input_files("#dbcFiles", [str(p) for p in dbcs])
+    with pg.expect_response(lambda r: "/api/import-files" in r.url) as resp:
+        pg.click("#loadBtn")
+    assert resp.value.status == 200, resp.value.text()
+    pg.wait_for_function("() => window.__ctd.state.loaded && state.signals.length > 0")
+
+
+def test_last_dbc_set_is_prechecked_after_reload_and_server_restart(browser, tmp_path):
+    from cantracediag.api import create_app
+    from cantracediag.workspace import Workspace
+
+    fix = REPO / "tests" / "fixtures"
+    root = tmp_path / "ws"
+    server, base = _serve(create_app(Workspace(root, ephemeral=False)))
+    ctx = browser.new_context(viewport={"width": 1400, "height": 900})
+    pg = ctx.new_page()
+    try:
+        pg.goto(base)
+        pg.evaluate("() => localStorage.clear()")
+        pg.reload()
+        assert pg.evaluate("() => window.__ctd.pickedLibrary") == []   # first use
+        _load_via_picker(pg, fix / "sample.asc", [fix / "sample.dbc", fix / "sample_body.dbc"])
+
+        pg.reload()
+        pg.wait_for_function("() => window.__ctd.pickedLibrary.length === 2")
+        assert "2 DBC (2 from library)" in pg.locator("#picked").inner_text()
+
+        # A new trace needs no DBC selection; the integral stays off for it.
+        _load_via_picker(pg, fix / "sample_dec.asc")
+        status = pg.evaluate("() => api('/api/status')")
+        assert sorted(status["dbc_paths"]) == ["sample.dbc", "sample_body.dbc"]
+        assert pg.locator("#integralPanel").count() == 0
+
+        # Manual uncheck-all survives reopening and a background refresh.
+        pg.click("#pickLibBtn")
+        for box in pg.locator("#libList input[type=checkbox]").all():
+            if box.is_checked():
+                box.uncheck()
+        pg.click("#libDone")
+        pg.click("#pickLibBtn")
+        assert not any(b.is_checked() for b in pg.locator("#libList input[type=checkbox]").all())
+        pg.evaluate("() => window.__ctd.loadLibrary()")
+        assert not any(b.is_checked() for b in pg.locator("#libList input[type=checkbox]").all())
+        pg.click("#libDone")
+        assert pg.evaluate("() => window.__ctd.pickedLibrary") == []
+
+        # Server restart on the same workspace keeps the remembered set.
+        server.should_exit = True
+        time.sleep(0.5)
+        server, base = _serve(create_app(Workspace(root, ephemeral=False)))
+        pg.goto(base)
+        pg.wait_for_function("() => window.__ctd.pickedLibrary.length === 2")
+
+        # Purge clears library and remembered selection.
+        pg.click("#pickLibBtn")
+        pg.click("#libPurge")
+        pg.reload()
+        pg.wait_for_timeout(300)
+        assert pg.evaluate("() => window.__ctd.pickedLibrary") == []
+    finally:
+        ctx.close()
+        server.should_exit = True

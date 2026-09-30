@@ -281,6 +281,12 @@
   #cursorReadout th.range-start, #cursorReadout td.range-start { border-left: 1px solid var(--line); }
   #cursorReadout td.dist { color: var(--muted); }
   #cursorReadout td.none { color: var(--faint); }
+  #integralPanel { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 5px 8px; border-top: 1px solid var(--line); background: var(--panel); font-size: 11px; }
+  #integralPanel label { color: var(--muted); display: flex; gap: 4px; align-items: center; }
+  #integralPanel select { max-width: 260px; }
+  #integralValue { font: 11.5px var(--mono); font-variant-numeric: tabular-nums; color: var(--fg); }
+  #integralValue[data-state="unavailable"], #integralValue[data-state="error"] { color: var(--warn); }
+  #integralPanel .integral-method { color: var(--faint); font: 10.5px var(--sans); }
 
   .divider { height: 5px; background: var(--panel2); cursor: row-resize; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); flex: 0 0 auto; }
 

@@ -251,6 +251,7 @@ async function toggleSignal(sig, on) {
     state.selected.forEach((s, i) => { s.color = css(SERIES_COLORS[i % SERIES_COLORS.length]); });
   }
   persistSelected();
+  syncIntegralTarget();
   renderSignalList();
   await refreshCursorReadout();
   renderPlot();

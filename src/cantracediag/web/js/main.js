@@ -52,6 +52,7 @@ $("gridBtn").addEventListener("click", () => {
 $("curABtn").addEventListener("click", () => { state.cursor.arm = "a"; armButtons(); });
 $("curBBtn").addEventListener("click", () => { state.cursor.arm = "b"; armButtons(); });
 $("curClearBtn").addEventListener("click", () => { state.cursor.a = state.cursor.b = null; renderPlot(); refreshCursorReadout(); });
+$("integralBtn").addEventListener("click", () => setIntegralEnabled(!integral.enabled));
 
 const reloadTrace = () => { persistFilters(); loadTrace(null); };
 for (const id of ["fId", "fMsg", "fSignal", "fStart", "fEnd"]) $(id).addEventListener("input", debounce(reloadTrace, 250));
@@ -184,4 +185,7 @@ window.__ctd = {
   get selected() { return state.selected; },
   get cursor() { return { a: state.cursor.a, b: state.cursor.b, arm: state.cursor.arm }; },
   get trace() { return state.trace; },
+  get integral() { return { enabled: integral.enabled, target: integral.target, requests: integral.requests }; },
+  get pickedLibrary() { return [...picked.library]; },
+  loadLibrary,
 };
