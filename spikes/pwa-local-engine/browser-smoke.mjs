@@ -59,6 +59,10 @@ async function main() {
     "--headless=new",
     "--disable-gpu",
     "--no-sandbox",
+    // Without these Chromium may block on the desktop keyring over D-Bus (seen
+    // on WSL) and never commit the first navigation, hanging the smoke.
+    "--password-store=basic",
+    "--use-mock-keychain",
     `--user-data-dir=${profileDir}`,
     `--remote-debugging-port=${debuggingPort}`,
     `http://127.0.0.1:${port}/index.html`,
@@ -263,7 +267,10 @@ async function main() {
     });
     if (!String(libraryText.result.value).includes("sample.dbc")) throw new Error(`DBC library missing uploaded fixture: ${libraryText.result.value}`);
 
-    console.log(JSON.stringify({ ok: true, root, chromePath, tracePath, dbcPath, snapshot: value, plotState, explorer: explorerValue, workspace: workspaceValue, pwa: pwaValue, fullscreen, apiCalls }, null, 2));
+    const integral = await exerciseIntegral(cdp);
+    const remembered = await exerciseRememberedDbcs(cdp);
+
+    console.log(JSON.stringify({ ok: true, root, chromePath, tracePath, dbcPath, snapshot: value, plotState, explorer: explorerValue, workspace: workspaceValue, pwa: pwaValue, fullscreen, apiCalls, integral, remembered }, null, 2));
     await cdp.close();
   } finally {
     chrome.kill("SIGTERM");
@@ -280,6 +287,90 @@ async function main() {
       }
     }
   }
+}
+
+/* Opt-in integral (req_032): absent and request-free by default, explicit
+ * activation for one plotted signal, then disable removes it and stops work. */
+async function exerciseIntegral(cdp) {
+  const initial = await evaluateValue(cdp, `({
+    panel: Boolean(document.querySelector('#integralPanel')),
+    requests: window.__ctd.integral.requests,
+    pressed: document.querySelector('#integralBtn').getAttribute('aria-pressed')
+  })`);
+  if (initial.panel || initial.requests !== 0 || initial.pressed !== "false") {
+    throw new Error(`Integral mode was not off by default: ${JSON.stringify(initial)}`);
+  }
+  await cdp.call("Runtime.evaluate", {
+    expression: `window.__ctd.placeCursor(0, 'a', false); window.__ctd.placeCursor(0.03, 'b', false);
+      document.querySelector('#integralBtn').click();`,
+  });
+  const enabled = await waitForExpression(cdp, `({
+    panel: Boolean(document.querySelector('#integralPanel')),
+    value: document.querySelector('#integralValue') ? document.querySelector('#integralValue').textContent : '',
+    state: document.querySelector('#integralValue') ? document.querySelector('#integralValue').dataset.state : '',
+    method: document.querySelector('#integralMethod') ? document.querySelector('#integralMethod').textContent : '',
+    target: window.__ctd.integral.target,
+    requests: window.__ctd.integral.requests
+  })`, (v) => v.state === "ok" || v.state === "unavailable" || v.state === "error");
+  if (enabled.state !== "ok" || !enabled.value.includes("·s") || !enabled.method.includes("trapezoidal")) {
+    throw new Error(`Integral did not compute after explicit activation: ${JSON.stringify(enabled)}`);
+  }
+  const disabled = await evaluateValue(cdp, `(() => {
+    document.querySelector('#integralBtn').click();
+    const requests = window.__ctd.integral.requests;
+    window.__ctd.placeCursor(0.01, 'a', false);
+    return {
+      panel: Boolean(document.querySelector('#integralPanel')),
+      requestsBefore: requests,
+      requestsAfter: window.__ctd.integral.requests
+    };
+  })()`);
+  if (disabled.panel || disabled.requestsAfter !== disabled.requestsBefore) {
+    throw new Error(`Disabling integral mode did not remove it or stop work: ${JSON.stringify(disabled)}`);
+  }
+  return { initial, enabled, disabled };
+}
+
+/* Remembered DBC defaults (req_032): after a reload the last successful set is
+ * prechecked, a trace-only load reuses it, and a manual uncheck-all survives
+ * reopening the library and a background library refresh. */
+async function exerciseRememberedDbcs(cdp) {
+  await cdp.call("Page.reload", { ignoreCache: false });
+  await waitForLoad(cdp);
+  const prechecked = await waitForExpression(cdp, `({
+    library: window.__ctd ? window.__ctd.pickedLibrary : [],
+    picked: document.querySelector('#picked').textContent
+  })`, (v) => v.library.length === 1);
+  if (!prechecked.picked.includes("from library")) throw new Error(`Remembered DBC not prechecked after reload: ${JSON.stringify(prechecked)}`);
+
+  const { root: documentRoot } = await cdp.call("DOM.getDocument", {});
+  await setFile(cdp, documentRoot.nodeId, "#traceFile", tracePath);
+  await cdp.call("Runtime.evaluate", {
+    expression: `document.querySelector('#traceFile').dispatchEvent(new Event('change', { bubbles: true }));
+      document.querySelector('#loadBtn').click();`,
+  });
+  const reloaded = await waitForExpression(cdp, `({
+    summary: document.querySelector('#summary').textContent,
+    signals: document.querySelector('#signalList').textContent,
+    integralPanel: Boolean(document.querySelector('#integralPanel'))
+  })`, (v) => v.summary.includes("decoded") && v.signals.includes("EngineSpeed"));
+  if (reloaded.integralPanel) throw new Error("Integral mode leaked into a newly imported trace.");
+
+  const clearedResult = await cdp.call("Runtime.evaluate", { awaitPromise: true, returnByValue: true, expression: `(async () => {
+    document.querySelector('#pickLibBtn').click();
+    for (const box of document.querySelectorAll('#libList input[type=checkbox]')) if (box.checked) box.click();
+    document.querySelector('#libDone').click();
+    document.querySelector('#pickLibBtn').click();
+    const reopened = [...document.querySelectorAll('#libList input[type=checkbox]')].map((box) => box.checked);
+    document.querySelector('#libDialog').close();
+    await window.__ctd.loadLibrary();   // background library refresh
+    return { reopened, afterRefresh: window.__ctd.pickedLibrary, picked: document.querySelector('#picked').textContent };
+  })()` });
+  const cleared = clearedResult.result.value;
+  if (cleared.reopened.some(Boolean) || cleared.afterRefresh.length) {
+    throw new Error(`Manual uncheck-all was overridden: ${JSON.stringify(cleared)}`);
+  }
+  return { prechecked, reloaded, cleared };
 }
 
 /* The delivered fullscreen control is the defect this smoke exists to catch:
