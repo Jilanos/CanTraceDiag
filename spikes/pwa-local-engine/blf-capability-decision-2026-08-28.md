@@ -49,3 +49,23 @@ binary container is never decoded as UTF-8.
   test block.
 - The server-backed app imports BLF, including through the browser upload path,
   so no recording is unreachable — only the offline bundle is narrower.
+
+## Addendum 2026-10-01 — MF4 import and raw ASC export
+
+Context: `req_033` / `item_059` / `task_048`. The server-backed product now
+imports raw-CAN MDF4 (`.mf4`) and saves any loaded trace's raw frames as ASC.
+Both stay server-only, for the same reasons as BLF plus one more:
+
+- **MF4** is a binary container like BLF, and recovering an *unfinalized*
+  recording relies on finalizing a disposable on-disk copy, which the
+  browser-local engine has no place for.
+- **Raw ASC export** reads the server store's `frames` table in
+  `(timestamp_s, seq)` order from a sibling DuckDB cursor; the local engine has
+  no equivalent bounded iterator, and offering the option only to fail would be
+  misleading.
+
+| Layer | Mechanism | Test |
+| --- | --- | --- |
+| Shell | `build-browser.mjs` drops `.mf4` from the picker and removes the `asc_raw` export option (guarded by `replaceOnce`) | `product-bundle.test.ts` — "does not offer BLF or MF4 …", "does not offer the server-only raw ASC export …" |
+| Capabilities | server `/api/status` advertises `capabilities`; the local backend advertises none, so the shared UI withdraws raw ASC | `local-backend.test.ts` — "advertises no server capability and refuses raw ASC export" |
+| Runtime | `localTraceRejection()` refuses `.mf4` before reading, naming server mode; the local backend rejects `/api/export-asc` explicitly | `local-backend.test.ts` — "rejects an MF4 selection before reading the file" |

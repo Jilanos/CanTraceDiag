@@ -9,7 +9,7 @@ is retained as a local/API reference implementation and compatibility suite;
 it is not the artifact served by the production Docker image. See
 `docs/architecture-pwa-canonique.md` for the boundary and validation contract.
 
-**CanTraceDiag turns an ASC, supported text `.trc`, or Vector `.blf` CAN trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, and session restore.**
+**CanTraceDiag turns an ASC, supported text `.trc`, Vector `.blf`, or raw-CAN MDF4 `.mf4` trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, session restore, and raw ASC conversion.**
 
 The goal is direct: inspect real CAN acquisitions away from the vehicle, without a remote server, without keeping a proprietary tool open, and without loading the whole trace into the browser.
 
@@ -18,6 +18,7 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 ## Core Features
 
 - **ASC/TRC/BLF + DBC import** from the browser or server-side paths. The supported PCAN-View text TRC v1.1 layout and ASC both retain malformed records as explicit import anomalies instead of corrupt frames. Vector BLF imports the classic-CAN object subset the same way, turning CAN FD/XL objects, remote requests, error frames, and integrity failures into inspectable diagnostics; a corrupt container fails the import rather than publishing a partial trace.
+- **Raw CAN MF4 import** (server mode) of ASAM MDF 4.x bus logging (`CAN_DataFrame` groups), including recordings a logger left *unfinalized* (`UnFinMF`, zero cycle counters, stale last-DT length). Recovery happens only in a temporary copy -- the source file is never modified -- and an independent byte reconciliation refuses truncated or mis-recovered data instead of importing it partially. Groups are merged chronologically (ties: group order, then record order); timestamps keep the measurement-relative origin; sparse bus numbers, extended IDs and known Rx/Tx are kept. Remote/error/CAN FD records, malformed frames and non-CAN groups (LIN...) become diagnostics; a recovery warning is shown with the import.
 - **Multi-DBC decoding** with ambiguous arbitration ID detection.
 - **Stacked signal plots** with zoom, pan, grid, and A/B cursors.
 - **Workspace views** from a single control — Plots, Plots + trace (split with a resizable divider), Trace, and Report — that switch layout while preserving selection, cursors, and filters.
@@ -25,6 +26,7 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Opt-in cursor integral**: an explicit **∫ Integral** action computes the signed time integral of one plotted signal between cursors A and B (unit × s, e.g. A·s). It uses trapezoidal (linear) interpolation over the full-resolution samples — not the plot's sample-and-hold steps nor its downsampled points — interpolates exact cursor boundaries, never extrapolates, and reports an explicit reason when coverage is missing, the signal is text, or samples are invalid. It is off by default and on every new trace.
 - **Diagnostic report** summarizing the import: time range, volumes, DBCs used, and anomalies by type.
 - **Streamed export** of selected signals to CSV or Parquet over a chosen range, with bounded memory.
+- **Raw trace to ASC** (server mode): save every stored classic-CAN frame of the full trace, the A–B range or the visible window (inclusive) as a Vector-style `.asc`, without a DBC or selected signals, from any source format. Relative timestamps with six decimals (re-import error at most 0.5 µs), original numeric channels, `x`-suffixed extended IDs, exact DLC/payload and direction. Excluded events and import warnings are shown before download and written as header comments; frames without a numeric channel or direction block the export unless you explicitly choose to write them as channel 1 / Rx (disclosed in the file).
 - **Trace table** with pagination, filtering, and configurable columns.
 - **Frame inspector** with raw payload, decoded message, and physical signals.
 - **Compact signal explorer**: collapsible DBC groups with the active database first and expanded, plus displayed-only and favorites-only filters that intersect with the text search.
@@ -160,13 +162,13 @@ The fixtures in `tests/fixtures/` are synthetic and safe to version. Real traces
 
 ## User Workflow
 
-1. **Import** one `.asc`, supported text `.trc`, or Vector `.blf` trace and one or more `.dbc` files.
+1. **Import** one `.asc`, supported text `.trc`, Vector `.blf`, or raw-CAN `.mf4` trace and, to decode signals, one or more `.dbc` files.
 2. **Resolve DBC conflicts** when several databases define the same arbitration ID with non-equivalent messages.
 3. **Select signals** present in the trace or available in the DBC catalog.
 4. **Switch workspace views** — Plots, Plots + trace (split), Trace, or Report — from the single view control; switching keeps your selection, cursors, and filters.
 5. **Explore plots** with zoom, pan, grid, and A/B cursors, and read the unified measurement table (cursor values + A–B range statistics) below the plot; enable **∫ Integral** when you need the integral of one signal between the cursors.
 6. **Inspect the trace** with filters, pagination, frame details, and decoded signals, using the split view to keep plots and trace side by side.
-7. **Review the report** for the import synthesis and anomalies, then **export** the selected signals to CSV or Parquet over the range you choose (between A and B, the visible window, or the full trace).
+7. **Review the report** for the import synthesis and anomalies, then **export** the selected signals to CSV or Parquet over the range you choose (between A and B, the visible window, or the full trace) -- or save the raw CAN trace of that range as ASC, which needs no DBC or signal.
 8. **Reopen later** and let the workspace restore the last analysis and DBC library.
 
 ## Command Line
@@ -178,6 +180,14 @@ cantracediag info /path/to/trace.asc --dbc system.dbc --dbc auxiliary.dbc
 cantracediag info /path/to/trace.trc --dbc system.dbc --dbc auxiliary.dbc
 # So is a Vector BLF recording (classic CAN data frames).
 cantracediag info /path/to/trace.blf --dbc system.dbc --dbc auxiliary.dbc
+# And an MDF4 raw CAN bus logging recording, finalized or not (prints warnings).
+cantracediag info /path/to/00000002.MF4
+
+# Save any supported trace's raw CAN frames as ASC (no DBC needed; never overwrites)
+cantracediag export-asc /path/to/00000002.MF4 /path/to/00000002.asc
+cantracediag export-asc /path/to/trace.blf out.asc --start 10 --end 20
+# Frames without a numeric channel / direction are refused unless you opt in:
+cantracediag export-asc /path/to/trace.mf4 out.asc --assume-provenance
 
 # List messages and signals from one or more DBC files
 cantracediag signals system.dbc
@@ -196,7 +206,7 @@ CanTraceDiag exposes a local FastAPI API used by the UI:
 - `POST /api/import-files`: browser upload import;
 - `POST /api/import`: server-side path import;
 - `POST /api/resolve`: DBC conflict resolution;
-- `GET /api/status`: session state;
+- `GET /api/status`: session state and backend capabilities (accepted trace suffixes, raw ASC export);
 - `GET /api/signals`: signal catalog plus the ordered loaded DBCs and the active one;
 - `GET /api/series`: windowed/downsampled series;
 - `GET /api/cursor`: nearest cursor value for one signal (bounded lookup);
@@ -205,6 +215,8 @@ CanTraceDiag exposes a local FastAPI API used by the UI:
 - `GET /api/signal-integral`: signed trapezoidal integral of one signal between cursors `a` and `b` (value, unit, method, bounds, or an unavailable reason);
 - `GET /api/report`: import synthesis (volumes, DBCs used, anomalies by type);
 - `POST /api/export`: streamed CSV/Parquet export of selected signals over a range;
+- `GET /api/export-asc/summary`: what a raw ASC export of a scope contains (frames, excluded events, unknown provenance, import warnings, file name, blocking reason);
+- `POST /api/export-asc`: streamed raw CAN trace as Vector-style ASC (`scope`, `start`, `end`, `provenance` = `block` | `assume`);
 - `GET /api/trace`: filtered trace view, paginated by opaque keyset cursor;
 - `GET /api/frame-signals`: decoded signals for one frame;
 - `GET /api/dbc-library`: DBC library and the ordered digests of the last successful load (`last_session_digests`);
@@ -250,16 +262,17 @@ Security variables:
 ```text
 src/cantracediag/
 ├── api.py          # FastAPI + version-stamped static UI
-├── cli.py          # info, signals, serve commands
+├── cli.py          # info, export-asc, signals, serve commands
 ├── dbc.py          # multi-DBC loading + conflicts
 ├── decode.py       # physical signal decoding
 ├── formats/asc.py  # CANalyzer ASCII reader
 ├── formats/trc.py  # PCAN-View text TRC v1.1 reader
 ├── formats/blf.py  # Vector BLF adapter (classic CAN subset)
+├── formats/mf4.py  # MDF4 raw CAN adapter (asammdf) + unfinalized recovery check
 ├── pipeline.py     # trace import -> index
 ├── store.py        # DuckDB + windowed queries
 ├── security.py     # Host/Origin/token/upload hardening
-├── export.py       # streamed CSV/Parquet export
+├── export.py       # streamed CSV/Parquet signal export + raw ASC writer
 ├── workspace.py    # DBC library + session restore
 └── web/            # local UI, favicon, static assets
     ├── index.html  # markup
@@ -293,7 +306,8 @@ In that mode, plotted series come from the loaded trace, but business labels sho
 
 Delivered today:
 
-- ASC, text TRC, and Vector BLF import;
+- ASC, text TRC, Vector BLF, and raw-CAN MF4 import (server mode);
+- raw CAN trace export to ASC (server mode and `cantracediag export-asc`);
 - DBC decoding;
 - DuckDB index;
 - local UI with plots, trace table, inspector, and cursors;
@@ -304,9 +318,13 @@ Delivered today:
 
 Known limits:
 
-- BLF covers classic CAN data frames only, and MF4 is not supported;
-- the static browser PWA does not import BLF (server-backed import does) --
-  see `spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md`;
+- BLF and MF4 cover classic CAN data frames only; MF4 needs ASAM bus-logging
+  `CAN_DataFrame` groups (signal-only measurements, CAN FD/XL and LIN are
+  diagnosed, not imported); an unfinalized MF4 is recovered only when its last
+  data block is a plain DT without variable-length records;
+- the static browser PWA does not import BLF or MF4 and does not offer raw ASC
+  export (server-backed mode does) -- see
+  `spikes/pwa-local-engine/blf-capability-decision-2026-08-28.md`;
 - no real-time replay;
 - no native Windows package yet;
 - no representative CI performance budget for large traces around 150 MB yet.
