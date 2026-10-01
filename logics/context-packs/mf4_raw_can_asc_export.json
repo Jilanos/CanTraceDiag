@@ -1,0 +1,331 @@
+{
+  "budgets": {
+    "max_docs": 16,
+    "max_docs_per_ref": 8
+  },
+  "changed_paths": [
+    "logics/backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md",
+    "logics/backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md",
+    "logics/backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md",
+    "logics/context-packs/mf4_raw_can_asc_export.json",
+    "logics/external/mf4_sample_inspection.md",
+    "logics/product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md",
+    "logics/request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md",
+    "logics/scaffold/mf4_raw_can_asc_export.json",
+    "logics/tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md"
+  ],
+  "command": "logics-manager sync context-pack req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc task_048_deliver_raw_can_mf4_import_and_asc_trace_export --mode diff-first --profile deep",
+  "companion_docs": [],
+  "docs": [
+    {
+      "ai_context": {},
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_057_import_third_party_raw_can_mf4_including_unfinished_recordings",
+          "item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports",
+          "item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability"
+        ],
+        "prod": [
+          "prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export"
+        ],
+        "req": [
+          "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc"
+        ]
+      },
+      "path": "logics/request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md",
+      "ref": "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Server upload, trusted path import, CLI and server-backed UI accept case-insensitive .mf4/.MF4 filenames alongside ASC/TRC/BLF without changing existing size, security, asynchronous-job and temporary-store safeguards.",
+          "- AC2: A project-owned reader imports MDF4 raw classic-CAN data frames without a DBC, including third-party multi-group bus logging: finite relative timestamps in seconds, original numeric bus channels, standard/extended identifiers, exact DLC and payload, and Rx/Tx only when known. No embedded DBC is required or silently selected.",
+          "- AC3: The supplied external 00000002.MF4 is successfully read without modifying its bytes. Its unfinalized MDF 4.11 metadata is safely interpreted or finalized only in a disposable copy. An independent reader verifies recovered frame counts and normalized values against the structural baseline in the sample inspection note; zero header cycle counts must never produce a false empty import.",
+          "- AC4: Valid frames from multiple groups use deterministic chronological ordering with stable ties based on source record order where recoverable, otherwise documented group/record indices. Timestamps retain the measurement-relative origin, without epoch conversion or rebasing each group. CAN FD/XL, remote/error records, non-CAN buses and malformed records are explicitly diagnosed or counted; unrepairable containers fail without publishing partial state.",
+          "- AC5: MF4 imports preserve existing DBC decoding, trace navigation, cursor analysis, plotting, reports and signal exports, with bounded read fragments and store batches, monotonic honest progress and cancellation during initialization as well as record ingestion. Large-input measurements prove that a generator does not hide full-file materialization.",
+          "- AC6: An imported trace can be downloaded as a valid Vector-style .asc containing all supported raw classic-CAN data frames without a DBC or selected signals. Export reads stored raw frames, works for MF4 and existing ASC/TRC/BLF sources, and leaves signal CSV/Parquet contracts unchanged."
+        ],
+        "Needs": [
+          "- Read raw CAN frames directly from MF4 recordings, including the supplied third-party unfinished MDF 4.11 example.",
+          "- Save imported raw CAN traces as ASC for use in other tools without selecting decoded signals or loading a DBC.",
+          "- Preserve frame integrity, timestamps, channels and known direction, and make unsupported content and conversion exclusions visible."
+        ]
+      },
+      "status": "Draft",
+      "title": "Read raw CAN MF4 recordings and save traces as ASC"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_057_import_third_party_raw_can_mf4_including_unfinished_recordings"
+        ],
+        "prod": [
+          "prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export"
+        ],
+        "req": [
+          "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc"
+        ],
+        "task": [
+          "task_048_deliver_raw_can_mf4_import_and_asc_trace_export"
+        ]
+      },
+      "path": "logics/backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md",
+      "ref": "item_057_import_third_party_raw_can_mf4_including_unfinished_recordings",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Server upload, trusted path import, CLI and server-backed UI accept case-insensitive .mf4/.MF4 filenames alongside ASC/TRC/BLF without changing existing size, security, asynchronous-job and temporary-store safeguards.",
+          "- AC2: A project-owned reader imports MDF4 raw classic-CAN data frames without a DBC, including third-party multi-group bus logging: finite relative timestamps in seconds, original numeric bus channels, standard/extended identifiers, exact DLC and payload, and Rx/Tx only when known. No embedded DBC is required or silently selected.",
+          "- AC3: The supplied external 00000002.MF4 is successfully read without modifying its bytes. Its unfinalized MDF 4.11 metadata is safely interpreted or finalized only in a disposable copy. An independent reader verifies recovered frame counts and normalized values against the structural baseline in the sample inspection note; zero header cycle counts must never produce a false empty import.",
+          "- AC4: Valid frames from multiple groups use deterministic chronological ordering with stable ties based on source record order where recoverable, otherwise documented group/record indices. Timestamps retain the measurement-relative origin, without epoch conversion or rebasing each group. CAN FD/XL, remote/error records, non-CAN buses and malformed records are explicitly diagnosed or counted; unrepairable containers fail without publishing partial state.",
+          "- AC5: MF4 imports preserve existing DBC decoding, trace navigation, cursor analysis, plotting, reports and signal exports, with bounded read fragments and store batches, monotonic honest progress and cancellation during initialization as well as record ingestion. Large-input measurements prove that a generator does not hide full-file materialization.",
+          "- AC9: Automated generated-fixture parser, pipeline, store, API and UI tests cover multi-group interleaving, equal timestamps, sparse buses, standard/extended frames, DLC 0/8, mixed unsupported types, safe unfinished-file recovery, unrecoverable/truncated files, empty data, ranges, restore, no-DBC/no-signal export, batching, cancellation and ASC/TRC/BLF plus CSV/Parquet regression. The operational sample remains outside git and is checked manually with hash and measured results."
+        ],
+        "Problem": [
+          "- The existing format dispatch rejects MF4, and unfinished metadata can make a real recording appear empty.",
+          "- Generic library iterators may drop direction or unsupported objects, reorder groups incorrectly, or load the whole file."
+        ]
+      },
+      "status": "Ready",
+      "title": "Import third-party raw CAN MF4 including unfinished recordings"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports"
+        ],
+        "prod": [
+          "prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export"
+        ],
+        "req": [
+          "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc"
+        ],
+        "task": [
+          "task_048_deliver_raw_can_mf4_import_and_asc_trace_export"
+        ]
+      },
+      "path": "logics/backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md",
+      "ref": "item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC6: An imported trace can be downloaded as a valid Vector-style .asc containing all supported raw classic-CAN data frames without a DBC or selected signals. Export reads stored raw frames, works for MF4 and existing ASC/TRC/BLF sources, and leaves signal CSV/Parquet contracts unchanged.",
+          "- AC7: ASC export supports full trace, inclusive A/B range and inclusive visible time range, ignores selected signals and trace display filters, orders by (timestamp_s, seq), retains the original relative time origin and numeric bus identifiers, writes hex identifiers with extended-ID suffix and exact bytes/DLC, and preserves known direction. Missing channel/direction follows an explicit disclosed policy; conversion must not silently invent provenance.",
+          "- AC8: Re-importing generated ASC preserves frame count, standard/extended IDs, numeric channels, known direction, DLC and payload exactly, and timestamps within a documented tolerance of at most 1 microsecond for representable values. Diagnostics and non-frame metadata excluded from ASC are disclosed with counts before download and in header comments; unsupported frames are never recoded as classic CAN.",
+          "- AC9: Automated generated-fixture parser, pipeline, store, API and UI tests cover multi-group interleaving, equal timestamps, sparse buses, standard/extended frames, DLC 0/8, mixed unsupported types, safe unfinished-file recovery, unrecoverable/truncated files, empty data, ranges, restore, no-DBC/no-signal export, batching, cancellation and ASC/TRC/BLF plus CSV/Parquet regression. The operational sample remains outside git and is checked manually with hash and measured results."
+        ],
+        "Problem": [
+          "- Existing exports operate on selected decoded signals, so they cannot save a raw CAN recording without a DBC.",
+          "- ASC conversion needs explicit timestamp precision, channel/direction policies and exclusion visibility to avoid silent information loss."
+        ]
+      },
+      "status": "Ready",
+      "title": "Stream stored raw CAN frames to round-trip-safe ASC exports"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability"
+        ],
+        "prod": [
+          "prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export"
+        ],
+        "req": [
+          "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc"
+        ],
+        "task": [
+          "task_048_deliver_raw_can_mf4_import_and_asc_trace_export"
+        ]
+      },
+      "path": "logics/backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md",
+      "ref": "item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability",
+      "schema_version": "1.0",
+      "sections": {
+        "Acceptance criteria": [
+          "- AC1: Server upload, trusted path import, CLI and server-backed UI accept case-insensitive .mf4/.MF4 filenames alongside ASC/TRC/BLF without changing existing size, security, asynchronous-job and temporary-store safeguards.",
+          "- AC6: An imported trace can be downloaded as a valid Vector-style .asc containing all supported raw classic-CAN data frames without a DBC or selected signals. Export reads stored raw frames, works for MF4 and existing ASC/TRC/BLF sources, and leaves signal CSV/Parquet contracts unchanged.",
+          "- AC7: ASC export supports full trace, inclusive A/B range and inclusive visible time range, ignores selected signals and trace display filters, orders by (timestamp_s, seq), retains the original relative time origin and numeric bus identifiers, writes hex identifiers with extended-ID suffix and exact bytes/DLC, and preserves known direction. Missing channel/direction follows an explicit disclosed policy; conversion must not silently invent provenance.",
+          "- AC8: Re-importing generated ASC preserves frame count, standard/extended IDs, numeric channels, known direction, DLC and payload exactly, and timestamps within a documented tolerance of at most 1 microsecond for representable values. Diagnostics and non-frame metadata excluded from ASC are disclosed with counts before download and in header comments; unsupported frames are never recoded as classic CAN.",
+          "- AC9: Automated generated-fixture parser, pipeline, store, API and UI tests cover multi-group interleaving, equal timestamps, sparse buses, standard/extended frames, DLC 0/8, mixed unsupported types, safe unfinished-file recovery, unrecoverable/truncated files, empty data, ranges, restore, no-DBC/no-signal export, batching, cancellation and ASC/TRC/BLF plus CSV/Parquet regression. The operational sample remains outside git and is checked manually with hash and measured results.",
+          "- AC10: Static browser PWA explicitly rejects MF4 with an actionable server-mode message and does not advertise local MF4 or ASC export until implemented separately. Server-backed UI clearly distinguishes raw ASC trace export from selected-signal export, including scopes, empty states, exclusions and correct .asc download naming."
+        ],
+        "Problem": [
+          "- File pickers reject MF4 and the export dialog blocks operations when no decoded signal is selected.",
+          "- Static PWA must not advertise Python-only functionality, and users need visible conversion scope and exclusions."
+        ]
+      },
+      "status": "Ready",
+      "title": "Expose MF4 import and raw ASC download with explicit server capability"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_057_import_third_party_raw_can_mf4_including_unfinished_recordings",
+          "item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports",
+          "item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability"
+        ],
+        "prod": [
+          "prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export"
+        ],
+        "req": [
+          "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc"
+        ],
+        "task": [
+          "task_048_deliver_raw_can_mf4_import_and_asc_trace_export"
+        ]
+      },
+      "path": "logics/product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md",
+      "ref": "prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export",
+      "schema_version": "1.0",
+      "sections": {},
+      "status": "Proposed",
+      "title": "Raw MF4 CAN import and interoperable ASC trace export"
+    },
+    {
+      "ai_context": {},
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_057_import_third_party_raw_can_mf4_including_unfinished_recordings",
+          "item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports",
+          "item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability"
+        ],
+        "prod": [
+          "prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export"
+        ],
+        "req": [
+          "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc"
+        ],
+        "task": [
+          "task_048_deliver_raw_can_mf4_import_and_asc_trace_export"
+        ]
+      },
+      "path": "logics/tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md",
+      "ref": "task_048_deliver_raw_can_mf4_import_and_asc_trace_export",
+      "schema_version": "1.0",
+      "sections": {
+        "Context": [
+          "- Deliver raw classic-CAN MDF4 import and raw ASC export through the linked request and three implementation slices.",
+          "- Sample evidence is in logics/external/mf4_sample_inspection.md; operational recordings remain external.",
+          "- All slices have High priority: characterize/import first, raw writer second, UI integration third. The writer can be exercised independently on existing traces."
+        ],
+        "Validation": [
+          "- Implementation not started; these checks are required during delivery.",
+          "- Run focused MF4 adapter, raw ASC serializer, pipeline/store, API and UI tests using synthetic finalized/unfinished fixtures, then `.venv/bin/ruff check .` and `.venv/bin/pytest`.",
+          "- Run the repository browser/PWA checks for changed capability and export flows; record the exact commands and results.",
+          "- Run the external-sample manual round trip from the inspection note and record counts, ID/payload/channel/direction comparisons, timestamp error and source hash.",
+          "- Measure large generated input peak memory, progress and initialization/ingestion cancellation.",
+          "- Run `logics-manager flow validate req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc`, `logics-manager lint --require-status` and `logics-manager audit --legacy-cutoff-version 1.1.0 --group-by-doc`."
+        ]
+      },
+      "status": "Ready",
+      "title": "Deliver raw CAN MF4 import and ASC trace export"
+    }
+  ],
+  "estimates": {
+    "char_count": 15068,
+    "companion_doc_count": 0,
+    "doc_count": 6
+  },
+  "generated_at": "2026-10-01T12:28:02Z",
+  "handoff": {
+    "companion_doc_count": 0,
+    "enabled": false,
+    "source_refs": [
+      "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc",
+      "task_048_deliver_raw_can_mf4_import_and_asc_trace_export"
+    ],
+    "validation_summary_count": 0
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "diff-first",
+  "profile": "deep",
+  "ref": "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc,task_048_deliver_raw_can_mf4_import_and_asc_trace_export",
+  "refs": [
+    "req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc",
+    "task_048_deliver_raw_can_mf4_import_and_asc_trace_export"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_id": null,
+    "target_version": "1.2.0",
+    "targets": []
+  },
+  "validation_summary": []
+}
