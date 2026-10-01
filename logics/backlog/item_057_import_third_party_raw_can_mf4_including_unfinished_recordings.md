@@ -1,14 +1,14 @@
 ## item_057_import_third_party_raw_can_mf4_including_unfinished_recordings - Import third-party raw CAN MF4 including unfinished recordings
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 85%
 > Complexity: High
 > Theme: MDF4 raw bus logging
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-01 14:28:01
+> Indicators reviewed: 2026-10-01 14:29:31
 
 # AI Context
 Start with logics/external/mf4_sample_inspection.md and verify its provisional 117,797-record baseline with an independent MDF reader. Test sample-like unfinished metadata synthetically. Preserve direction and bus IDs before using the ASC exporter; initialization must remain cancellable and memory usage measured.

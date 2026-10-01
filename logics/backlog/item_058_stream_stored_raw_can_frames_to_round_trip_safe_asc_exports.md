@@ -1,14 +1,14 @@
 ## item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports - Stream stored raw CAN frames to round-trip-safe ASC exports
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 85%
 > Complexity: High
 > Theme: Raw trace ASC serialization
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-01 14:28:02
+> Indicators reviewed: 2026-10-01 14:29:31
 
 # AI Context
 Use raw frames and global seq from DuckDB, not decoded signal samples. Export every supported frame within the chosen inclusive time range, retaining relative timestamps and sparse numeric channels. Prove ASC-reader round trips without a DBC or signal selection and block undisclosed channel/direction invention.

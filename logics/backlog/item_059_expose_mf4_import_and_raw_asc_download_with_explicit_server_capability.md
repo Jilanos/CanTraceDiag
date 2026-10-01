@@ -1,14 +1,14 @@
 ## item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability - Expose MF4 import and raw ASC download with explicit server capability
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 85%
 > Complexity: Medium
 > Theme: Trace conversion UX and validation
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-01 14:28:02
+> Indicators reviewed: 2026-10-01 14:29:31
 
 # AI Context
 Depends on the MF4 adapter and raw ASC export contract. report.js currently blocks export when no signals are selected and names downloads CSV/Parquet; adapt validation and filenames only for raw ASC. Static PWA needs explicit capability rejection, and conversion warnings must be visible before download.
