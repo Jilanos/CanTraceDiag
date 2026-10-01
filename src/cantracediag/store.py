@@ -55,6 +55,10 @@ CREATE TABLE IF NOT EXISTS samples (
     value_text     VARCHAR,
     unit           VARCHAR
 );
+CREATE TABLE IF NOT EXISTS import_warnings (
+    position INTEGER,
+    message  VARCHAR
+);
 CREATE TABLE IF NOT EXISTS series_cache (
     message_name VARCHAR,
     signal_name  VARCHAR,
@@ -315,6 +319,21 @@ class TraceStore:
             "samples": int(samples or 0),
         }
 
+    def set_import_warnings(self, warnings: Iterable[str]) -> None:
+        """Record reader warnings (e.g. a recovered unfinalized MF4) with the trace.
+
+        They live in the store so a restored session still shows them.
+        """
+        rows = [(i, str(w)) for i, w in enumerate(warnings) if w]
+        with self._lock:
+            self.con.execute("DELETE FROM import_warnings")
+            if rows:
+                self.con.executemany("INSERT INTO import_warnings VALUES (?, ?)", rows)
+
+    def import_warnings(self) -> list[str]:
+        rows = self._all("SELECT message FROM import_warnings ORDER BY position")
+        return [str(r[0]) for r in rows]
+
     def _append(self, table: str, rows: list[dict]) -> int:
         if not rows:
             return 0
@@ -361,6 +380,7 @@ class TraceStore:
             "end_s": bounds.end_s,
             "decode_status": {r[0]: r[1] for r in status_rows},
             "event_types": {r[0]: r[1] for r in event_rows},
+            "warnings": self.import_warnings(),
         }
 
     def sample_count(self) -> int:
@@ -553,6 +573,81 @@ class TraceStore:
             reader = self.con.execute(sql, params).to_arrow_reader(max(1, batch_size))
             batches = list(reader)
         yield from batches
+
+    # -- raw frame export ------------------------------------------------
+
+    def raw_export_summary(
+        self, start_s: float | None = None, end_s: float | None = None
+    ) -> dict:
+        """What a raw ASC export of ``[start_s, end_s]`` would contain (inclusive).
+
+        Counts every stored frame in range, frames whose provenance (numeric
+        bus channel, Rx/Tx direction) is unknown, frames whose timestamp is not
+        finite, and the non-frame events in range that an ASC data-frame export
+        leaves out. Display filters and signal selections play no part.
+        """
+        clauses: list[str] = []
+        params: list[object] = []
+        self._time_clauses(start_s, end_s, clauses, params)
+        where = " AND ".join(clauses) or "TRUE"
+        row = self._one(
+            f"""
+            SELECT count(*) FILTER (WHERE isfinite(timestamp_s)),
+                   count(*) FILTER (WHERE NOT isfinite(timestamp_s)),
+                   count(*) FILTER (WHERE isfinite(timestamp_s) AND (channel IS NULL
+                        OR NOT regexp_full_match(channel, '[0-9]+'))),
+                   count(*) FILTER (WHERE isfinite(timestamp_s) AND (direction IS NULL
+                        OR direction NOT IN ('Rx', 'Tx'))),
+                   count(*) FILTER (WHERE isfinite(timestamp_s) AND is_remote)
+            FROM frames WHERE {where}
+            """,
+            params,
+        )
+        events = self._all(
+            f"SELECT event_type, count(*) FROM events WHERE {where} "
+            "GROUP BY event_type ORDER BY event_type",
+            params,
+        )
+        return {
+            "frames": int(row[0] or 0),
+            "nonfinite_frames": int(row[1] or 0),
+            "unknown_channel": int(row[2] or 0),
+            "unknown_direction": int(row[3] or 0),
+            "remote_frames": int(row[4] or 0),
+            "excluded_events": {str(r[0]): int(r[1]) for r in events},
+        }
+
+    def iter_raw_frames(
+        self,
+        start_s: float | None = None,
+        end_s: float | None = None,
+        batch_size: int = 8192,
+    ):
+        """Yield stored raw frames in ``(timestamp_s, seq)`` order, batch by batch.
+
+        Each batch is a dict of equal-length column lists. The query runs on a
+        sibling cursor of the store connection and is fetched one bounded
+        batch at a time, so neither the result set nor the store lock is held
+        for the duration of a (possibly slow) download. Non-finite timestamps
+        are left out; :meth:`raw_export_summary` counts them.
+        """
+        clauses = ["isfinite(timestamp_s)"]
+        params: list[object] = []
+        self._time_clauses(start_s, end_s, clauses, params)
+        sql = f"""
+            SELECT timestamp_s, channel, arbitration_id, is_extended_id, dlc,
+                   data_hex, direction, is_remote
+            FROM frames WHERE {" AND ".join(clauses)}
+            ORDER BY timestamp_s, seq
+        """
+        with self._lock:
+            cursor = self.con.cursor()
+        try:
+            reader = cursor.execute(sql, params).fetch_record_batch(max(1, batch_size))
+            for batch in reader:
+                yield batch.to_pydict()
+        finally:
+            cursor.close()
 
     def present_arbitration_ids(self) -> set[int]:
         rows = self._all("SELECT DISTINCT arbitration_id FROM frames")

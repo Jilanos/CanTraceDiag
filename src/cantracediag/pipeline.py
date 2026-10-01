@@ -43,7 +43,7 @@ def import_trace(
     cancel_check: Callable[[], bool] | None = None,
     decode_samples: bool = False,
 ) -> tuple[TraceStore, ImportResult]:
-    """Parse a supported ASC, text TRC, or binary BLF trace, decode frames, and index it.
+    """Parse a supported ASC, text TRC, BLF, or MF4 trace, decode frames, and index it.
 
     Real trace and DBC files are read from local disk only; nothing is written
     back to the repository (AC1, AC8). ``resolution`` maps an arbitration id to
@@ -122,6 +122,17 @@ def import_trace(
             from cantracediag.formats.blf import stream_blf
 
             scanner, items = stream_blf(trace_path, on_progress=_report if on_progress else None)
+        elif suffix == ".mf4":
+            # Lazy for the same reason: asammdf is a heavy import. The adapter
+            # also polls ``cancel_check`` while it opens and recovers the
+            # container, before the first record reaches the loop below.
+            from cantracediag.formats.mf4 import stream_mf4
+
+            scanner, items = stream_mf4(
+                trace_path,
+                on_progress=_report if on_progress else None,
+                cancel_check=cancel_check,
+            )
         else:
             raise ValueError(f"Unsupported trace format: {suffix or '(no extension)'}")
         for item in items:
@@ -147,6 +158,7 @@ def import_trace(
             ):
                 flush()
         flush()
+        store.set_import_warnings(getattr(scanner, "warnings", ()))
     except Exception:
         if owns_store:
             store.close()

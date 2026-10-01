@@ -5,7 +5,8 @@ serves bounded queries so the browser never loads the whole trace (AC4-AC6,
 AC8). It is local-first: it binds to localhost by default. Traces and DBCs are
 supplied either as uploads from the browser's native file picker
 (``/api/import-files``) or as server-side paths (``/api/import``, for the CLI).
-Accepted trace formats are ASC, text TRC, and binary BLF (``TRACE_SUFFIXES``).
+Accepted trace formats are ASC, text TRC, binary BLF, and raw-CAN MF4
+(``TRACE_SUFFIXES``).
 """
 
 from __future__ import annotations
@@ -31,6 +32,7 @@ from starlette.concurrency import run_in_threadpool
 from cantracediag import __version__, export
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
+from cantracediag.formats.mf4 import Mf4ImportError
 from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
 from cantracediag.security import SecurityConfig
@@ -42,7 +44,7 @@ _TOKEN_HEADER = "x-ctd-token"
 
 # Trace file suffixes the server-backed import accepts. Kept next to the upload
 # guard so the picker copy, the guard, and the pipeline dispatch stay in step.
-TRACE_SUFFIXES = (".asc", ".trc", ".blf")
+TRACE_SUFFIXES = (".asc", ".trc", ".blf", ".mf4")
 
 # Rewrite same-origin references to bundled assets so we can append the asset
 # version below (e.g. ``src="/static/js/main.js"`` -> ``...?v=<token>``).
@@ -349,6 +351,13 @@ def create_app(
             _discard_store(db_tmpdir)
             session.job("cancelled", 1.0, "Import cancelled by operator.")
             raise
+        except Mf4ImportError as exc:
+            # The reader's reasons never contain a path, and the operator needs
+            # them to understand why a recording was refused.
+            _discard_store(db_tmpdir)
+            detail = f"MF4 import failed: {exc}"
+            session.job("failed", 1.0, detail)
+            raise HTTPException(422, detail) from exc
         except Exception as exc:
             _discard_store(db_tmpdir)
             detail = _safe_failure("Import failed")
@@ -398,6 +407,13 @@ def create_app(
             _discard_store(db_tmpdir)
             session.job("cancelled", 1.0, "Import cancelled by operator.")
             raise
+        except Mf4ImportError as exc:
+            # The reader's reasons never contain a path, and the operator needs
+            # them to understand why a recording was refused.
+            _discard_store(db_tmpdir)
+            detail = f"MF4 import failed: {exc}"
+            session.job("failed", 1.0, detail)
+            raise HTTPException(422, detail) from exc
         except Exception as exc:
             _discard_store(db_tmpdir)
             detail = _safe_failure("Import failed")
@@ -545,7 +561,7 @@ def create_app(
         could be served in the meantime (AC1).
         """
         if not (trace.filename or "").lower().endswith(TRACE_SUFFIXES):
-            raise HTTPException(400, "Trace file must be an .asc, .trc, or .blf file.")
+            raise HTTPException(400, "Trace file must be an .asc, .trc, .blf, or .mf4 file.")
 
         # Reject oversized requests early via the declared length, then enforce
         # the same aggregate cap while streaming so a lying Content-Length cannot

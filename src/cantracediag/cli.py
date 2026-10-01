@@ -17,13 +17,13 @@ from cantracediag.dbc import DbcCatalog
 from cantracediag.pipeline import import_trace
 
 app = typer.Typer(
-    help="Local analysis of ASC, text TRC, and binary BLF CAN traces with DBC decoding."
+    help="Local analysis of ASC, text TRC, binary BLF, and MF4 CAN traces with DBC decoding."
 )
 
 
 @app.command()
 def info(
-    trace: Path = typer.Argument(..., help="Path to a local .asc, .trc, or .blf trace"),
+    trace: Path = typer.Argument(..., help="Path to a local .asc, .trc, .blf, or .mf4 trace"),
     dbc: list[Path] = typer.Option([], "--dbc", "-d", help="Local DBC file(s)"),
 ) -> None:
     """Import a trace and print a summary without launching the UI."""
@@ -36,6 +36,11 @@ def info(
         f"events: {s['events']}  unique ids: {s['unique_ids']}"
     )
     typer.echo(f"Time:   {s['start_s']}s .. {s['end_s']}s")
+    for warning in s.get("warnings", []):
+        typer.echo(f"Warning: {warning}")
+    if s["event_types"]:
+        listed = ", ".join(f"{k}={v}" for k, v in sorted(s["event_types"].items()))
+        typer.echo(f"Diagnostics: {listed}")
     if result.ambiguous_ids:
         typer.echo("Ambiguous ids across DBCs:")
         for frame_id, names in result.ambiguous_ids.items():

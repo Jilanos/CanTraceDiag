@@ -16,6 +16,11 @@ dependencies = [
   # BLF container decoding only; the project's own adapter re-normalizes every
   # object, so nothing from python-can reaches the rest of the product.
   "python-can>=4.6",
+  # MDF 4 (.mf4) container decoding and unfinalized-file recovery only, behind
+  # the project's own adapter (formats/mf4.py). LGPL-3.0-or-later, used as an
+  # unmodified library dependency. Pinned to one major: the adapter relies on
+  # its group/channel model and on recovery happening in a temporary copy.
+  "asammdf>=8.8.27,<9",
   "typer>=0.12",
 ]
 

@@ -147,7 +147,7 @@ def test_upload_import_accepts_a_blf_trace(client: TestClient, blf: Path) -> Non
 def test_upload_import_still_rejects_an_unsupported_suffix(client: TestClient) -> None:
     r = client.post(
         "/api/import-files",
-        files=[("trace", ("trace.mf4", b"\x00", "application/octet-stream"))],
+        files=[("trace", ("trace.mdf", b"\x00", "application/octet-stream"))],
     )
 
     assert r.status_code == 400

@@ -272,7 +272,7 @@ def test_import_files_upload_flow(client: TestClient) -> None:
 def test_import_files_rejects_an_unsupported_trace_suffix(client: TestClient) -> None:
     r = client.post(
         "/api/import-files",
-        files=[("trace", ("trace.mf4", b"\x00", "application/octet-stream"))],
+        files=[("trace", ("trace.mdf", b"\x00", "application/octet-stream"))],
     )
     assert r.status_code == 400
 
