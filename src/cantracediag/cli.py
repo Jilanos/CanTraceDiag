@@ -48,6 +48,57 @@ def info(
     store.close()
 
 
+@app.command("export-asc")
+def export_asc(
+    trace: Path = typer.Argument(..., help="Path to a local .asc, .trc, .blf, or .mf4 trace"),
+    output: Path = typer.Argument(..., help="Destination .asc file (must not exist)"),
+    start: float | None = typer.Option(None, help="Inclusive range start, in seconds"),
+    end: float | None = typer.Option(None, help="Inclusive range end, in seconds"),
+    assume_provenance: bool = typer.Option(
+        False,
+        "--assume-provenance",
+        help="Write frames without a numeric channel / direction as channel 1 / Rx "
+        "(disclosed in the header) instead of refusing the export.",
+    ),
+) -> None:
+    """Save a trace's raw CAN frames as a Vector-style ASC file (no DBC needed)."""
+    from cantracediag import export
+
+    if output.exists():
+        raise typer.BadParameter(f"{output} already exists.", param_hint="OUTPUT")
+    if (start is None) != (end is None):
+        raise typer.BadParameter("Give both --start and --end, or neither.")
+    lo, hi = (None, None) if start is None else (min(start, end), max(start, end))
+    policy = "assume" if assume_provenance else "block"
+    store, _result = import_trace(trace)
+    try:
+        summary = store.raw_export_summary(lo, hi)
+        if policy == "block" and (summary["unknown_channel"] or summary["unknown_direction"]):
+            typer.echo(
+                f"Refusing: {summary['unknown_channel']} frame(s) without a numeric channel "
+                f"and {summary['unknown_direction']} without a direction. Re-run with "
+                "--assume-provenance to write them as channel 1 / Rx.",
+                err=True,
+            )
+            raise typer.Exit(code=2)
+        header = export.asc_header_lines(
+            summary,
+            source=trace.name,
+            scope="full" if lo is None else "range",
+            start_s=lo,
+            end_s=hi,
+            policy=policy,
+            warnings=store.import_warnings(),
+        )
+        with open(output, "xb") as handle:
+            for chunk in export.raw_asc(store.iter_raw_frames(lo, hi), header, policy):
+                handle.write(chunk)
+    finally:
+        store.close()
+    excluded = sum(summary["excluded_events"].values()) + summary["nonfinite_frames"]
+    typer.echo(f"Wrote {summary['frames']} frames to {output} ({excluded} events excluded).")
+
+
 @app.command()
 def signals(
     dbc: list[Path] = typer.Argument(..., help="Local DBC file(s) to inspect"),

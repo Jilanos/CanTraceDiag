@@ -643,7 +643,7 @@ class TraceStore:
         with self._lock:
             cursor = self.con.cursor()
         try:
-            reader = cursor.execute(sql, params).fetch_record_batch(max(1, batch_size))
+            reader = cursor.execute(sql, params).to_arrow_reader(max(1, batch_size))
             for batch in reader:
                 yield batch.to_pydict()
         finally:

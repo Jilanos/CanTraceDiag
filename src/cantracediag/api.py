@@ -224,6 +224,16 @@ class ExportRequest(BaseModel):
     format: str = "csv"
 
 
+class RawAscExportRequest(BaseModel):
+    # Same scopes as the signal export; no signals, no DBC, no display filters.
+    scope: str = "full"
+    start: float | None = None
+    end: float | None = None
+    # "block" refuses frames without a numeric channel or Rx/Tx direction;
+    # "assume" writes them on channel 1 / Rx and discloses it in the header.
+    provenance: str = "block"
+
+
 _EXPORT_FORMATS = {
     "csv": ("text/csv", "csv"),
     "csv_wide": ("text/csv", "csv"),
@@ -1042,6 +1052,108 @@ def create_app(
                 store.release()
 
         return StreamingResponse(_stream(), media_type=media_type, headers=headers)
+
+    def _export_range(scope: str, start: float | None, end: float | None):
+        if scope not in {"between_ab", "visible", "full"}:
+            raise HTTPException(400, f"Unknown export scope: {scope}")
+        if scope == "full":
+            return None, None
+        if start is None or end is None:
+            raise HTTPException(400, f"Scope '{scope}' requires start and end.")
+        if not (math.isfinite(start) and math.isfinite(end)):
+            raise HTTPException(400, "Export range must be finite.")
+        return min(start, end), max(start, end)
+
+    def _raw_asc_filename() -> str:
+        stem = re.sub(r"[^A-Za-z0-9._-]+", "_", Path(session.trace_path or "").stem)
+        stem = stem.strip("._") or "cantracediag_trace"
+        if Path(session.trace_path or "").suffix.lower() == ".asc":
+            stem += "_raw"
+        return f"{stem}.asc"
+
+    def _raw_asc_summary(store: TraceStore, start, end, policy: str) -> dict:
+        summary = store.raw_export_summary(start, end)
+        unknown = summary["unknown_channel"] + summary["unknown_direction"]
+        blocked = None
+        if unknown and policy == "block":
+            blocked = (
+                f"{summary['unknown_channel']} frame(s) have no numeric bus channel and "
+                f"{summary['unknown_direction']} have no Rx/Tx direction. ASC needs both; "
+                "choose to write them as channel 1 / Rx explicitly, or export a range "
+                "without them."
+            )
+        return {
+            **summary,
+            "warnings": store.import_warnings(),
+            "filename": _raw_asc_filename(),
+            "blocked": blocked,
+            "provenance": policy,
+        }
+
+    @app.get("/api/export-asc/summary")
+    def api_export_asc_summary(
+        scope: str = "full",
+        start: float | None = None,
+        end: float | None = None,
+        provenance: str = "block",
+    ) -> dict:
+        """Disclose what a raw ASC export of this range contains, before download.
+
+        Counts stored frames, frames with unknown provenance, and the events
+        and diagnostics that an ASC data-frame export leaves out (AC8).
+        """
+        if provenance not in export.PROVENANCE_POLICIES:
+            raise HTTPException(400, f"Unknown provenance policy: {provenance}")
+        lo, hi = _export_range(scope, start, end)
+        with session.use_store() as store:
+            return _raw_asc_summary(store, lo, hi, provenance)
+
+    @app.post("/api/export-asc")
+    def api_export_asc(req: RawAscExportRequest) -> StreamingResponse:
+        """Stream the stored raw CAN frames of a range as a Vector-style ASC.
+
+        Independent of DBCs, decoded signals and trace display filters: it reads
+        the ``frames`` table in ``(timestamp_s, seq)`` order, one bounded batch
+        at a time (AC6, AC7). Exclusions and assumptions are written as header
+        comments and repeated in ``X-CTD-Export-*`` response headers.
+        """
+        if req.provenance not in export.PROVENANCE_POLICIES:
+            raise HTTPException(400, f"Unknown provenance policy: {req.provenance}")
+        start, end = _export_range(req.scope, req.start, req.end)
+        store = session.borrow_store()
+        try:
+            summary = _raw_asc_summary(store, start, end, req.provenance)
+            if summary["blocked"]:
+                raise HTTPException(409, summary["blocked"])
+            header = export.asc_header_lines(
+                summary,
+                source=Path(session.trace_path or "").name or None,
+                scope=req.scope,
+                start_s=start,
+                end_s=end,
+                policy=req.provenance,
+                warnings=summary["warnings"],
+            )
+            body = export.raw_asc(store.iter_raw_frames(start, end), header, req.provenance)
+        except Exception:
+            store.release()
+            raise
+
+        def _stream():
+            try:
+                yield from body
+            finally:
+                store.release()
+
+        excluded = sum(summary["excluded_events"].values()) + summary["nonfinite_frames"]
+        headers = {
+            "Content-Disposition": f'attachment; filename="{summary["filename"]}"',
+            "X-CTD-Export-Frames": str(summary["frames"]),
+            "X-CTD-Export-Excluded": str(excluded),
+        }
+        return StreamingResponse(
+            _stream(), media_type="text/plain; charset=us-ascii", headers=headers
+        )
 
     @app.get("/api/import-job")
     def api_import_job() -> dict:
