@@ -74,6 +74,9 @@ $("reportExportBtn").addEventListener("click", openExportDialog);
 $("reportRefresh").addEventListener("click", loadReport);
 $("exportCancel").addEventListener("click", () => $("exportDialog").close());
 $("exportRun").addEventListener("click", runExport);
+$("exportFormat").addEventListener("change", refreshExportMode);
+$("exportScope").addEventListener("change", refreshExportMode);
+$("exportAssume").addEventListener("change", refreshExportMode);
 window.addEventListener("resize", debounce(() => { refreshTheme(); renderPlot(); scheduleSeriesRefresh(); }, 150));
 
 /* ---- workspace views (AC4) -------------------------------------------- */
@@ -160,6 +163,8 @@ wireSplitResize();
   updateTraceEmpty(0, false);   // "No trace loaded" until an import lands
   try {
     const st = await api("/api/status");
+    state.capabilities = st.capabilities || {};
+    syncExportCapabilities();
     if (st.loaded) await onLoaded(st);
   } catch (err) {
     console.debug("No active trace restored at startup", err);

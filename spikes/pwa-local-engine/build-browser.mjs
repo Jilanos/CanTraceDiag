@@ -9,19 +9,23 @@ const distDir = path.resolve("spikes/pwa-local-engine/browser");
 const siteDir = path.resolve("spikes/pwa-local-engine/site");
 fs.mkdirSync(distDir, { recursive: true });
 
-/* The shell is shared with the server-backed app, which imports BLF; the static
- * bundle cannot (see src/local-backend.ts). These rewrites take BLF back out of
- * the generated picker, and `replaceOnce` fails the build if the source shell
- * stops matching -- a silent no-op would ship a picker offering a format the
- * bundle has no reader for. */
+/* The shell is shared with the server-backed app, which imports BLF and MF4 and
+ * saves raw traces as ASC; the static bundle can do none of that (see
+ * src/local-backend.ts). These rewrites take those capabilities back out of the
+ * generated shell, and `replaceOnce` fails the build if the source shell stops
+ * matching -- a silent no-op would ship controls the bundle cannot honour. */
 const STATIC_SHELL_REWRITES = [
   [
-    '<input id="traceFile" type="file" accept=".asc,.trc,.blf" hidden />',
+    '<input id="traceFile" type="file" accept=".asc,.trc,.blf,.mf4" hidden />',
     '<input id="traceFile" type="file" accept=".asc,.trc" hidden />',
   ],
   [
-    'title="Choose an ASC, text TRC, or binary BLF CAN trace"',
+    'title="Choose an ASC, text TRC, binary BLF, or MF4 CAN trace"',
     'title="Choose an ASC or text TRC CAN trace"',
+  ],
+  [
+    '      <option value="asc_raw" id="exportRawOption">Raw CAN trace (.asc)</option>\n',
+    "",
   ],
 ];
 

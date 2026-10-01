@@ -35,6 +35,11 @@ export function createLocalProductBackend(): {
   async function api(path: string, opts: RequestInit = {}): Promise<unknown> {
     const url = new URL(path, window.location.href);
     if (url.pathname === "/api/status") return backend.status();
+    if (url.pathname.startsWith("/api/export-asc")) {
+      // Server-only capability; the status above advertises no capabilities,
+      // so the UI never offers it. Refuse explicitly should anything ask.
+      throw new Error("Raw ASC trace export needs the CanTraceDiag server app; the browser app exports selected signals as CSV.");
+    }
     if (url.pathname === "/api/signals") return backend.signals();
     if (url.pathname === "/api/import-job") return backend.importJob();
     if (url.pathname === "/api/import-cancel") return { cancelled: false, reason: "Local imports finish synchronously in this MVP adapter." };

@@ -50,13 +50,23 @@ describe("Static PWA bundle parity", () => {
     }
   });
 
-  it("does not offer BLF in the static picker the bundle cannot read", () => {
+  it("does not offer BLF or MF4 in the static picker the bundle cannot read", () => {
     const shell = fs.readFileSync(path.resolve("src/cantracediag/web/index.html"), "utf8");
-    assert.ok(shell.includes('accept=".asc,.trc,.blf"'), "server shell must still offer BLF");
+    assert.ok(shell.includes('accept=".asc,.trc,.blf,.mf4"'), "server shell must still offer BLF and MF4");
 
     const html = fs.readFileSync(indexPath, "utf8");
     assert.ok(html.includes('accept=".asc,.trc"'), "static picker lost its text trace formats");
     assert.ok(!html.includes(".blf"), "static picker offers BLF, which the bundle cannot import");
+    assert.ok(!html.includes(".mf4") && !html.includes("MF4"), "static shell advertises MF4");
+  });
+
+  it("does not offer the server-only raw ASC export in the static shell", () => {
+    const shell = fs.readFileSync(path.resolve("src/cantracediag/web/index.html"), "utf8");
+    assert.ok(shell.includes('value="asc_raw"'), "server shell must still offer raw ASC export");
+
+    const html = fs.readFileSync(indexPath, "utf8");
+    assert.ok(!html.includes('value="asc_raw"'), "static shell offers raw ASC export");
+    assert.ok(html.includes('value="csv"'), "static shell lost its signal CSV export");
   });
 
   it("serves the generated site without stale FastAPI script tags", () => {

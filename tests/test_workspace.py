@@ -129,7 +129,7 @@ def test_corrupt_manifest_starts_empty(tmp_path: Path) -> None:
     ws.manifest_path.write_text("{ this is not valid json ")
     app = create_app(Workspace(ws.root, ephemeral=False))  # must not crash (AC7)
     c = make_client(app)
-    assert c.get("/api/status").json() == {"loaded": False}
+    assert c.get("/api/status").json()["loaded"] is False
 
 
 def test_missing_library_dbc_starts_empty(tmp_path: Path) -> None:
@@ -142,7 +142,7 @@ def test_missing_library_dbc_starts_empty(tmp_path: Path) -> None:
     }))
     app = create_app(Workspace(ws.root, ephemeral=False))
     c = make_client(app)
-    assert c.get("/api/status").json() == {"loaded": False}
+    assert c.get("/api/status").json()["loaded"] is False
 
 
 # -- import reusing a library DBC without re-upload (AC5) ---------------------

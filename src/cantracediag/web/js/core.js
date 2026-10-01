@@ -55,6 +55,8 @@ const state = {
   grid: store.get("grid", true),
   pendingConflicts: null,
   loaded: false,                    // whether an acquisition is currently loaded
+  capabilities: {},                 // backend capabilities from /api/status
+  rawExport: null,                  // last raw ASC export summary shown
 };
 
 /* ---- column model for the trace view ----------------------------------- */

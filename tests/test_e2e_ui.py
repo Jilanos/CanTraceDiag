@@ -604,7 +604,7 @@ def test_blf_trace_imports_through_the_real_picker(browser, live_url, tmp_path):
     pg = ctx.new_page()
     pg.goto(live_url)
     pg.evaluate("() => localStorage.clear()")
-    assert pg.get_attribute("#traceFile", "accept") == ".asc,.trc,.blf"
+    assert pg.get_attribute("#traceFile", "accept") == ".asc,.trc,.blf,.mf4"
 
     pg.set_input_files("#traceFile", str(trace))
     pg.set_input_files("#dbcFiles", str(REPO / "tests" / "fixtures" / "sample.dbc"))
@@ -621,6 +621,66 @@ def test_blf_trace_imports_through_the_real_picker(browser, live_url, tmp_path):
     assert "EngineData" in table
     # The diagnostics the adapter emits are visible in the same trace view.
     assert "BlfUnsupported" in table
+    ctx.close()
+
+
+def test_mf4_imports_and_downloads_as_raw_asc_without_signals(browser, live_url, tmp_path):
+    """An unfinalized MF4 goes in through the picker and out as raw ASC.
+
+    No DBC and no selected signal: the export dialog must offer the raw trace,
+    disclose exclusions and the recovery warning before download, and name the
+    file ``.asc``. Selected-signal formats keep their own validation.
+    """
+    from mf4_fixture import Group, Record, write_mf4
+
+    groups = [
+        Group("CAN9_Rx", 32, constants={"BusChannel": 9, "IDE": 0, "Dir": 0}),
+        Group("CAN1_Rx", 64, constants={"BusChannel": 1, "IDE": 0, "Dir": 0}),
+        Group("CAN1_Errors", 90, kind="error", constants={"BusChannel": 1}),
+    ]
+    records = [
+        Record("CAN1_Rx", 0.25, 0x100, 8, bytes(8)),
+        Record("CAN9_Rx", 0.5, 0x7FF, 1, b"\x01"),
+        Record("CAN1_Errors", 0.75),
+        Record("CAN1_Rx", 1.0, 0x101, 0, b""),
+    ]
+    trace = write_mf4(tmp_path / "00000002.MF4", groups, records, unfinished=True)
+
+    ctx = browser.new_context(viewport={"width": 1280, "height": 720}, accept_downloads=True)
+    pg = ctx.new_page()
+    pg.goto(live_url)
+    pg.evaluate("() => localStorage.clear()")
+    pg.set_input_files("#traceFile", str(trace))
+    pg.click("#loadBtn")
+    pg.locator("#viewTrace").click()
+    pg.wait_for_function("() => window.__ctd && window.__ctd.state.trace.total === 4")
+    assert "1 import warning" in pg.locator("#summary").inner_text()
+
+    pg.locator("#viewPlots").click()
+    pg.click("#exportBtn")
+    pg.select_option("#exportFormat", "asc_raw")
+    pg.select_option("#exportScope", "full")
+    info = pg.locator("#exportRawInfo")
+    info.locator("text=00000002.asc").wait_for()
+    text = info.inner_text()
+    assert "3 frames" in text
+    assert "ErrorFrame×1" in text
+    assert "unfinalized" in text
+    assert pg.locator("#exportSignalsRow").is_hidden()
+
+    with pg.expect_download() as dl:
+        pg.click("#exportRun")
+    download = dl.value
+    assert download.suggested_filename == "00000002.asc"
+    body = Path(download.path()).read_text()
+    assert "// excluded (not written as frames): ErrorFrame=1" in body
+    assert "0.500000 9  7FF             Rx   d 1 01" in body
+
+    # Back on a signal format, the "select a signal" rule still applies.
+    pg.click("#exportBtn")
+    pg.select_option("#exportFormat", "csv")
+    pg.click("#exportRun")
+    assert "Select at least one signal" in pg.locator("#exportError").inner_text()
     ctx.close()
 
 

@@ -22,7 +22,14 @@ def _import(client: TestClient):
 
 
 def test_status_before_import(client: TestClient) -> None:
-    assert client.get("/api/status").json() == {"loaded": False}
+    status = client.get("/api/status").json()
+    assert status["loaded"] is False
+    # Server capabilities are advertised even before a trace is loaded, so the
+    # shared UI shell knows to offer MF4 import and raw ASC export.
+    assert status["capabilities"] == {
+        "trace_suffixes": [".asc", ".trc", ".blf", ".mf4"],
+        "raw_asc_export": True,
+    }
 
 
 def test_import_and_query_flow(client: TestClient) -> None:

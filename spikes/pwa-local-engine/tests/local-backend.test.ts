@@ -301,6 +301,46 @@ describe("Browser-local BLF capability boundary", () => {
     assert.match(rejection, /server/i);
   });
 
+  it("names server mode as the way to open an MF4 recording", () => {
+    for (const name of ["00000002.MF4", "trace.mf4"]) {
+      const rejection = localTraceRejection(name) ?? "";
+      assert.match(rejection, /MF4 recordings are not supported in the browser app/);
+      assert.match(rejection, /server mode/i);
+    }
+  });
+
+  it("rejects an MF4 selection before reading the file", async () => {
+    const backend = createLocalProductBackend();
+    const form = new FormData();
+    form.append("trace", new File([new TextEncoder().encode("UnFinMF 4.11    ")], "00000002.MF4"));
+
+    await assert.rejects(
+      () => backend.uploadWithProgress(form, () => {}),
+      /MF4 recordings are not supported in the browser app/,
+    );
+    assert.equal(Number((backend.__backend.status() as { summary: Record<string, unknown> }).summary.frames), 0);
+  });
+
+  it("advertises no server capability and refuses raw ASC export", async () => {
+    const backend = createLocalProductBackend();
+    // api() resolves paths against the page location, which node lacks.
+    const hadWindow = "window" in globalThis;
+    Object.defineProperty(globalThis, "window", {
+      configurable: true,
+      value: { location: { href: "http://localhost/" } },
+    });
+    try {
+      const status = (await backend.api("/api/status")) as Record<string, unknown>;
+      assert.equal(status.capabilities, undefined);
+      await assert.rejects(
+        () => backend.api("/api/export-asc", { method: "POST", body: "{}" }),
+        /Raw ASC trace export needs the CanTraceDiag server app/,
+      );
+    } finally {
+      if (!hadWindow) delete (globalThis as { window?: unknown }).window;
+    }
+  });
+
   it("rejects a BLF selection before reading the file", async () => {
     const backend = createLocalProductBackend();
     const form = new FormData();

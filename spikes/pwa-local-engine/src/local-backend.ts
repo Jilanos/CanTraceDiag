@@ -256,6 +256,11 @@ export function localTraceRejection(name: string): string | null {
   if (lowered.endsWith(".blf")) {
     return "Binary BLF traces are not supported in the browser app. Open this recording with the CanTraceDiag server, which imports BLF.";
   }
+  if (lowered.endsWith(".mf4")) {
+    // Same constraint as BLF, plus MDF4 recovery of unfinalized recordings
+    // needs a disposable on-disk copy the browser engine does not have.
+    return "MF4 recordings are not supported in the browser app. Open this recording with the CanTraceDiag server (server mode), which imports MF4 and can save it as ASC.";
+  }
   return `Unsupported trace format: choose an ${LOCAL_TRACE_SUFFIXES.join(" or ")} file.`;
 }
 

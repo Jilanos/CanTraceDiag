@@ -416,3 +416,8 @@
   .report-bar { display: flex; align-items: center; gap: 10px; padding: 6px 12px; border-bottom: 1px solid var(--line); flex: 0 0 auto; }
   .report-bar strong { font: 600 9.5px var(--sans); letter-spacing: .14em; text-transform: uppercase; color: var(--fg); }
   .report-body { overflow: auto; padding: 16px 18px; }
+
+/* Export dialog rows toggle with the format (signals vs raw trace); their
+ * display rules (flex rows, inline block labels) would otherwise defeat the
+ * hidden attribute. */
+#exportDialog [hidden] { display: none !important; }

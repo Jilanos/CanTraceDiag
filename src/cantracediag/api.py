@@ -658,10 +658,17 @@ def create_app(
 
     @app.get("/api/status")
     def api_status() -> dict:
+        # What this backend can do, so a shared UI shell never offers a server
+        # capability where it is absent (the static PWA reports none of these).
+        capabilities = {
+            "trace_suffixes": list(TRACE_SUFFIXES),
+            "raw_asc_export": True,
+        }
         try:
             with session.use_store() as store:
                 return {
                     "loaded": True,
+                    "capabilities": capabilities,
                     "trace_path": session.trace_path,
                     "dbc_paths": session.dbc_paths,
                     "summary": store.summary(),
@@ -670,7 +677,7 @@ def create_app(
                     "event_types": store.event_types(),
                 }
         except HTTPException:
-            return {"loaded": False}
+            return {"loaded": False, "capabilities": capabilities}
 
     @app.get("/api/dbc-library")
     def api_dbc_library() -> dict:
@@ -927,6 +934,7 @@ def create_app(
             "unique_ids": summary.get("unique_ids", 0),
             "decode_status": status,
             "anomalies": anomalies,
+            "warnings": list(summary.get("warnings", [])),
         }
 
     @app.get("/api/signal-stats")

@@ -134,6 +134,9 @@ function stopImportPolling() {
 async function pollImportJob() {
   try {
     const job = await api("/api/import-job");
+    // A response that lands after the import finished (polling stopped) is
+    // stale: it would overwrite the rendered summary and its warnings.
+    if (importPollTimer === null) return;
     if (typeof job.progress === "number") setProgress(job.progress);
     if (job.phase && job.phase !== "idle") {
       $("summary").innerHTML = esc(job.detail || job.phase.replaceAll("_", " "));
@@ -220,6 +223,11 @@ function renderSummary(r) {
   if (st.ambiguous_id) problems.push(`${st.ambiguous_id} ambiguous id`);
   if (st.decode_error) problems.push(`${st.decode_error} decode error`);
   if (problems.length) html += ` · <span class="warn">${problems.join(" · ")}</span>`;
+  const warnings = s.warnings || [];
+  if (warnings.length) {
+    html += ` · <span class="warn" id="importWarnings" title="${esc(warnings.join("\n"))}">` +
+      `${warnings.length} import warning${warnings.length > 1 ? "s" : ""}</span>`;
+  }
   const res = r.resolution && Object.keys(r.resolution).length;
   if (res) html += ` · <span class="ok">${res} DBC conflict(s) resolved</span>`;
   $("summary").innerHTML = html;
