@@ -1,14 +1,14 @@
 ## task_048_deliver_raw_can_mf4_import_and_asc_trace_export - Deliver raw CAN MF4 import and ASC trace export
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 95%
-> Confidence: 90%
-> Progress: 90%
+> Confidence: 95%
+> Progress: 100%
 > Complexity: High
 > Theme: Raw CAN trace interoperability
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-10-01 14:29:31
+> Indicators reviewed: 2026-10-01 15:16:35
 > Owner: claude
 
 # AI Context
@@ -25,10 +25,10 @@ Implement the three linked slices in waves: independent sample characterization,
 - [x] 3. Wave 3: Deliver the stored-frame iterator and streaming ASC serializer/API, with provenance policy, all three time scopes, exclusion metadata and round-trip tests independent of signals/DBC.
 - [x] 4. Wave 4: Deliver server UI import/export capability, static-PWA rejection, support documentation and complete synthetic end-to-end plus ASC/TRC/BLF and signal-export regression checks.
 - [x] 5. Wave 5: Manually verify the external sample through MF4 import, ASC download and re-import; reconcile structural baseline with independent-reader results, compare counts/normalized values, confirm source hash unchanged and record evidence without committing recording or payloads.
-- [ ] 6. Wave 6: Run required lint/tests and Logics checks, update traceability and closeout proof. During implementation follow repository release policy: implementation commit, next SemVer preparation commit, push and CI on exact version SHA, annotated tag, release-workflow verification and evidence. Do not execute implementation/release while only scaffolding this corpus.
+- [x] 6. Wave 6: Run required lint/tests and Logics checks, update traceability and closeout proof. During implementation follow repository release policy: implementation commit, next SemVer preparation commit, push and CI on exact version SHA, annotated tag, release-workflow verification and evidence. Do not execute implementation/release while only scaffolding this corpus.
 - [x] ADR 009 checkpoint: update affected Logics docs during each meaningful wave and leave the repo commit-ready.
 - [x] Keep commit creation under operator control; do not force one commit per micro-step.
-- [ ] GATE: do not close until lint, audit, and scaffold validation pass.
+- [x] GATE: do not close until lint, audit, and scaffold validation pass.
 
 # Backlog
 - `item_057_import_third_party_raw_can_mf4_including_unfinished_recordings`
@@ -36,13 +36,13 @@ Implement the three linked slices in waves: independent sample characterization,
 - `item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability`
 
 # Definition of Done (DoD)
-- [ ] All request acceptance criteria and linked slice criteria have implementation evidence and meaningful automated coverage.
-- [ ] Supported finalized and sample-like unfinished MDF4 files import safely with correct raw values, diagnostics and source-preserving recovery.
-- [ ] Full, inclusive A/B and visible ASC exports work without DBC/signals, preserve raw values and satisfy the timestamp round-trip tolerance.
-- [ ] External sample results are independently verified and MF4 -> ASC -> ASC re-import comparisons recorded with unchanged source hash.
-- [ ] Reader/export memory and import cancellation are measured on representative generated large inputs.
-- [ ] Server UI, API and CLI support agree; static PWA clearly rejects unsupported capabilities; documentation and regression checks pass.
-- [ ] Logics traceability, lint/audit and required implementation/release evidence are recorded before closeout.
+- [x] All request acceptance criteria and linked slice criteria have implementation evidence and meaningful automated coverage.
+- [x] Supported finalized and sample-like unfinished MDF4 files import safely with correct raw values, diagnostics and source-preserving recovery.
+- [x] Full, inclusive A/B and visible ASC exports work without DBC/signals, preserve raw values and satisfy the timestamp round-trip tolerance.
+- [x] External sample results are independently verified and MF4 -> ASC -> ASC re-import comparisons recorded with unchanged source hash.
+- [x] Reader/export memory and import cancellation are measured on representative generated large inputs.
+- [x] Server UI, API and CLI support agree; static PWA clearly rejects unsupported capabilities; documentation and regression checks pass.
+- [x] Logics traceability, lint/audit and required implementation/release evidence are recorded before closeout.
 
 # AC Traceability
 - request-AC1 -> `item_057_import_third_party_raw_can_mf4_including_unfinished_recordings`, `item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability`. Proof: implemented in 273cdd6 (`TRACE_SUFFIXES` + upload guard in `api.py`, `.mf4` dispatch in `pipeline.py`, CLI help) and 00c27c9 (picker `accept=".asc,.trc,.blf,.mf4"`); `tests/test_mf4.py::test_upload_accepts_an_upper_case_mf4`, `test_path_import_accepts_an_mf4`, `test_a_truncated_mf4_upload_keeps_the_loaded_trace` (size/temp-store path unchanged, previous trace kept, no path echoed), `tests/test_e2e_ui.py::test_mf4_imports_and_downloads_as_raw_asc_without_signals` (real picker), `cantracediag info` on the external sample.
@@ -64,6 +64,9 @@ Implement the three linked slices in waves: independent sample characterization,
 - External sample, manual (outside git): upload -> `POST /api/export-asc` -> ASC re-upload: 117,797 frames each way, 0 field mismatches, max timestamp error 0 s, A/B 100-110 s = 18,683 frames as stored; source SHA-256 e00a995c...cd03099 unchanged. Details in `logics/external/mf4_sample_inspection.md`.
 - Large generated unfinalized MF4 (single DT, 3 interleaved groups), fresh process per measurement, peak RSS: import baseline 163 MB; adapter iteration 197 MB (2M records, 42 MB) / 237 MB (4M, 84 MB) -> ~20 B/record growth = asammdf record-offset index for an unsorted data group, frames not materialized (~200 B/record if they were); MF4 import into DuckDB 629 / 778 MB (ASC import of the same 2M frames: 584 MB); raw ASC export 447 / 669 MB (DuckDB ORDER BY; Python side streams 8,192-row batches). Time to first record 0.49 s on 84 MB; cancellation requested at 0.2 / 1.0 / 3.0 s stopped within 0.03 s (initialization and ingestion).
 - Logics: `logics-manager flow validate req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc`, `logics-manager lint --require-status`, `logics-manager audit --legacy-cutoff-version 1.1.0 --group-by-doc` -> see closeout.
+- command: `.venv/bin/ruff check . && .venv/bin/python -m pytest && node --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts && node spikes/pwa-local-engine/build-browser.mjs && node spikes/pwa-local-engine/browser-smoke.mjs` | result: passed | date: 2026-10-01 | note: 305 pytest (34 E2E), 86 node, PWA smoke ok; CI 36866700295 and release workflow 36867048417 green for v1.3.0
+- Finish workflow executed on 2026-10-01.
+- Linked backlog/request close verification passed.
 
 # Report
 - Commits: `273cdd6` MF4 import (adapter, pipeline/API/CLI acceptance, persisted import warnings, fixtures/tests); `cc48d6b` raw ASC export (store iterator + summary, serializer, `/api/export-asc[/summary]`, `cantracediag export-asc`); `00c27c9` server UI + static PWA boundary; `33c1a4c` docs.
@@ -73,7 +76,10 @@ Implement the three linked slices in waves: independent sample characterization,
 - Provenance policy: ASC export blocks frames without a numeric channel or Rx/Tx direction (HTTP 409 / CLI exit 2) unless `assume` is chosen; then channel 1 / Rx is written and disclosed in the header and summary.
 - Found and fixed on the way: a stale `/api/import-job` poll could overwrite the rendered import summary (would have hidden the recovery warning); export-dialog rows ignored the `hidden` attribute.
 - Reserves (not affecting the verdicts above): adapter memory grows ~20 B/record with asammdf's offset index for unsorted data groups; raw ASC export memory is bounded on the Python side but DuckDB's sort scales with the exported rows (spills under its memory limit); the ASC `date` header carries the export time (disclosed in a comment) because the source start time is not stored.
-- Remaining: release workflow (SemVer preparation commit, push, CI on the version SHA, annotated tag, release evidence) awaits operator authorization; closeout follows it.
+- Release v1.3.0 (operator-authorized): preparation commit `13bb1e7`, pushed to origin/main; CI run 36866700295 green (pwa, test 3.11, test 3.12); annotated tag `v1.3.0` on `13bb1e7`; release workflow 36867048417 green (validate, validate-python, publish, deploy, release); GitHub release https://github.com/Jilanos/CanTraceDiag/releases/tag/v1.3.0 published 2026-10-01T13:15:40Z. Evidence in `logics/release/evidence.jsonl`; `logics-manager release validate 1.3.0` passes every gate.
+- Finished on 2026-10-01.
+- Linked backlog item(s): `item_057_import_third_party_raw_can_mf4_including_unfinished_recordings`, `item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports`, `item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability`
+- Related request(s): `req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc`
 
 # Links
 - Request: `req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc`

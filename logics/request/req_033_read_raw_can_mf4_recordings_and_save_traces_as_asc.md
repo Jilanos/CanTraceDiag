@@ -1,13 +1,13 @@
 ## req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc - Read raw CAN MF4 recordings and save traces as ASC
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Draft
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: High
 > Theme: Raw CAN trace interoperability
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-10-01 14:28:01
+> Indicators reviewed: 2026-10-01 15:16:35
 
 # AI Context
 The supplied MDF 4.11 recording has stale DT length and zero group cycle counters; source-preserving recovery and independent count verification are required. ASC export operates on stored classic-CAN frames without a DBC, retaining relative time and sparse buses. Server mode is the delivery target; static PWA explicitly rejects these capabilities.

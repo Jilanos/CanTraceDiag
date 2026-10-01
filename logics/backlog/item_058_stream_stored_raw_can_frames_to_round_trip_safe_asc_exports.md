@@ -1,14 +1,14 @@
 ## item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports - Stream stored raw CAN frames to round-trip-safe ASC exports
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 85%
+> Progress: 100%
 > Complexity: High
 > Theme: Raw trace ASC serialization
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-01 14:29:31
+> Indicators reviewed: 2026-10-01 15:16:36
 
 # AI Context
 Use raw frames and global seq from DuckDB, not decoded signal samples. Export every supported frame within the chosen inclusive time range, retaining relative timestamps and sparse numeric channels. Prove ASC-reader round trips without a DBC or signal selection and block undisclosed channel/direction invention.
@@ -55,3 +55,9 @@ Use raw frames and global seq from DuckDB, not decoded signal samples. Export ev
 # Priority
 - Priority: High - directly delivers the requested save-as-ASC capability and can use existing normalized traces.
 - Rationale: Directly provides the requested save-as-ASC behavior using existing normalized traces.
+
+# Tasks
+- `task_048_deliver_raw_can_mf4_import_and_asc_trace_export`
+
+# Notes
+- Task `task_048_deliver_raw_can_mf4_import_and_asc_trace_export` was finished via `logics-manager flow finish task` on 2026-10-01.

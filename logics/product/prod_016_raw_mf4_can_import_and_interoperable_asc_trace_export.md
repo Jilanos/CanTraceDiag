@@ -1,11 +1,12 @@
 ## prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export - Raw MF4 CAN import and interoperable ASC trace export
 > Date: 2026-10-01
-> Status: Proposed
+> Status: Settled
 > Related request: `req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc`
-> Related backlog: `item_057_import_third_party_raw_can_mf4_including_unfinished_recordings`, `item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports`, `item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability`
+> Related backlog: `item_057_import_third_party_raw_can_mf4_including_unfinished_recordings`
 > Related task: `task_048_deliver_raw_can_mf4_import_and_asc_trace_export`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-10-01 15:16:36
 
 # Overview
 Let operators analyze third-party MDF4 raw classic-CAN recordings and save normalized raw frames as an interoperable ASC trace, with safe unfinished-file handling and transparent conversion limits.
@@ -52,5 +53,5 @@ flowchart LR
 ```
 
 # References
-- Product back-reference: `req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc`
+- Product back-reference: `item_057_import_third_party_raw_can_mf4_including_unfinished_recordings`
 - Task back-reference: `task_048_deliver_raw_can_mf4_import_and_asc_trace_export`

@@ -24,7 +24,7 @@
 | [prod_013_reliable_static_pwa_delivery](product/prod_013_reliable_static_pwa_delivery.md) | Reliable static PWA delivery | Proposed |  |  | product/prod_013_reliable_static_pwa_delivery.md |
 | [prod_014_reliable_binary_blf_can_trace_import](product/prod_014_reliable_binary_blf_can_trace_import.md) | Reliable binary BLF CAN trace import | Settled |  |  | product/prod_014_reliable_binary_blf_can_trace_import.md |
 | [prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults](product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md) | Optional cursor integration and reusable DBC import defaults | Settled |  |  | product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md |
-| [prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export](product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md) | Raw MF4 CAN import and interoperable ASC trace export | Proposed |  |  | product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md |
+| [prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export](product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md) | Raw MF4 CAN import and interoperable ASC trace export | Settled |  |  | product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md |
 
 ## Roadmaps
 
@@ -71,7 +71,7 @@
 | [req_030_pin_supply_chain_images_and_actions_immutably](request/req_030_pin_supply_chain_images_and_actions_immutably.md) | Pin supply-chain images and actions immutably | Draft |  |  | request/req_030_pin_supply_chain_images_and_actions_immutably.md |
 | [req_031_import_binary_blf_can_trace_recordings](request/req_031_import_binary_blf_can_trace_recordings.md) | Import binary BLF CAN trace recordings | Done |  |  | request/req_031_import_binary_blf_can_trace_recordings.md |
 | [req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection](request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md) | Add opt-in cursor integral analysis and restore the last loaded DBC selection | Done |  |  | request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md |
-| [req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc](request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md) | Read raw CAN MF4 recordings and save traces as ASC | Draft |  |  | request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md |
+| [req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc](request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md) | Read raw CAN MF4 recordings and save traces as ASC | Done |  |  | request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md |
 
 ## Backlog
 
@@ -141,9 +141,9 @@
 | [item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores](backlog/item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores.md) | Compute exact-range numeric signal integrals in local and server stores | Done |  | 100% | backlog/item_054_compute_exact_range_numeric_signal_integrals_in_local_and_server_stores.md |
 | [item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation](backlog/item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation.md) | Expose per-signal cursor integral analysis only after explicit activation | Done |  | 100% | backlog/item_055_expose_per_signal_cursor_integral_analysis_only_after_explicit_activation.md |
 | [item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set](backlog/item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set.md) | Persist and preselect the exact last successful DBC load set | Done |  | 100% | backlog/item_056_persist_and_preselect_the_exact_last_successful_dbc_load_set.md |
-| [item_057_import_third_party_raw_can_mf4_including_unfinished_recordings](backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md) | Import third-party raw CAN MF4 including unfinished recordings | Ready |  | 0% | backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md |
-| [item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports](backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md) | Stream stored raw CAN frames to round-trip-safe ASC exports | Ready |  | 0% | backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md |
-| [item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability](backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md) | Expose MF4 import and raw ASC download with explicit server capability | Ready |  | 0% | backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md |
+| [item_057_import_third_party_raw_can_mf4_including_unfinished_recordings](backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md) | Import third-party raw CAN MF4 including unfinished recordings | Done |  | 100% | backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md |
+| [item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports](backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md) | Stream stored raw CAN frames to round-trip-safe ASC exports | Done |  | 100% | backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md |
+| [item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability](backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md) | Expose MF4 import and raw ASC download with explicit server capability | Done |  | 100% | backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md |
 
 ## Tasks
 
@@ -204,7 +204,7 @@
 | [task_045_deliver_static_pwa_delivery_and_release_hardening](tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md) | Deliver static PWA delivery and release hardening | In progress | codex | 90% | tasks/task_045_deliver_static_pwa_delivery_and_release_hardening.md |
 | [task_046_deliver_reliable_binary_blf_trace_import](tasks/task_046_deliver_reliable_binary_blf_trace_import.md) | Deliver reliable binary BLF trace import | Done | claude | 100% | tasks/task_046_deliver_reliable_binary_blf_trace_import.md |
 | [task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading](tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md) | Deliver opt-in signal integral analysis and remembered DBC loading | Done | Claude | 100% | tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md |
-| [task_048_deliver_raw_can_mf4_import_and_asc_trace_export](tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md) | Deliver raw CAN MF4 import and ASC trace export | Ready |  | 0% | tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md |
+| [task_048_deliver_raw_can_mf4_import_and_asc_trace_export](tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md) | Deliver raw CAN MF4 import and ASC trace export | Done | claude | 100% | tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md |
 
 ## Runbooks
 

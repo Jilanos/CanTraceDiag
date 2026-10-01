@@ -1,14 +1,14 @@
 ## item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability - Expose MF4 import and raw ASC download with explicit server capability
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 85%
+> Progress: 100%
 > Complexity: Medium
 > Theme: Trace conversion UX and validation
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-01 14:29:31
+> Indicators reviewed: 2026-10-01 15:16:36
 
 # AI Context
 Depends on the MF4 adapter and raw ASC export contract. report.js currently blocks export when no signals are selected and names downloads CSV/Parquet; adapt validation and filenames only for raw ASC. Static PWA needs explicit capability rejection, and conversion warnings must be visible before download.
@@ -57,3 +57,9 @@ Depends on the MF4 adapter and raw ASC export contract. report.js currently bloc
 # Priority
 - Priority: High - completes the usable user flow after the import and serialization prerequisites.
 - Rationale: Makes the two backend capabilities usable and keeps server/PWA support truthful.
+
+# Tasks
+- `task_048_deliver_raw_can_mf4_import_and_asc_trace_export`
+
+# Notes
+- Task `task_048_deliver_raw_can_mf4_import_and_asc_trace_export` was finished via `logics-manager flow finish task` on 2026-10-01.
