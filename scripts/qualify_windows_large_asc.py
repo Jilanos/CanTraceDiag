@@ -388,7 +388,8 @@ def latency_phase(svc: Service, n: int, rng: random.Random) -> dict:
     }
 
 
-def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int) -> dict:
+def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int,
+                  out: dict | None = None) -> dict:
     from playwright.sync_api import sync_playwright
 
     before = {p.pid for p in psutil.process_iter()}
@@ -405,12 +406,17 @@ def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int) -> dict:
                 continue
         return roots
 
-    out: dict = {"channel": channel}
+    out = {} if out is None else out
+    out["channel"] = channel
     with sync_playwright() as pw:
         browser = pw.chromium.launch(channel=channel, headless=False)
         out["browser_version"] = browser.version
         sampler = TreeSampler(browser_roots).start()
         page = browser.new_page(viewport={"width": 1600, "height": 900})
+        console: list[str] = []
+        page.on("console", lambda m: console.append(f"{m.type}: {m.text[:200]}")
+                if m.type in ("error", "warning") else None)
+        page.on("pageerror", lambda e: console.append(f"pageerror: {str(e)[:200]}"))
         page.goto(url)
         page.wait_for_function("() => typeof state !== 'undefined'")
         page.set_input_files("#traceFile", str(asc))
@@ -422,10 +428,18 @@ def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int) -> dict:
                                   timeout=30 * 60 * 1000) as resp:
             page.click("#loadBtn")
         out["ui_import_status"] = resp.value.status
-        page.wait_for_function(
-            "() => state.loaded && state.signals.length > 0 &&"
-            " document.getElementById('statusLed').classList.contains('indexed')",
-            timeout=10 * 60 * 1000, polling=500)
+        try:
+            page.wait_for_function(
+                "() => state.loaded && state.signals.length > 0 &&"
+                " document.getElementById('statusLed').classList.contains('indexed')",
+                timeout=10 * 60 * 1000, polling=500)
+        except Exception:
+            out["ui_state_on_timeout"] = page.evaluate(
+                "() => ({loaded: state.loaded, signals: state.signals.length,"
+                " led: document.getElementById('statusLed').className,"
+                " summary: document.getElementById('summary').textContent.slice(0, 200)})")
+            out["console_errors"] = console[-10:]
+            raise
         out["ui_import_to_ready_s"] = round(time.monotonic() - t0, 1)
 
         t0 = time.monotonic()
@@ -438,30 +452,42 @@ def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int) -> dict:
                                "state.selected.every((s) => s.t.length > 0)", timeout=600_000)
         out["ui_plot_two_signals_first_s"] = round(time.monotonic() - t0, 2)
 
-        cursor_times = []
-        for i in range(n):
-            frac = (i + 0.5) / n
-            with page.expect_response(lambda r: "/api/cursors" in r.url) as resp:
-                t0 = time.monotonic()
-                page.evaluate(
-                    "(f) => { const [lo, hi] = state.bounds;"
-                    " placeCursor(lo + (hi - lo) * f, 'a'); placeCursor(lo + (hi - lo) * f * 0.9,"
-                    " 'b'); }", frac)
-            resp.value.finished()
-            cursor_times.append(time.monotonic() - t0)
-        out["ui_cursor_update"] = summarize(cursor_times)
+        # Timed inside the page (fetch + render), so Playwright's own
+        # instrumentation overhead does not count as application latency.
+        cursor_ms = page.evaluate("""async (n) => {
+            const out = [];
+            const [lo, hi] = state.bounds;
+            for (let i = 0; i < n; i++) {
+                const f = (i + 0.5) / n;
+                const t = performance.now();
+                state.cursor.a = lo + (hi - lo) * f;
+                state.cursor.b = lo + (hi - lo) * f * 0.9;
+                renderPlot();
+                await refreshCursorReadout();
+                out.push(performance.now() - t);
+            }
+            return out;
+        }""", n)
+        out["ui_cursor_update"] = summarize([v / 1000 for v in cursor_ms])
 
         page.click("#viewTrace")
         page.wait_for_selector("#traceTable tbody tr")
-        page_times = []
-        for _ in range(n):
-            with page.expect_response(lambda r: "/api/trace?" in r.url) as resp:
-                t0 = time.monotonic()
-                page.click("#nextBtn")
-            resp.value.finished()
-            page.wait_for_selector("#traceTable tbody tr")
-            page_times.append(time.monotonic() - t0)
-        out["ui_trace_next_page"] = summarize(page_times)
+        # Filtered pages, as the 200-row criterion states: filter by one id.
+        page_ms = page.evaluate("""async (n) => {
+            const ids = [...new Set(state.signals.filter((s) => s.present).map((s) => s.id_hex))];
+            const [lo, hi] = state.bounds;
+            const out = [];
+            for (let i = 0; i < n; i++) {
+                $("fId").value = ids[i % ids.length];
+                $("fStart").value = String(lo + (hi - lo) * ((i * 37) % n) / n);
+                const t = performance.now();
+                const ok = await loadTrace(null);
+                if (!ok || !state.trace.rows.length) throw new Error("trace page failed");
+                out.push(performance.now() - t);
+            }
+            return out;
+        }""", n)
+        out["ui_trace_page_200_filtered"] = summarize([v / 1000 for v in page_ms])
         out["memory"] = sampler.stop()
         browser.close()
     return out
@@ -630,7 +656,12 @@ def main() -> int:
         if args.browser:
             url = f"http://127.0.0.1:{svc.port}/"
             service_sampler = TreeSampler(svc.root).start()
-            report["browser"] = browser_phase(url, asc, dbc, args.browser, args.interactions)
+            browser_out: dict = {}
+            try:
+                report["browser"] = browser_phase(url, asc, dbc, args.browser, args.interactions,
+                                                  browser_out)
+            except Exception as exc:
+                report["browser"] = {**browser_out, "error": repr(exc)[:300]}
             report["service_memory_during_browser"] = service_sampler.stop()
             print("browser:", json.dumps(report["browser"]), flush=True)
     finally:
