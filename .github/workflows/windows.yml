@@ -1,0 +1,49 @@
+name: Windows executable
+
+# Builds the standalone Windows x64 executable, then smoke-tests that exact
+# file with a scrubbed environment (no Python on PATH) and exercises the
+# repository launcher against it before uploading it as a workflow artifact.
+# Called by CI on every push/PR and by the tag release, which publishes the
+# very artifact tested here (req_034 AC9).
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        description: Release tag recorded in the provenance (empty outside a release).
+        type: string
+        default: ""
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: windows-2025
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-python@v7.0.0
+        with:
+          python-version: "3.13"
+      - name: Build executable, checksum and provenance
+        shell: pwsh
+        run: ./packaging/windows/build.ps1 -Python python -Tag "${{ inputs.tag }}"
+      - name: Smoke-test the exact executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist/windows/*.exe | Select-Object -First 1
+          build/venv-windows/Scripts/python.exe packaging/windows/smoke.py $exe.FullName --report dist/windows-smoke.json
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Repository launcher against the exact executable
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem dist/windows/*.exe | Select-Object -First 1
+          build/venv-windows/Scripts/python.exe packaging/windows/test_launcher.py $exe.FullName
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: cantracediag-windows-x64
+          path: |
+            dist/windows/*
+            dist/windows-smoke.json
+          if-no-files-found: error
+          retention-days: 14

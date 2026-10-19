@@ -96,3 +96,8 @@ jobs:
         run: pytest
         env:
           CI: "true"
+
+  windows-exe:
+    # The standalone Windows executable is built and smoke-tested on every
+    # push so a packaging regression is caught before a release tag.
+    uses: ./.github/workflows/windows.yml
