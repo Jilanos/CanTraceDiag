@@ -34,7 +34,8 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Keyboard-accessible controls** (favorites, filters, table rows, dialogs, resizers) with Pointer-Events graph and resize interactions, verified across the 1024×768 / 1280×720 / 1600×900 desktop viewports plus minimal 390×844 support.
 - **Browser fullscreen control** requesting document fullscreen from the user gesture, following native exits (Escape, F11, browser UI) and reporting a refusal inline.
 - **Session restore** through a local workspace outside the repository.
-- **One-click Windows + WSL launcher** with a desktop shortcut.
+- **Standalone Windows executable** fetched, verified and started by a double-clickable `CanTraceDiag.cmd`, for ASC traces up to 1 GiB, without Python or WSL.
+- **One-click Windows + WSL launcher** with a desktop shortcut (developers).
 
 ## Quick Start
 
@@ -114,7 +115,42 @@ http://127.0.0.1:8000
 
 If the requested port is already busy, `serve` picks a free one. If a CanTraceDiag instance is already running on that port, the command reopens the browser instead of starting a second server.
 
-## One-Click Windows + WSL Launch
+## Windows Standalone (No Python, No WSL)
+
+For an operator who only has Windows 11 x64 and a browser: clone the repository (or check out a release tag) and double-click **`CanTraceDiag.cmd`** at the repository root. No Python, Node, WSL, Docker or administrator rights are needed.
+
+What the launcher does:
+
+1. reads the checkout's version (`src/cantracediag/__init__.py`) and commit (`.git`, no git installation needed);
+2. resolves the GitHub release `v<version>` and checks its provenance: same version and tag, `windows/x64`, and **exactly this checkout's commit**;
+3. downloads `CanTraceDiag-<version>-windows-x64.exe` and verifies its SHA-256 against both the published `.sha256` file and the provenance **before** anything runs;
+4. caches the verified executable under `%LOCALAPPDATA%\CanTraceDiag\releases\v<version>\`. Later launches re-verify the cached file and work offline.
+
+Only published releases get a binary. A development checkout fails with instructions instead of silently downloading another version: run `git checkout vX.Y.Z` (a published release tag) or `CanTraceDiag.cmd -Release vX.Y.Z`. Missing assets, network failures, incomplete downloads, checksum mismatches and non-x64 machines all stop before execution. No binary is ever committed to the repository.
+
+The executable starts a **loopback-only** service (`127.0.0.1`, port 8000 or the next usable one) and opens your default browser on the familiar UI once it is ready. Keep its console window open while you work; **closing it (or Ctrl+C) stops CanTraceDiag**. `CanTraceDiag.cmd --stop` stops it from elsewhere. Launching it again while it runs just reopens the browser; a different running version is reported, not replaced.
+
+Per-user locations (never inside the clone, so a clone on a `\\wsl.localhost\...` share works too):
+
+| What | Where |
+| --- | --- |
+| DBC library, last analysis, upload staging | `%LOCALAPPDATA%\CanTraceDiag\data\` |
+| Service log (rotated, 3 x 5 MiB) | `%LOCALAPPDATA%\CanTraceDiag\logs\cantracediag.log` |
+| Running instance (port, version) | `%LOCALAPPDATA%\CanTraceDiag\instance.json` |
+| Verified downloaded executables | `%LOCALAPPDATA%\CanTraceDiag\releases\` |
+
+Capacity: the Windows local application accepts an ASC trace up to **exactly 1 GiB (1,073,741,824 bytes, inclusive)** through the normal file picker, with a separate 64 MiB budget for uploaded DBC files and 8 MiB for the upload envelope; 1 GiB + 1 byte is refused with a clear message. The upload streams to disk, the trace is indexed in bounded batches into a DuckDB file, and signals are decoded lazily per plotted signal. Cancel works during the transfer and during indexing and keeps the previous analysis. The 1 GiB guarantee applies to ASC; TRC, BLF and raw-CAN MF4 are supported by the executable without a size guarantee. The hosted web app (static PWA) keeps its own, smaller, browser-memory-bound limits.
+
+The executable is **not code-signed**: Windows SmartScreen may show "Windows protected your PC" the first time; choose *More info* then *Run anyway* only for a file obtained through the launcher (which verified its SHA-256 against the release). Bundled third-party components and their licenses are listed in `THIRD_PARTY_NOTICES.txt`, published with each release.
+
+Building it yourself on Windows x64 (needs Python 3.13 on the build machine only):
+
+```powershell
+.\packaging\windows\build.ps1          # -> dist\windows\CanTraceDiag-<version>-windows-x64.exe (+ .sha256, provenance, notices)
+python packaging\windows\smoke.py dist\windows\CanTraceDiag-<version>-windows-x64.exe
+```
+
+## One-Click Windows + WSL Launch (Developers)
 
 Run this once per Windows machine from Windows PowerShell:
 
@@ -227,7 +263,8 @@ CanTraceDiag exposes a local FastAPI API used by the UI:
 In normal mode, persistent data is stored outside the repository under:
 
 ```text
-~/.local/share/cantracediag/
+~/.local/share/cantracediag/          # Linux / WSL
+%LOCALAPPDATA%\CanTraceDiag\data\     # native Windows (standalone executable)
 ```
 
 Useful variables:
@@ -245,7 +282,7 @@ CanTraceDiag follows a local-first, Jupyter-style security model:
 - it binds to loopback by default and rejects requests whose `Host` is not on an allowlist (DNS-rebinding defence) or whose `Origin` is cross-site;
 - a per-process **session token** is generated at startup, embedded in the served page, and required on mutating endpoints locally and on **every** endpoint in `--lan` mode;
 - in `--lan` mode the browser entry URL carries the token so a stock browser can load the protected shell; access logs are disabled and Uvicorn logs run at `warning` to avoid logging token-bearing URLs;
-- uploads are capped by a documented aggregate request limit covering the trace plus all uploaded DBC files;
+- uploads are streamed to disk and capped while they stream: an inclusive per-trace limit, a separate aggregate limit for uploaded DBC files, an allowance for the multipart envelope, and the sum of the three for the whole request, checked against both the declared `Content-Length` and the bytes actually received;
 - server-side path import can read any file path accessible to the backend process by design for local CLI/power-user workflows, and is disabled in `--lan` mode so exposing the UI never grants arbitrary file reads;
 - error messages never echo local filesystem paths.
 
@@ -254,7 +291,11 @@ Security variables:
 - `CANTRACEDIAG_LAN=1`: protect the whole API with the token and disable server-path import;
 - `CANTRACEDIAG_TOKEN`: pin the session token instead of generating one;
 - `CANTRACEDIAG_HOST` / `CANTRACEDIAG_ALLOWED_HOSTS`: additional allowed `Host` values;
-- `CANTRACEDIAG_MAX_UPLOAD_MB`: maximum upload size in MB, default `512`;
+- `CANTRACEDIAG_MAX_TRACE_MB`: trace file limit in MiB (inclusive), default `1024` (1 GiB);
+- `CANTRACEDIAG_MAX_DBC_MB`: total of uploaded DBC files in MiB, default `64`;
+- `CANTRACEDIAG_MAX_ENVELOPE_MB`: multipart framing and form fields in MiB, default `8`;
+- `CANTRACEDIAG_MAX_UPLOAD_MB`: optional administrator cap on the whole request (and therefore on the trace). Unset by default locally; in `--lan` mode, when none of these variables is set, the historical `512` MiB aggregate cap still applies, so a network-exposed server is not widened silently;
+- `CANTRACEDIAG_DUCKDB_MEMORY_LIMIT`: DuckDB buffer pool for the on-disk index, default `2GB`;
 - `CANTRACEDIAG_ALLOW_SERVER_IMPORT`: force-enable/disable server-side path import.
 
 ## Architecture
@@ -271,7 +312,9 @@ src/cantracediag/
 ├── formats/mf4.py  # MDF4 raw CAN adapter (asammdf) + unfinalized recovery check
 ├── pipeline.py     # trace import -> index
 ├── store.py        # DuckDB + windowed queries
-├── security.py     # Host/Origin/token/upload hardening
+├── security.py     # Host/Origin/token hardening + upload byte budgets
+├── upload.py       # streaming multipart staging under those budgets
+├── desktop.py      # standalone Windows executable entry point (instance, stop, logs)
 ├── export.py       # streamed CSV/Parquet signal export + raw ASC writer
 ├── workspace.py    # DBC library + session restore
 └── web/            # local UI, favicon, static assets
@@ -313,7 +356,8 @@ Delivered today:
 - local UI with plots, trace table, inspector, and cursors;
 - persistent workspace;
 - DBC library;
-- Windows + WSL shortcut;
+- standalone Windows x64 executable fetched and verified by `CanTraceDiag.cmd`, ASC up to 1 GiB;
+- Windows + WSL shortcut (developers);
 - browser favicon and shortcut icon.
 
 Known limits:
