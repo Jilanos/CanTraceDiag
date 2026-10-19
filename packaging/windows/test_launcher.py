@@ -219,6 +219,18 @@ def main() -> int:
     check("explicit -Release runs the chosen published tag",
           r.returncode == 0 and expected in r.stdout, r.stdout)
 
+    # Started from PowerShell 7 (as on CI runners and in modern terminals): its
+    # PSModulePath must not break the Windows PowerShell launcher.
+    pwsh = shutil.which("pwsh")
+    if pwsh:
+        shutil.rmtree(cache, ignore_errors=True)
+        command = f"& '{co / 'CanTraceDiag.cmd'}' --version"
+        r = subprocess.run([pwsh, "-NoProfile", "-Command", command],
+                           env=env, capture_output=True, text=True, timeout=600,
+                           encoding="utf-8", errors="replace")
+        check("launch from PowerShell 7 verifies and runs",
+              r.returncode == 0 and expected in r.stdout, r.stdout + r.stderr)
+
     if args.unc_root:
         unc = Path(args.unc_root) / f"ctd-launcher-{os.getpid()}"
         try:

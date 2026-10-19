@@ -93,7 +93,14 @@ function Assert-X64 {
 }
 
 function Get-Sha256([string]$Path) {
-  return (Get-FileHash -LiteralPath $Path -Algorithm SHA256).Hash.ToLowerInvariant()
+  # .NET directly rather than Get-FileHash: started from PowerShell 7, Windows
+  # PowerShell can inherit a PSModulePath where that command does not load.
+  $stream = [System.IO.File]::OpenRead($Path)
+  try {
+    $sha = [System.Security.Cryptography.SHA256]::Create()
+    try { $bytes = $sha.ComputeHash($stream) } finally { $sha.Dispose() }
+  } finally { $stream.Dispose() }
+  return (-join ($bytes | ForEach-Object { $_.ToString("x2") }))
 }
 
 function Read-Json([string]$Path) {
