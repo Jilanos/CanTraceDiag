@@ -7,7 +7,9 @@ CanTraceDiag follows a Jupyter-style local security model:
   defence) or whose ``Origin`` is cross-site;
 * it requires a per-process session token on mutating endpoints in local mode,
   and on *every* API endpoint in LAN mode;
-* it caps upload size via documented configuration;
+* it caps upload size via documented configuration: an inclusive per-trace
+  cap, an independent aggregate DBC cap and a multipart-envelope allowance,
+  whose sum bounds the whole request (see :class:`UploadLimits`);
 * it never echoes local filesystem paths in error messages; and
 * it disables server-side path import outside loopback unless explicitly
   re-enabled.
@@ -27,7 +29,18 @@ from urllib.parse import urlsplit
 # Starlette in-process host used by TestClient.
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1", "[::1]", "testserver"})
 
-_DEFAULT_MAX_UPLOAD_MB = 512.0
+MIB = 1024 * 1024
+
+# Local (loopback) defaults: a full 1 GiB trace is accepted *inclusively*, and
+# uploaded DBCs and the multipart envelope get their own budgets on top of it so
+# neither eats into the trace allowance (req_034 AC1).
+DEFAULT_MAX_TRACE_BYTES = 1024 * MIB
+DEFAULT_MAX_DBC_BYTES = 64 * MIB
+DEFAULT_ENVELOPE_BYTES = 8 * MIB
+# Historical aggregate cap. LAN deployments keep it unless an administrator
+# explicitly raises a limit, so the new local default never silently widens what
+# a network-exposed server accepts.
+LEGACY_MAX_UPLOAD_BYTES = 512 * MIB
 
 
 def _flag(name: str, default: bool = False) -> bool:
@@ -65,6 +78,76 @@ def host_of_origin(origin: str | None) -> str | None:
     return f"[{host}]" if ":" in host else host
 
 
+def _bytes_env(name_mb: str) -> int | None:
+    """Positive byte count from a ``*_MB`` variable (fractions allowed), or None."""
+    raw = os.environ.get(name_mb)
+    if raw is None or not raw.strip():
+        return None
+    try:
+        mb = float(raw)
+    except ValueError:
+        return None
+    return max(1, int(mb * MIB)) if mb > 0 else None
+
+
+@dataclass(frozen=True, slots=True)
+class UploadLimits:
+    """Byte budgets enforced while a browser upload streams in.
+
+    ``trace`` is inclusive (a trace of exactly ``trace`` bytes is accepted),
+    ``dbc`` bounds the *sum* of uploaded DBC files, and ``envelope`` bounds the
+    multipart framing plus non-file form fields. ``request`` bounds the whole
+    body and defaults to the sum of the three.
+    """
+
+    trace: int = DEFAULT_MAX_TRACE_BYTES
+    dbc: int = DEFAULT_MAX_DBC_BYTES
+    envelope: int = DEFAULT_ENVELOPE_BYTES
+    request: int | None = None
+
+    @property
+    def max_request(self) -> int:
+        if self.request is not None:
+            return self.request
+        return self.trace + self.dbc + self.envelope
+
+    @classmethod
+    def uniform(cls, max_bytes: int) -> UploadLimits:
+        """Every budget (and the whole request) capped at ``max_bytes``."""
+        return cls(trace=max_bytes, dbc=max_bytes, envelope=max_bytes, request=max_bytes)
+
+    @classmethod
+    def from_env(cls, lan: bool) -> UploadLimits:
+        """Resolve the limits from the environment.
+
+        ``CANTRACEDIAG_MAX_TRACE_MB``, ``CANTRACEDIAG_MAX_DBC_MB`` and
+        ``CANTRACEDIAG_MAX_ENVELOPE_MB`` set each budget. The historical
+        ``CANTRACEDIAG_MAX_UPLOAD_MB``, when set, stays an administrator cap on
+        the whole request (and therefore on the trace). Without any explicit
+        setting, LAN mode keeps the historical 512 MiB aggregate cap.
+        """
+        trace = _bytes_env("CANTRACEDIAG_MAX_TRACE_MB")
+        dbc = _bytes_env("CANTRACEDIAG_MAX_DBC_MB")
+        envelope = _bytes_env("CANTRACEDIAG_MAX_ENVELOPE_MB")
+        aggregate = _bytes_env("CANTRACEDIAG_MAX_UPLOAD_MB")
+        explicit = any(v is not None for v in (trace, dbc, envelope, aggregate))
+        if lan and not explicit:
+            aggregate = LEGACY_MAX_UPLOAD_BYTES
+        limits = cls(
+            trace=trace or DEFAULT_MAX_TRACE_BYTES,
+            dbc=dbc or DEFAULT_MAX_DBC_BYTES,
+            envelope=envelope or DEFAULT_ENVELOPE_BYTES,
+        )
+        if aggregate is not None:
+            limits = cls(
+                trace=min(limits.trace, aggregate),
+                dbc=min(limits.dbc, aggregate),
+                envelope=limits.envelope,
+                request=aggregate,
+            )
+        return limits
+
+
 @dataclass(slots=True)
 class SecurityConfig:
     """Resolved security posture for one server process."""
@@ -72,7 +155,7 @@ class SecurityConfig:
     lan: bool
     token: str
     allowed_hosts: frozenset[str]
-    max_upload_bytes: int
+    upload_limits: UploadLimits
     allow_server_import: bool
 
     @classmethod
@@ -88,12 +171,6 @@ class SecurityConfig:
             if extra.strip():
                 allowed.add(extra.strip())
 
-        try:
-            mb = float(os.environ.get("CANTRACEDIAG_MAX_UPLOAD_MB", _DEFAULT_MAX_UPLOAD_MB))
-        except ValueError:
-            mb = _DEFAULT_MAX_UPLOAD_MB
-        max_upload_bytes = max(1, int(mb * 1024 * 1024))
-
         # Server-side path import (arbitrary local file read) is allowed on
         # loopback by default and disabled in LAN unless explicitly re-enabled.
         if "CANTRACEDIAG_ALLOW_SERVER_IMPORT" in os.environ:
@@ -105,7 +182,7 @@ class SecurityConfig:
             lan=lan,
             token=token,
             allowed_hosts=frozenset(allowed),
-            max_upload_bytes=max_upload_bytes,
+            upload_limits=UploadLimits.from_env(lan),
             allow_server_import=allow_server_import,
         )
 

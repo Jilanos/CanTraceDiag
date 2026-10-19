@@ -8,8 +8,6 @@ filesystem paths.
 
 from __future__ import annotations
 
-import asyncio
-import threading
 from pathlib import Path
 
 import pytest
@@ -18,7 +16,7 @@ from starlette.testclient import TestClient
 
 import cantracediag.api as api_module
 from cantracediag.api import create_app
-from cantracediag.security import LOOPBACK_HOSTS, SecurityConfig
+from cantracediag.security import LOOPBACK_HOSTS, SecurityConfig, UploadLimits
 
 FIX = Path(__file__).parent / "fixtures"
 
@@ -28,7 +26,7 @@ def _config(**kw) -> SecurityConfig:
         lan=False,
         token="secret-token",
         allowed_hosts=frozenset(LOOPBACK_HOSTS),
-        max_upload_bytes=512 * 1024 * 1024,
+        upload_limits=UploadLimits(),
         allow_server_import=True,
     )
     base.update(kw)
@@ -131,40 +129,14 @@ def test_lan_mode_index_requires_token() -> None:
 
 
 def test_upload_over_limit_is_rejected() -> None:
-    app = create_app(security=_config(max_upload_bytes=64))
+    app = create_app(security=_config(upload_limits=UploadLimits.uniform(64)))
     big = b"0.0 1 100 Rx d 8 " + b"00 " * 4000
     r = make_client(app).post(
         "/api/import-files",
         files=[("trace", ("big.asc", big, "application/octet-stream"))],
     )
     assert r.status_code == 413
-    assert "size limit" in r.json()["detail"]
-
-
-def _run_async(coro) -> None:
-    error: list[BaseException] = []
-
-    def runner() -> None:
-        try:
-            asyncio.run(coro)
-        except BaseException as exc:  # noqa: BLE001 - re-raised in caller thread
-            error.append(exc)
-
-    worker = threading.Thread(target=runner)
-    worker.start()
-    worker.join()
-    if error:
-        raise error[0]
-
-
-def test_spool_enforces_aggregate_upload_limit(tmp_path: Path) -> None:
-    first = UploadStub([b"a" * 40])
-    second = UploadStub([b"b" * 40])
-    budget = [0]
-    _run_async(api_module._spool(first, tmp_path / "first.asc", 64, budget))
-    with pytest.raises(Exception) as exc:
-        _run_async(api_module._spool(second, tmp_path / "second.dbc", 64, budget))
-    assert getattr(exc.value, "status_code", None) == 413
+    assert "exceeds the 64 bytes limit" in r.json()["detail"]
 
 
 # -- no path leakage (AC10) -----------------------------------------------
@@ -226,15 +198,3 @@ def test_index_embeds_session_token_locally() -> None:
     app = create_app(security=_config())
     html = make_client(app).get("/").text
     assert '<meta name="ctd-token" content="secret-token" />' in html
-
-
-class UploadStub:
-    def __init__(self, chunks: list[bytes]) -> None:
-        self._chunks = chunks
-        self.closed = False
-
-    async def read(self, _size: int) -> bytes:
-        return self._chunks.pop(0) if self._chunks else b""
-
-    async def close(self) -> None:
-        self.closed = True

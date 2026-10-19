@@ -22,7 +22,11 @@ $("loadBtn").addEventListener("click", doLoad);
 $("cancelImportBtn").addEventListener("click", async () => {
   $("cancelImportBtn").disabled = true;
   try {
+    // During the transfer, stop sending bytes now; the server also drops the
+    // staged files when it sees the cancel flag or the disconnect.
+    const aborted = abortActiveUpload();
     await api("/api/import-cancel", { method: "POST" });
+    if (aborted) return;
     startImportPolling();
   } catch (err) {
     reportError(err, "Import cancellation failed");

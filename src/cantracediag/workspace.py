@@ -12,6 +12,8 @@ Layout under the user data root (``$CANTRACEDIAG_DATA_DIR`` or
         <digest>/<original_name>   # library DBC files, deduplicated by content
     analysis/
         <uuid>/analysis.duckdb     # indexed acquisitions (only the latest kept)
+    staging/
+        <uuid>/                    # one in-flight browser upload, removed after use
     last-analysis.json             # manifest describing the latest analysis
 
 Everything stays outside the repository (ADR 0004). An *ephemeral* workspace
@@ -74,6 +76,7 @@ class Workspace:
         self.dbc_cap = dbc_cap
         self.dbc_dir = self.root / "dbc"
         self.analysis_dir = self.root / "analysis"
+        self.staging_dir = self.root / "staging"
         self.index_path = self.dbc_dir / "index.json"
         self.manifest_path = self.root / "last-analysis.json"
         if not ephemeral:
@@ -191,6 +194,27 @@ class Workspace:
         for child in self.dbc_dir.iterdir():
             if child.is_dir() and child.name not in index:
                 shutil.rmtree(child, ignore_errors=True)
+
+    # -- upload staging ----------------------------------------------------
+    def new_staging_dir(self) -> Path:
+        """A fresh directory for one streamed upload (req_034 AC3, AC7).
+
+        Persistent workspaces stage next to the analyses, on the per-user data
+        drive, instead of the system temp directory; the caller removes it once
+        the import commits, fails or is cancelled.
+        """
+        if self.ephemeral:
+            return Path(tempfile.mkdtemp(prefix="ctd_up_"))
+        holder = self.staging_dir / uuid.uuid4().hex
+        holder.mkdir(parents=True, exist_ok=True)
+        return holder
+
+    def prune_staging(self) -> None:
+        """Remove uploads left behind by an interrupted process (startup only)."""
+        if self.ephemeral or not self.staging_dir.is_dir():
+            return
+        for child in self.staging_dir.iterdir():
+            shutil.rmtree(child, ignore_errors=True)
 
     # -- analysis persistence ---------------------------------------------
     def new_analysis_holder(self) -> tuple[str, Path]:

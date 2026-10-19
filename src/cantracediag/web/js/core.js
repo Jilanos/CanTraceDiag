@@ -136,13 +136,26 @@ function clearComponentError(slotId) {
 }
 
 // Upload with progress (AC8): XHR exposes upload.onprogress; fetch does not.
+// The in-flight upload, so Cancel can abort the transfer itself (req_034 AC3).
+let activeUpload = null;
+
+function abortActiveUpload() {
+  if (!activeUpload) return false;
+  activeUpload.abort();
+  return true;
+}
+
 function uploadWithProgress(url, formData, onProgress, onUploadComplete) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
+    activeUpload = xhr;
+    const done = () => { if (activeUpload === xhr) activeUpload = null; };
     xhr.open("POST", url);
     if (CTD_TOKEN) xhr.setRequestHeader("X-CTD-Token", CTD_TOKEN);
     xhr.upload.onprogress = (e) => { if (e.lengthComputable) onProgress(e.loaded / e.total); };
     xhr.upload.onload = () => { onProgress(1); if (onUploadComplete) onUploadComplete(); };
+    xhr.onloadend = done;
+    xhr.onabort = () => reject(new Error("Upload cancelled; the previous analysis is unchanged."));
     xhr.onload = () => {
       let body = {};
       try { body = JSON.parse(xhr.responseText); }

@@ -23,11 +23,12 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import cantools
-from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
+from starlette.requests import ClientDisconnect
 
 from cantracediag import __version__, export
 from cantracediag.dbc import DbcCatalog
@@ -37,6 +38,7 @@ from cantracediag.models import DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
 from cantracediag.security import SecurityConfig
 from cantracediag.store import TraceStore, _id_hex
+from cantracediag.upload import UploadCancelled, UploadRejected, safe_name, stage_multipart
 from cantracediag.workspace import Workspace
 
 _WEB_DIR = Path(__file__).parent / "web"
@@ -281,6 +283,7 @@ def create_app(
         display_dbcs: list[str],
         resolution: dict[int, str],
         tmpdir: Path | None,
+        cancel_event: threading.Event | None = None,
     ) -> dict:
         """Load DBCs, detect conflicts, and either finalize or ask the operator.
 
@@ -291,9 +294,14 @@ def create_app(
         ``/api/import-cancel`` stay responsive while this runs (AC1).
         """
         session.clear_pending()
-        cancel_event = threading.Event()
-        session.cancel_event = cancel_event
-        session.last_job = {"id": uuid.uuid4().hex, "phase": "loading_dbc", "progress": 0.02}
+        if cancel_event is None:
+            cancel_event = threading.Event()
+            session.cancel_event = cancel_event
+            session.last_job = {"id": uuid.uuid4().hex}
+        if cancel_event.is_set():
+            session.job("cancelled", 1.0, "Import cancelled by operator.")
+            raise ImportCancelled("Import cancelled by operator.")
+        session.job("loading_dbc", 0.05, "Loading DBC files…")
         _ensure_unique_basenames(dbcs)
 
         catalog = DbcCatalog()
@@ -550,19 +558,20 @@ def create_app(
             raise HTTPException(409, str(exc)) from exc
 
     @app.post("/api/import-files")
-    async def api_import_files(
-        request: Request,
-        trace: UploadFile = File(...),
-        dbcs: list[UploadFile] = File(default=[]),
-        library: list[str] = Form(default=[]),
-    ) -> dict:
+    async def api_import_files(request: Request) -> dict:
         """Import from files uploaded via the browser's native picker.
 
         The browser sends file *contents* (it never exposes real paths), so the
-        UI works regardless of where the backend runs (e.g. WSL). Uploads land
-        in a temporary directory that is removed once the acquisition is indexed
-        in memory, or once conflict resolution finalizes the load; nothing is
-        written into the repository (AC1, AC8).
+        UI works regardless of where the backend runs. The multipart body is
+        parsed as it streams in (:mod:`cantracediag.upload`): the trace,
+        uploaded DBCs and envelope each have their own byte budget, enforced on
+        the declared ``Content-Length`` and again on the bytes actually received,
+        so a missing or lying length cannot bypass them (req_034 AC1, AC10).
+        Files land in a per-request staging directory that is removed once the
+        acquisition is indexed, or once conflict resolution finalizes the load;
+        nothing is written into the repository (AC1, AC8). A cancellation or a
+        client disconnect during the transfer removes the staging directory and
+        leaves the current analysis untouched (req_034 AC3).
 
         Decoding runs on a worker thread via ``run_in_threadpool`` instead of
         directly in this coroutine: without it, a large trace would freeze the
@@ -570,45 +579,51 @@ def create_app(
         (including ``/api/import-job`` polling and ``/api/import-cancel``)
         could be served in the meantime (AC1).
         """
-        if not (trace.filename or "").lower().endswith(TRACE_SUFFIXES):
-            raise HTTPException(400, "Trace file must be an .asc, .trc, .blf, or .mf4 file.")
+        cancel_event = threading.Event()
+        session.cancel_event = cancel_event
+        session.last_job = {"id": uuid.uuid4().hex}
+        session.job("uploading", 0.0, "Uploading…")
 
-        # Reject oversized requests early via the declared length, then enforce
-        # the same aggregate cap while streaming so a lying Content-Length cannot
-        # bypass it and N small files cannot fill the temp dir (AC10).
-        declared = request.headers.get("content-length")
-        if declared is not None and declared.isdigit() and int(declared) > cfg.max_upload_bytes:
-            raise HTTPException(413, "Upload exceeds the configured size limit.")
+        def _upload_progress(received: int, declared: int | None) -> None:
+            if declared:
+                frac = min(1.0, received / declared)
+                session.job("uploading", 0.05 * frac, f"Uploading {round(frac * 100)}%")
 
-        tmpdir = Path(tempfile.mkdtemp(prefix="ctd_"))
-        keep_tmpdir = False
-        upload_budget = [0]
         try:
-            trace_path = tmpdir / _safe_name(trace.filename)
-            await _spool(trace, trace_path, cfg.max_upload_bytes, upload_budget)
+            tmpdir = session.workspace.new_staging_dir()
+        except OSError as exc:
+            detail = _safe_failure("Could not create the upload staging directory")
+            session.job("failed", 1.0, detail)
+            raise HTTPException(507, detail) from exc
+        keep_tmpdir = False
+        try:
+            try:
+                staged = await stage_multipart(
+                    request, tmpdir, cfg.upload_limits,
+                    trace_suffixes=TRACE_SUFFIXES,
+                    cancel_check=cancel_event.is_set,
+                    on_progress=_upload_progress,
+                )
+            except UploadRejected as exc:
+                session.job("failed", 1.0, exc.detail)
+                raise HTTPException(exc.status, exc.detail) from exc
+            except UploadCancelled as exc:
+                session.job("cancelled", 1.0, "Import cancelled by operator.")
+                raise HTTPException(409, str(exc)) from exc
+            except ClientDisconnect:
+                session.job("cancelled", 1.0, "Upload interrupted before completion.")
+                raise
 
-            dbc_paths: list[Path] = []
-            display_dbcs: list[str] = []
-            seen_names: set[str] = set()
-            for upload in dbcs:
-                name = upload.filename or ""
-                if not name.lower().endswith(".dbc"):
-                    continue  # ignore non-DBC entries (e.g. from a folder pick)
-                safe = _safe_name(name)
-                if safe in seen_names:
-                    raise HTTPException(400, f"Duplicate DBC basename: {safe}")
-                seen_names.add(safe)
-                dest = tmpdir / safe
-                await _spool(upload, dest, cfg.max_upload_bytes, upload_budget)
-                dbc_paths.append(dest)
-                display_dbcs.append(Path(name).name)
-
+            dbc_paths = [f.path for f in staged.dbcs]
+            display_dbcs = [f.name for f in staged.dbcs]
+            seen_names = {f.name for f in staged.dbcs}
             # DBCs picked from the persistent library (AC5): no re-upload; the
             # library file lives outside tmpdir, so tmpdir cleanup never touches
             # it. Skip any whose basename a fresh upload already provided.
-            for digest in library:
+            for digest in staged.fields.get("library", []):
                 lib_path = session.workspace.library_path(digest)
                 if lib_path is None:
+                    session.job("failed", 1.0, "Unknown library DBC.")
                     raise HTTPException(400, f"Unknown library DBC: {digest}")
                 safe = _safe_name(lib_path.name)
                 if safe in seen_names:
@@ -619,8 +634,8 @@ def create_app(
 
             try:
                 result = await run_in_threadpool(
-                    _prepare, trace_path, dbc_paths, Path(trace.filename).name,
-                    display_dbcs, {}, tmpdir,
+                    _prepare, staged.trace.path, dbc_paths, staged.trace.name,
+                    display_dbcs, {}, tmpdir, cancel_event,
                 )
             except ImportCancelled as exc:
                 raise HTTPException(409, str(exc)) from exc
@@ -1212,6 +1227,7 @@ def create_app(
     # without re-parsing the ASC (AC6). Best-effort and defensive: any missing,
     # corrupt or incompatible state starts empty rather than crashing (AC7).
     if not session.workspace.ephemeral:
+        session.workspace.prune_staging()
         _restore_last_analysis(session)
 
     return app
@@ -1278,39 +1294,8 @@ def normalize_local_path(raw: str) -> str:
     return s
 
 
-async def _spool(
-    upload: UploadFile,
-    dest: Path,
-    max_bytes: int | None = None,
-    aggregate_written: list[int] | None = None,
-) -> None:
-    """Stream an uploaded file to disk in chunks (handles large traces).
-
-    Enforces ``max_bytes`` while streaming so an upload cannot exceed the
-    configured cap even if it lies about its Content-Length (AC10).
-    """
-    written = 0
-    with open(dest, "wb") as handle:
-        while chunk := await upload.read(1 << 20):
-            written += len(chunk)
-            if aggregate_written is not None:
-                aggregate_written[0] += len(chunk)
-            over_file = max_bytes is not None and written > max_bytes
-            over_request = (
-                max_bytes is not None
-                and aggregate_written is not None
-                and aggregate_written[0] > max_bytes
-            )
-            if over_file or over_request:
-                await upload.close()
-                raise HTTPException(413, "Upload exceeds the configured size limit.")
-            handle.write(chunk)
-    await upload.close()
-
-
 def _safe_name(name: str) -> str:
-    """Basename only, so uploaded/relative paths cannot escape the temp dir."""
-    return Path(name.replace("\\", "/")).name or "upload"
+    return safe_name(name)
 
 
 def _ensure_unique_basenames(paths: list[Path]) -> None:
