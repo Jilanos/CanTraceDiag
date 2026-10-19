@@ -1,0 +1,260 @@
+{
+  "title": "Deliver a standalone Windows local application for ASC traces up to 1 GiB",
+  "references": [
+    "README.md",
+    "pyproject.toml",
+    "docs/architecture-pwa-canonique.md",
+    "src/cantracediag/security.py",
+    "src/cantracediag/api.py",
+    "src/cantracediag/cli.py",
+    "src/cantracediag/pipeline.py",
+    "src/cantracediag/store.py",
+    "src/cantracediag/workspace.py",
+    "src/cantracediag/formats/asc.py",
+    "src/cantracediag/formats/mf4.py",
+    "src/cantracediag/web/js/import.js",
+    "scripts/CanTraceDiag.cmd",
+    "scripts/install-shortcut.ps1",
+    ".github/workflows/release.yml",
+    "tests/test_security.py",
+    "tests/test_cli.py",
+    "tests/test_store_pipeline.py",
+    "tests/test_perf_budget.py",
+    "tests/test_workspace.py",
+    "tests/test_e2e_ui.py",
+    "spikes/pwa-local-engine/src/product-backend.ts"
+  ],
+  "request": {
+    "complexity": "High",
+    "theme": "Standalone Windows local analysis and large ASC acquisitions",
+    "needs": [
+      "Provide an autonomous Windows executable for an operator currently using only the static website; cloning the repository exposes an obvious double-click launcher that retrieves the corresponding release.",
+      "Read and analyze ASC traces up to an inclusive 1 GiB without splitting the acquisition, installing a development toolchain or changing environment variables.",
+      "Keep the familiar diagnostic UI and validate usable navigation, progress and cancellation on representative large inputs."
+    ],
+    "context": [
+      "Operator decisions: genuine autonomous Windows .exe without Python/WSL installation; versioned launcher downloads a matching release instead of committing binaries; inclusive ASC 1 GiB guarantee with separate DBC margin; preserve the web application.",
+      "Current local Python/FastAPI implementation already streams import in 50,000-item batches into a disk-backed session store and supports asynchronous jobs, cancellation, DBC library and restore. Existing Windows launcher assumes WSL and a preinstalled virtual environment; it is not a standalone distribution.",
+      "Current aggregate upload default is 512 MiB across trace and DBCs. Merely setting it to 1024 MiB cannot accept a full 1 GiB trace plus multipart overhead and DBCs; independent limits and end-to-end boundary tests are required.",
+      "The static PWA currently calls File.text(), splits the whole trace and eagerly decodes samples. This request uses the existing server-backed architecture locally and does not attempt to lift the browser string/memory limit.",
+      "Read-only inspection of an external converted/concatenated ASC found 668,097,985 bytes, 10,613,470 recognized frames, 45 IDs, channels 1 and 9, duration about 5,389.79 s, no ASC syntax anomaly, no backwards timestamp and no gap over one second. This is structural evidence, not a complete import/performance qualification. No recording is included in Git.",
+      "Local MF4 support already exists for compatible raw classic-CAN MDF4 bus logging, including constrained unfinalized recovery; the static PWA does not support MF4. Preserve this local capability without claiming 1 GiB MF4 qualification.",
+      "Native Windows packaging must inspect Linux-specific path normalization, per-user paths, native DuckDB/PyArrow/MDF reader libraries, frozen static asset discovery, browser opening and process lifecycle. Raising a limit alone does not establish an autonomous or responsive product.",
+      "Scoping assumptions selected for a concrete first delivery: Windows 11 x64, standard user, existing browser, four cores/16 GiB RAM/SSD reference machine, 64 MiB uploaded-DBC allowance, 8 MiB envelope allowance, internet only for first retrieval. These are implementation acceptance targets, not observed capabilities.",
+      "Release resolution must be deterministic: exact published release for tagged/source-matching checkouts; unavailable development commits get an actionable failure rather than arbitrary latest fallback. Do not promise a binary for every development commit. Code signing is not a prerequisite unless a signing identity is supplied; document unsigned status instead of bypassing Windows protections.",
+      "This request creates workflow documentation only. Do not implement, install packaging dependencies, publish a release or modify operational recordings during scoping. Existing architecture documentation must later describe Windows local delivery alongside the unchanged canonical web artifact."
+    ],
+    "acceptance_criteria": [
+      "AC1: The Windows local application accepts a classic-CAN ASC trace of exactly 1,073,741,824 bytes through the normal browser file picker, with an independent 64 MiB aggregate uploaded-DBC budget and 8 MiB multipart-envelope allowance. The trace cap is inclusive and applies independently of DBCs; 1 GiB plus one byte is rejected clearly. Defaults need no environment-variable edit. Document the limits and preserve explicit administrator overrides without silently weakening existing server/LAN deployments.",
+      "AC2: Upload spooling, ASC parsing, indexing and decoding avoid whole-file text/byte buffers and eager full-trace signal materialization; use bounded batches, disk-backed indexes and bounded browser responses. Original timestamps, source ordering for ties, channels including sparse channel 9, standard/extended IDs, direction, DLC and payload remain exact. No source mutation, downsampling at ingestion or silent frame dropping is allowed.",
+      "AC3: Upload, indexing and ready phases remain distinguishable with honest progress. Cancellation works during transfer and indexing, preserves the previously loaded analysis, removes staging data and never publishes a partial replacement. Size errors, corrupt input, insufficient space and interrupted work produce actionable errors and recoverable state.",
+      "AC4: On Windows 11 x64 with at least four CPU cores, 16 GiB RAM and local SSD storage, an exactly 1 GiB representative generated ASC imports and becomes usable within 15 minutes, peak combined local-service process-tree working set stays within 6 GiB and the dedicated browser working set within 2 GiB. After import, warm p95 latency across at least 20 interactions is <=2 s for a 200-row filtered trace page, <=3 s for two plotted signals at <=4,000 points each and <=1 s for two-signal A/B cursor lookup; indexing cancellation is acknowledged within 5 s. Record exact hardware/browser/build, fixture counts/DBC density and storage peaks; these are delivery acceptance budgets, not already measured claims.",
+      "AC5: A portable Windows x64 .exe bundles the local Python/FastAPI runtime, static UI, required native dependencies and supported format readers. A standard user with no Python, Node, WSL, Docker or administrator rights can double-click it, start a loopback-only service and open the existing browser UI once ready. No separate desktop web engine is required. Windows 11 x64 is the initial guaranteed target; other OS/architectures remain outside the new binary guarantee.",
+      "AC6: A clearly named root-level Windows launcher included in a fresh clone downloads and launches the release executable associated with that checkout, from the canonical release origin, verifies version/source provenance and SHA-256, and caches it outside Git. No binary is committed. A tagged checkout uses that exact release; a checkout with no matching published binary fails with clear instructions to select a published release tag, never silently choosing latest. Subsequent launches use the matching verified cache offline; missing assets, network failures, incomplete downloads, wrong architecture and checksum mismatch fail without executing unverified bytes.",
+      "AC7: The packaged application works from paths containing spaces and non-ASCII characters, including a repository cloned on an accessible WSL UNC share without using WSL to run the app. It preserves native Windows drive and accessible UNC trace paths rather than rewriting them into Linux paths. Writable workspace, staging files and logs live in per-user Windows directories outside the clone; second launch reopens a compatible existing instance, handles occupied ports and incompatible versions explicitly, exposes a reliable stop action and preserves library/session restore after restart.",
+      "AC8: The local UI retains existing DBC loading/conflict handling, plots, trace filtering/pagination, cursors, statistics/integral, report, session restore and exports. Existing ASC/TRC/BLF and compatible raw-CAN MF4 support is preserved in the executable with packaged-format smoke coverage. The new 1 GiB performance guarantee applies only to ASC; no broader MF4/BLF size or vendor-compatibility guarantee is implied. The deployed static PWA and its text-only import behavior remain unchanged.",
+      "AC9: Windows CI builds and smoke-tests the exact distributable without relying on an installed developer runtime, and publishes executable plus checksum/provenance metadata on the same versioned release after required validation. The launcher can resolve that release without coupling Windows availability to the web deployment success. Preserve existing PWA/Docker release checks, document any release-graph changes, runtime distribution notices, first-download/offline behavior, stop/log/cache locations and unsigned executable status if no signing identity exists.",
+      "AC10: Boundary tests cover trace cap minus one/exact/plus one byte, separate DBC/envelope budgets, missing or misleading Content-Length and streaming enforcement. Generated fixtures cover multi-channel/extended IDs, equal timestamps, malformed records, cancellation/rollback and meaningful DBC decoding. Run a full 1 GiB Windows qualification plus the external roughly 637 MiB acquisition when available; publish only anonymized counts, hashes and timing/memory results, never operational traces, payloads, DBC contents or machine-specific paths. Closeout maps every criterion to evidence and records remaining platform limits."
+    ]
+  },
+  "product": {
+    "title": "Portable Windows local workstation for 1 GiB ASC acquisitions",
+    "overview": "Make large ASC diagnostics accessible through a self-contained Windows local service and the familiar browser interface, obtained in a double-click flow from a clone.",
+    "goals": [
+      "Analyze a complete 1 GiB ASC with bounded memory and measured interaction performance.",
+      "Deliver a version-matched Windows executable without Python, WSL or administrator setup.",
+      "Preserve diagnostic behavior, existing local format support and the independently deployed web product."
+    ],
+    "non_goals": [
+      "Increase static-PWA trace capacity, replace the web engine or silently switch the public website to a server.",
+      "Guarantee 1 GiB MF4/BLF/TRC or arbitrary vendor MDF compatibility; add CAN FD/XL support.",
+      "Ship binaries in Git, build on the end-user machine, create an Electron shell or add cloud uploads.",
+      "Guarantee Windows ARM64/macOS/Linux packaged executables or require paid signing infrastructure."
+    ]
+  },
+  "backlog_items": [
+    {
+      "title": "Accept inclusive 1 GiB ASC uploads with independent DBC limits and bounded indexing",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Large-trace import",
+      "request_acs": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC10"
+      ],
+      "problem": [
+        "The aggregate 512 MiB cap blocks large acquisitions; a simple 1 GiB cap still rejects boundary-sized traces with DBCs.",
+        "Upload middleware/multipart spooling, indexing and failure cleanup must all honor the actual large-file contract."
+      ],
+      "scope_in": [
+        "Priority rationale: prerequisite for every large-file validation and the desktop promise.",
+        "Separate trace, aggregate DBC and transport-envelope limits. Define local-app defaults at 1 GiB/64 MiB/8 MiB and explicit override precedence; preserve established deployments or provide documented configuration migration. Count actual streamed bytes regardless of Content-Length; validate selected library DBC policy explicitly.",
+        "Audit framework multipart spooling and upload transfer before endpoint execution, worker/index batches, lazy decoding and temporary copies; maintain bounded memory and disk-backed analysis. Apply independent trace cap to trusted path imports too, with platform-aware path handling in the desktop slice.",
+        "Reject oversized data early where possible; stream-enforce missing/false lengths. Do not inflate the 1 GiB trace limit to absorb overhead. Check free space conservatively across upload/index/temp locations, bound application staging use and handle ENOSPC mid-operation safely.",
+        "Keep the previous successful analysis until atomic completion. Poll cancellation through indexing and make browser transfer abort remove staged uploads; track upload versus indexing progress without displaying completed state before readiness.",
+        "Add focused boundary/spooling tests using valid ASC plus legal header/comment padding to hit exact byte counts, stream counters for cheap edge checks and at least one real full-size qualification. Do not substitute a mocked-size tiny input for the full 1 GiB proof."
+      ],
+      "scope_out": [
+        "No change to the deployed static PWA import engine or 1 GiB guarantee for non-ASC formats."
+      ],
+      "acceptance_criteria": [
+        "AC1: A 1 GiB ASC with permitted DBC uploads passes the real picker/API path; trace plus one byte and independent DBC/envelope overages fail with clear errors, including absent/false lengths.",
+        "AC2: Batched disk-backed ingestion preserves normalized frame values and ordering without eager full-trace samples, and cancellation/failure leaves no published partial analysis or orphan staging files.",
+        "AC3: Size, transport, malformed-record, space-exhaustion and rollback evidence is recorded for synthetic fixtures."
+      ]
+    },
+    {
+      "title": "Package the local workstation as a native standalone Windows executable",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Native Windows runtime",
+      "request_acs": [
+        "AC5",
+        "AC7",
+        "AC8",
+        "AC10"
+      ],
+      "problem": [
+        "The existing launcher requires WSL/Python and path normalization assumes Linux semantics.",
+        "Native runtime libraries, frozen assets, workspace persistence and app shutdown are not yet proven in a portable Windows artifact."
+      ],
+      "scope_in": [
+        "Priority rationale: required foundation for the authorized no-toolchain user experience; build after the import contract is established.",
+        "Create a portable Windows 11 x64 .exe bundling the supported local server and runtime; evaluate a conventional freezer such as PyInstaller during implementation, verify dependency hooks and include packaged static assets and all supported format readers. Any self-extraction is internal; no user-managed environment or build step.",
+        "Launch loopback only, retain existing Host/Origin/token protections, open the default browser after readiness, handle busy ports and repeat launches with a version-aware handshake rather than attaching to arbitrary or incompatible services.",
+        "Provide a discoverable stop action or controlled launcher window; browser closure semantics must be documented. Exit releases resources and makes restart possible; report launch failure visibly and provide per-user logs.",
+        "Keep Windows drive/UNC paths native; do not run current WSL path rewrite unconditionally. Support spaces/non-ASCII and launches from an accessible WSL UNC clone while storing caches/temp/workspace on native per-user writable storage. WSL-share source access may require an existing share, but runtime must never depend on WSL.",
+        "Verify import, DBC library/conflicts, plots/cursors/integral, trace/report, restore and existing exports through the bundled UI. Smoke-test ASC/TRC/BLF and compatible raw-CAN MF4 using synthetic examples; retain existing reader scope and diagnostics.",
+        "Run artifact tests with Python/Node/WSL unavailable to the launched process and in a clean standard-user Windows environment. Verify native dependencies are actually bundled, not accidentally imported from the build machine."
+      ],
+      "scope_out": [
+        "No change to the deployed static PWA import engine or 1 GiB guarantee for non-ASC formats."
+      ],
+      "acceptance_criteria": [
+        "AC1: Double-clicking the built executable in a clean standard-user Windows environment opens a usable loopback browser UI without installing runtimes or elevation.",
+        "AC2: Native/UNC and non-ASCII paths, busy ports, repeated launch, explicit stop, logs and session/library restart behavior pass artifact-level checks.",
+        "AC3: The frozen artifact preserves existing supported formats and diagnostic/export workflows with representative synthetic smoke coverage."
+      ]
+    },
+    {
+      "title": "Download the matching Windows release from a repository launcher",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Clone bootstrap and version matching",
+      "request_acs": [
+        "AC6",
+        "AC7",
+        "AC9",
+        "AC10"
+      ],
+      "problem": [
+        "A clone does not contain a usable native executable and arbitrary latest downloads can disagree with the checked-out source."
+      ],
+      "scope_in": [
+        "Priority rationale: completes the requested clone-to-double-click path after an artifact naming/provenance contract exists.",
+        "Add an obvious root-level .cmd/PowerShell bootstrap that resolves its location without a configured repository path or developer toolchain. Use OS-provided facilities, handle spaces/non-ASCII and accessible UNC paths, and never require a global execution-policy change.",
+        "Resolve the canonical project version and matching release descriptor, including source revision and architecture. Tagged checkouts must match exactly; untagged checkouts may launch only if verified as the same released source. If no matching published asset exists, explain how to check out a release tag. Never silently select latest or run code from an arbitrary download URL.",
+        "Use canonical HTTPS release assets and published SHA-256/provenance metadata; stream to a temporary per-user cache entry, verify before atomic promotion/execution, and handle concurrent launches. Do not put binaries/downloads in tracked files or require write access to the clone.",
+        "Cache by version/architecture with integrity revalidation; offline relaunch uses only a matching valid cache. Recover from missing release assets, interrupted transfer, offline first run, wrong architecture and corruption while preserving the last valid cached asset.",
+        "Document first retrieval versus later offline operation, visible runtime version, cache cleanup, failure instructions and optional existing source/WSL workflow without presenting it as a required fallback."
+      ],
+      "scope_out": [
+        "No change to the deployed static PWA import engine or 1 GiB guarantee for non-ASC formats."
+      ],
+      "acceptance_criteria": [
+        "AC1: A fresh supported clone starts the exact published Windows artifact by double-click, without a preinstalled developer toolchain and without committed binaries.",
+        "AC2: Version/source/checksum/architecture mismatches and unpublished revisions fail clearly; no latest or unverified execution fallback occurs.",
+        "AC3: Matching cached launches work offline, interrupted downloads recover atomically and concurrent launches do not corrupt cache."
+      ]
+    },
+    {
+      "title": "Build validate and publish Windows executables with versioned release assets",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Desktop CI and release delivery",
+      "request_acs": [
+        "AC5",
+        "AC6",
+        "AC8",
+        "AC9",
+        "AC10"
+      ],
+      "problem": [
+        "The release workflow publishes a static web container and creates a release only after production deployment; it publishes no Windows artifact."
+      ],
+      "scope_in": [
+        "Priority rationale: the bootstrap cannot be delivered until corresponding verified assets exist on a release.",
+        "Add a Windows build/test lane with recorded dependency and tool versions, application version/source provenance, required bundled assets/native libraries and distribution notices. Publish a clearly named x64 .exe and SHA-256/provenance manifest on the matching versioned release.",
+        "Gate executable publication on exact-artifact smoke results and required checks. Retain PWA/Node, Python and Docker validation and web deployment behavior; adjust the release DAG deliberately so a failed web deployment cannot prevent access to an independently validated Windows release artifact. Never expose incomplete draft assets as ready.",
+        "Test the bootstrap against the asset/metadata naming contract, including versions with missing assets and tag/source disagreement. Record actual binary digest, build SHA, CI run and release asset URL before closeout.",
+        "Document Windows installation-free startup, minimum hardware, byte-precise limits, existing MF4 scope, stop/restart, storage paths, offline/cache behavior and unsigned status. Update architecture docs to distinguish hosted PWA from the standalone local service.",
+        "Code signing is optional without supplied credentials; do not disable OS protection or assert unsigned builds are signed. Keep packaging decisions and any release limitations reviewable."
+      ],
+      "scope_out": [
+        "No change to the deployed static PWA import engine or 1 GiB guarantee for non-ASC formats."
+      ],
+      "acceptance_criteria": [
+        "AC1: Windows CI produces and tests the same executable it publishes, with verifiable version/source/hash metadata and required runtime assets.",
+        "AC2: A successful Windows artifact is discoverable by the clone bootstrap independently of web deployment success; existing web release checks remain effective.",
+        "AC3: Documentation and release evidence match the actual supported platform, limits, offline behavior and signature status."
+      ]
+    },
+    {
+      "title": "Qualify one GiB ASC fidelity resource usage and diagnostic responsiveness on Windows",
+      "priority": "High",
+      "complexity": "High",
+      "theme": "Large-file qualification",
+      "request_acs": [
+        "AC1",
+        "AC2",
+        "AC3",
+        "AC4",
+        "AC5",
+        "AC7",
+        "AC8",
+        "AC10"
+      ],
+      "problem": [
+        "Existing hot-path budgets use roughly 100,000 rows and do not prove a complete 1 GiB acquisition is usable.",
+        "A structural scan of the external acquisition is not end-to-end Windows performance evidence."
+      ],
+      "scope_in": [
+        "Priority rationale: explicit delivery gate for the central capacity claim; start fixture/baseline work early, qualify the final frozen artifact after other slices.",
+        "Generate repeatable valid ASC inputs at 1 GiB with known frame counts, multi-channel traffic, extended IDs, equal timestamps, mixed DLCs and realistic roughly 45-ID traffic. Include a nontrivial generated DBC with at least 20 messages and eight signals/message; record match coverage and avoid qualifying with an empty DBC or comments-only padding.",
+        "Measure the complete picker upload/index-to-ready flow on Windows 11 x64, >=4 cores, 16 GiB RAM, local SSD. Gate at <=15 min, <=6 GiB service-tree and <=2 GiB dedicated-browser peak working set; measure native allocations/process working sets rather than tracemalloc alone. Report cold/warm conditions, disk peak and browser/build identifiers.",
+        "After import exercise 200-row filtered paging, two signals/4,000-point plots and two-signal A/B cursors with >=20 timed interactions; warm p95 budgets are 2 s/3 s/1 s respectively. Validate full counts/endpoints, selected values and lazy full-resolution results rather than only a screenshot.",
+        "Measure indexing cancel acknowledgement <=5 s, transfer abort, previous-session preservation, cleanup, retry and restart/restore. Validate file +1 byte rejection and full-size accepted path in the actual executable.",
+        "Use compact automated fixtures for normal CI and a documented dedicated large qualification job/manual release gate for the full Windows benchmark, storing compact results only. Record baseline before optimizing and repeat only when relevant changes affect results.",
+        "Re-run the external approximately 637 MiB acquisition with operator-provided DBCs if available, compare 10,613,470 frames/45 IDs/channels 1 and 9 and source hash before/after. It stays external and is supplementary; deterministic 1 GiB proof must not depend on proprietary recordings. Record missing external evidence explicitly.",
+        "If budgets fail, optimize bounded querying/ingestion within this local scope before claiming support. Any proposed budget relaxation requires an explicit documented scope decision; do not silently relabel a successful import as usable."
+      ],
+      "scope_out": [
+        "No change to the deployed static PWA import engine or 1 GiB guarantee for non-ASC formats."
+      ],
+      "acceptance_criteria": [
+        "AC1: The final frozen executable meets the full 1 GiB correctness, <=15 min and 6 GiB/2 GiB memory gates on the documented Windows reference configuration.",
+        "AC2: Recorded interaction p95 and cancellation measurements satisfy the request budgets while values/counts and source bytes remain correct.",
+        "AC3: Synthetic boundary/regression evidence is reproducible without operational files; optional external-recording evidence is anonymized and clearly distinguished from synthetic proof."
+      ]
+    }
+  ],
+  "orchestration_task": {
+    "title": "Deliver standalone Windows launch and one GiB ASC analysis",
+    "plan": [
+      "Wave 1: Confirm baseline and accepted Windows/size/resource/release contracts; start generated 1 GiB fixtures and resource instrumentation, inspect actual native-path and frozen-dependency constraints. Record decisions without expanding the web scope.",
+      "Wave 2: Implement independent limits and bounded upload/index changes with boundary/cancellation/rollback evidence. Preserve deployed-server override semantics and local format behavior.",
+      "Wave 3: Build the Windows standalone artifact and verify native paths/assets/dependencies, same UI, standard-user start/stop, occupied/repeated ports, restore and supported-format smoke tests.",
+      "Wave 4: Implement root bootstrap and deterministic version/source/hash/cache contract; add Windows exact-artifact CI and release asset publication without coupling desktop readiness to hosted-web deployment.",
+      "Wave 5: Run full frozen-artifact 1 GiB Windows qualification and external acquisition comparison if available, meet fidelity/resource/interaction budgets, fix failures and capture anonymized per-AC evidence.",
+      "Wave 6: Update user/architecture docs, run focused Windows/size/packaging suites plus required Python/PWA regression checks, validate Logics lineage and closeout. Scaffolding alone is not delivery; all implementation criteria remain pending.",
+      "For functional delivery follow repository release policy: local validation, implementation commit, next SemVer preparation commit, push and passing CI on that exact preparation SHA, annotated version tag and tag-workflow verification; record Windows assets and web outcome separately. During current scoping do not implement, publish or close tasks; leave documentation commit-ready under operator control."
+    ]
+  },
+  "context_pack": {
+    "out": "logics/context-packs/windows_standalone_local_1gib_asc.json",
+    "mode": "summary-only",
+    "profile": "deep"
+  }
+}

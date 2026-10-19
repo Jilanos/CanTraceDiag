@@ -25,6 +25,7 @@
 | [prod_014_reliable_binary_blf_can_trace_import](product/prod_014_reliable_binary_blf_can_trace_import.md) | Reliable binary BLF CAN trace import | Settled |  |  | product/prod_014_reliable_binary_blf_can_trace_import.md |
 | [prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults](product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md) | Optional cursor integration and reusable DBC import defaults | Settled |  |  | product/prod_015_optional_cursor_integration_and_reusable_dbc_import_defaults.md |
 | [prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export](product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md) | Raw MF4 CAN import and interoperable ASC trace export | Settled |  |  | product/prod_016_raw_mf4_can_import_and_interoperable_asc_trace_export.md |
+| [prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions](product/prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions.md) | Portable Windows local workstation for 1 GiB ASC acquisitions | Proposed |  |  | product/prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions.md |
 
 ## Roadmaps
 
@@ -72,6 +73,7 @@
 | [req_031_import_binary_blf_can_trace_recordings](request/req_031_import_binary_blf_can_trace_recordings.md) | Import binary BLF CAN trace recordings | Done |  |  | request/req_031_import_binary_blf_can_trace_recordings.md |
 | [req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection](request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md) | Add opt-in cursor integral analysis and restore the last loaded DBC selection | Done |  |  | request/req_032_add_opt_in_cursor_integral_analysis_and_restore_the_last_loaded_dbc_selection.md |
 | [req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc](request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md) | Read raw CAN MF4 recordings and save traces as ASC | Done |  |  | request/req_033_read_raw_can_mf4_recordings_and_save_traces_as_asc.md |
+| [req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib](request/req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib.md) | Deliver a standalone Windows local application for ASC traces up to 1 GiB | Ready |  |  | request/req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib.md |
 
 ## Backlog
 
@@ -144,6 +146,11 @@
 | [item_057_import_third_party_raw_can_mf4_including_unfinished_recordings](backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md) | Import third-party raw CAN MF4 including unfinished recordings | Done |  | 100% | backlog/item_057_import_third_party_raw_can_mf4_including_unfinished_recordings.md |
 | [item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports](backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md) | Stream stored raw CAN frames to round-trip-safe ASC exports | Done |  | 100% | backlog/item_058_stream_stored_raw_can_frames_to_round_trip_safe_asc_exports.md |
 | [item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability](backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md) | Expose MF4 import and raw ASC download with explicit server capability | Done |  | 100% | backlog/item_059_expose_mf4_import_and_raw_asc_download_with_explicit_server_capability.md |
+| [item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing](backlog/item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing.md) | Accept inclusive 1 GiB ASC uploads with independent DBC limits and bounded indexing | Ready |  | 0% | backlog/item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing.md |
+| [item_061_package_the_local_workstation_as_a_native_standalone_windows_executable](backlog/item_061_package_the_local_workstation_as_a_native_standalone_windows_executable.md) | Package the local workstation as a native standalone Windows executable | Ready |  | 0% | backlog/item_061_package_the_local_workstation_as_a_native_standalone_windows_executable.md |
+| [item_062_download_the_matching_windows_release_from_a_repository_launcher](backlog/item_062_download_the_matching_windows_release_from_a_repository_launcher.md) | Download the matching Windows release from a repository launcher | Ready |  | 0% | backlog/item_062_download_the_matching_windows_release_from_a_repository_launcher.md |
+| [item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets](backlog/item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets.md) | Build validate and publish Windows executables with versioned release assets | Ready |  | 0% | backlog/item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets.md |
+| [item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows](backlog/item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows.md) | Qualify one GiB ASC fidelity resource usage and diagnostic responsiveness on Windows | Ready |  | 0% | backlog/item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows.md |
 
 ## Tasks
 
@@ -205,6 +212,7 @@
 | [task_046_deliver_reliable_binary_blf_trace_import](tasks/task_046_deliver_reliable_binary_blf_trace_import.md) | Deliver reliable binary BLF trace import | Done | claude | 100% | tasks/task_046_deliver_reliable_binary_blf_trace_import.md |
 | [task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading](tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md) | Deliver opt-in signal integral analysis and remembered DBC loading | Done | Claude | 100% | tasks/task_047_deliver_opt_in_signal_integral_analysis_and_remembered_dbc_loading.md |
 | [task_048_deliver_raw_can_mf4_import_and_asc_trace_export](tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md) | Deliver raw CAN MF4 import and ASC trace export | Done | claude | 100% | tasks/task_048_deliver_raw_can_mf4_import_and_asc_trace_export.md |
+| [task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis](tasks/task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis.md) | Deliver standalone Windows launch and one GiB ASC analysis | Ready |  | 0% | tasks/task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis.md |
 
 ## Runbooks
 

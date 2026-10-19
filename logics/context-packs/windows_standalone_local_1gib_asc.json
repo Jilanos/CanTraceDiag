@@ -1,0 +1,346 @@
+{
+  "budgets": {
+    "max_docs": 56,
+    "max_docs_per_ref": 8
+  },
+  "changed_paths": [],
+  "command": "logics-manager sync context-pack req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing item_061_package_the_local_workstation_as_a_native_standalone_windows_executable item_062_download_the_matching_windows_release_from_a_repository_launcher item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis --mode summary-only --profile deep --handoff",
+  "companion_docs": [
+    {
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing",
+          "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable",
+          "item_062_download_the_matching_windows_release_from_a_repository_launcher",
+          "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets",
+          "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/product/prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions.md",
+      "ref": "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions",
+      "status": "Proposed",
+      "title": "Portable Windows local workstation for 1 GiB ASC acquisitions"
+    }
+  ],
+  "docs": [
+    {
+      "ai_context": {},
+      "kind": "request",
+      "linked_refs": {
+        "item": [
+          "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing",
+          "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable",
+          "item_062_download_the_matching_windows_release_from_a_repository_launcher",
+          "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets",
+          "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ]
+      },
+      "path": "logics/request/req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib.md",
+      "ref": "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Deliver a standalone Windows local application for ASC traces up to 1 GiB"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/backlog/item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing.md",
+      "ref": "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Accept inclusive 1 GiB ASC uploads with independent DBC limits and bounded indexing"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/backlog/item_061_package_the_local_workstation_as_a_native_standalone_windows_executable.md",
+      "ref": "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Package the local workstation as a native standalone Windows executable"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_062_download_the_matching_windows_release_from_a_repository_launcher"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/backlog/item_062_download_the_matching_windows_release_from_a_repository_launcher.md",
+      "ref": "item_062_download_the_matching_windows_release_from_a_repository_launcher",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Download the matching Windows release from a repository launcher"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/backlog/item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets.md",
+      "ref": "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Build validate and publish Windows executables with versioned release assets"
+    },
+    {
+      "ai_context": {},
+      "kind": "backlog",
+      "linked_refs": {
+        "item": [
+          "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/backlog/item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows.md",
+      "ref": "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Qualify one GiB ASC fidelity resource usage and diagnostic responsiveness on Windows"
+    },
+    {
+      "ai_context": {},
+      "kind": "product",
+      "linked_refs": {
+        "item": [
+          "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing",
+          "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable",
+          "item_062_download_the_matching_windows_release_from_a_repository_launcher",
+          "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets",
+          "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/product/prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions.md",
+      "ref": "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions",
+      "schema_version": "1.0",
+      "status": "Proposed",
+      "title": "Portable Windows local workstation for 1 GiB ASC acquisitions"
+    },
+    {
+      "ai_context": {},
+      "kind": "task",
+      "linked_refs": {
+        "item": [
+          "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing",
+          "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable",
+          "item_062_download_the_matching_windows_release_from_a_repository_launcher",
+          "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets",
+          "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows"
+        ],
+        "prod": [
+          "prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions"
+        ],
+        "req": [
+          "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib"
+        ],
+        "task": [
+          "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+        ]
+      },
+      "path": "logics/tasks/task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis.md",
+      "ref": "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis",
+      "schema_version": "1.0",
+      "status": "Ready",
+      "title": "Deliver standalone Windows launch and one GiB ASC analysis"
+    }
+  ],
+  "estimates": {
+    "char_count": 7934,
+    "companion_doc_count": 1,
+    "doc_count": 8
+  },
+  "generated_at": "2026-10-19T09:46:11Z",
+  "handoff": {
+    "companion_doc_count": 1,
+    "enabled": true,
+    "source_refs": [
+      "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib",
+      "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing",
+      "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable",
+      "item_062_download_the_matching_windows_release_from_a_repository_launcher",
+      "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets",
+      "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows",
+      "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+    ],
+    "validation_summary_count": 1
+  },
+  "i18n": {
+    "actions": [
+      "Choose the source locale for app-owned user-facing copy.",
+      "Run logics-manager i18n init --source-locale <locale>.",
+      "Route new UI copy through stable semantic keys."
+    ],
+    "applicable": null,
+    "configured": false,
+    "contract_path": "logics/i18n/contract.json",
+    "findings": [],
+    "next_action": "Run logics-manager i18n init --source-locale <locale> for a project that owns user-facing copy.",
+    "ok": true,
+    "state": "absent"
+  },
+  "mode": "summary-only",
+  "profile": "deep",
+  "ref": "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib,item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing,item_061_package_the_local_workstation_as_a_native_standalone_windows_executable,item_062_download_the_matching_windows_release_from_a_repository_launcher,item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets,item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows,task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis",
+  "refs": [
+    "req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib",
+    "item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing",
+    "item_061_package_the_local_workstation_as_a_native_standalone_windows_executable",
+    "item_062_download_the_matching_windows_release_from_a_repository_launcher",
+    "item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets",
+    "item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows",
+    "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+  ],
+  "release": {
+    "blocking_reasons": [],
+    "configured": true,
+    "contract_path": "logics/release/contract.json",
+    "guidance": [
+      "Release readiness must come from project-owned evidence, not conversational memory.",
+      "Use release status or validate before preparing or claiming release readiness.",
+      "Publication-oriented actions are explicit operator actions and are separate from safe read/validate actions."
+    ],
+    "next_action": "Release evidence is complete.",
+    "publication_actions": [
+      "GitHub release publication",
+      "external publication"
+    ],
+    "required_gates": [
+      {
+        "blocking_reason": null,
+        "id": "version_metadata",
+        "required": true,
+        "state": "preparing",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "local_validation",
+        "required": true,
+        "state": "local_validation",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "git_push",
+        "required": true,
+        "state": "pushed",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "ci",
+        "required": true,
+        "state": "ci_verification",
+        "status": "passed"
+      },
+      {
+        "blocking_reason": null,
+        "id": "github_release",
+        "required": true,
+        "state": "github_release",
+        "status": "passed"
+      }
+    ],
+    "safe_actions": [
+      "logics-manager release status",
+      "logics-manager release plan <version>",
+      "logics-manager release validate <version>"
+    ],
+    "state": "ready",
+    "target_id": null,
+    "target_version": "1.3.0",
+    "targets": []
+  },
+  "validation_summary": [
+    {
+      "items": [
+        "- Scoping validation on 2026-10-19: request-chain dry-run and application succeeded; flow validate reports zero findings; lint --require-status passes; audit scoped to the new request has zero blocking findings, with implementation evidence deferred until closeout. Global audit retains 17 pre-existing stale-pending-document blockers outside this chain. No product code, runtime dependency or release was changed; performance budgets remain unmeasured acceptance targets."
+      ],
+      "path": "logics/tasks/task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis.md",
+      "ref": "task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis"
+    }
+  ]
+}
