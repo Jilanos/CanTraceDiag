@@ -389,7 +389,7 @@ def latency_phase(svc: Service, n: int, rng: random.Random) -> dict:
 
 
 def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int,
-                  out: dict | None = None) -> dict:
+                  out: dict | None = None, ui_import: bool = True) -> dict:
     from playwright.sync_api import sync_playwright
 
     before = {p.pid for p in psutil.process_iter()}
@@ -417,80 +417,122 @@ def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int,
         page.on("console", lambda m: console.append(f"{m.type}: {m.text[:200]}")
                 if m.type in ("error", "warning") else None)
         page.on("pageerror", lambda e: console.append(f"pageerror: {str(e)[:200]}"))
+        requests: dict[str, float] = {}
+        finished: list[tuple[str, float]] = []
+
+        def _short(u: str) -> str:
+            return u.split("/api/", 1)[-1][:80]
+
+        page.on("request", lambda r: requests.__setitem__(r.url, time.monotonic())
+                if "/api/" in r.url else None)
+        def _done(r) -> None:
+            if "/api/" not in r.url:
+                return
+            resp = r.response()
+            finished.append((_short(r.url), resp.status if resp else None,
+                             round(time.monotonic() - requests.pop(r.url, time.monotonic()), 2)))
+
+        page.on("requestfinished", _done)
+        out["_requests"] = (requests, finished, _short)
         page.goto(url)
         page.wait_for_function("() => typeof state !== 'undefined'")
-        page.set_input_files("#traceFile", str(asc))
-        page.set_input_files("#dbcFiles", str(dbc))
-        t0 = time.monotonic()
-        # A restored analysis already looks "indexed": wait for this import's
-        # own response, then for the UI to finish rendering it.
-        with page.expect_response(lambda r: "/api/import-files" in r.url,
-                                  timeout=30 * 60 * 1000) as resp:
-            page.click("#loadBtn")
-        out["ui_import_status"] = resp.value.status
-        try:
-            page.wait_for_function(
-                "() => state.loaded && state.signals.length > 0 &&"
-                " document.getElementById('statusLed').classList.contains('indexed')",
-                timeout=10 * 60 * 1000, polling=500)
-        except Exception:
-            out["ui_state_on_timeout"] = page.evaluate(
-                "() => ({loaded: state.loaded, signals: state.signals.length,"
-                " led: document.getElementById('statusLed').className,"
-                " summary: document.getElementById('summary').textContent.slice(0, 200)})")
-            out["console_errors"] = console[-10:]
-            raise
-        out["ui_import_to_ready_s"] = round(time.monotonic() - t0, 1)
-
-        t0 = time.monotonic()
-        page.evaluate("""async () => {
-            const sigs = state.signals.filter((s) => s.present && s.unit);
-            await toggleSignal(sigs[0], true);
-            await toggleSignal(sigs[1], true);
-        }""")
-        page.wait_for_function("() => state.selected.length === 2 && "
-                               "state.selected.every((s) => s.t.length > 0)", timeout=600_000)
-        out["ui_plot_two_signals_first_s"] = round(time.monotonic() - t0, 2)
-
-        # Timed inside the page (fetch + render), so Playwright's own
-        # instrumentation overhead does not count as application latency.
-        cursor_ms = page.evaluate("""async (n) => {
-            const out = [];
-            const [lo, hi] = state.bounds;
-            for (let i = 0; i < n; i++) {
-                const f = (i + 0.5) / n;
-                const t = performance.now();
-                state.cursor.a = lo + (hi - lo) * f;
-                state.cursor.b = lo + (hi - lo) * f * 0.9;
-                renderPlot();
-                await refreshCursorReadout();
-                out.push(performance.now() - t);
-            }
-            return out;
-        }""", n)
-        out["ui_cursor_update"] = summarize([v / 1000 for v in cursor_ms])
-
-        page.click("#viewTrace")
-        page.wait_for_selector("#traceTable tbody tr")
-        # Filtered pages, as the 200-row criterion states: filter by one id.
-        page_ms = page.evaluate("""async (n) => {
-            const ids = [...new Set(state.signals.filter((s) => s.present).map((s) => s.id_hex))];
-            const [lo, hi] = state.bounds;
-            const out = [];
-            for (let i = 0; i < n; i++) {
-                $("fId").value = ids[i % ids.length];
-                $("fStart").value = String(lo + (hi - lo) * ((i * 37) % n) / n);
-                const t = performance.now();
-                const ok = await loadTrace(null);
-                if (!ok || !state.trace.rows.length) throw new Error("trace page failed");
-                out.push(performance.now() - t);
-            }
-            return out;
-        }""", n)
-        out["ui_trace_page_200_filtered"] = summarize([v / 1000 for v in page_ms])
+        if not ui_import:
+            page.wait_for_function("() => state.loaded && state.signals.length > 0",
+                                   timeout=120_000)
+        else:
+            _ui_import(page, asc, dbc, out, console)
+        _ui_interactions(page, n, out)
         out["memory"] = sampler.stop()
         browser.close()
+    out.pop("_requests", None)
     return out
+
+
+def _ui_import(page, asc: Path, dbc: Path, out: dict, console: list[str]) -> None:
+    page.set_input_files("#traceFile", str(asc))
+    page.set_input_files("#dbcFiles", str(dbc))
+    t0 = time.monotonic()
+    # A restored analysis already looks "indexed": wait for this import's
+    # own response, then for the UI to finish rendering it.
+    with page.expect_response(lambda r: "/api/import-files" in r.url,
+                              timeout=30 * 60 * 1000) as resp:
+        page.click("#loadBtn")
+    out["ui_import_status"] = resp.value.status
+    try:
+        page.wait_for_function(
+            # onLoaded() ends with the first trace page: only then has it also
+            # restored the persisted signal selection (which resets it).
+            "() => state.loaded && state.signals.length > 0 &&"
+            " document.getElementById('statusLed').classList.contains('indexed') &&"
+            " state.trace.rows.length > 0",
+            timeout=10 * 60 * 1000, polling=500)
+    except Exception:
+        out["ui_state_on_timeout"] = page.evaluate(
+            "() => ({loaded: state.loaded, signals: state.signals.length,"
+            " led: document.getElementById('statusLed').className,"
+            " summary: document.getElementById('summary').textContent.slice(0, 200)})")
+        out["console_errors"] = console[-10:]
+        raise
+    out["ui_import_to_ready_s"] = round(time.monotonic() - t0, 1)
+
+
+def _ui_interactions(page, n: int, out: dict) -> None:
+    t0 = time.monotonic()
+    page.evaluate("""async () => {
+        const sigs = state.signals.filter((s) => s.present && s.unit);
+        await toggleSignal(sigs[0], true);
+        await toggleSignal(sigs[1], true);
+    }""")
+    try:
+        page.wait_for_function("() => state.selected.length === 2 && "
+                               "state.selected.every((s) => s.t.length > 0)", timeout=600_000)
+    except Exception:
+        requests, finished, short = out["_requests"]
+        now = time.monotonic()
+        out["pending_requests"] = [(short(u), round(now - t, 1)) for u, t in requests.items()]
+        out["finished_requests"] = finished[-15:]
+        out["ui_state_on_timeout"] = page.evaluate(
+            "() => ({selected: state.selected.map((s) => s.t.length),"
+            " plotError: document.getElementById('plotError').textContent.slice(0, 300)})")
+        raise
+    out["ui_plot_two_signals_first_s"] = round(time.monotonic() - t0, 2)
+
+    # Timed inside the page (fetch + render), so Playwright's own
+    # instrumentation overhead does not count as application latency.
+    cursor_ms = page.evaluate("""async (n) => {
+        const out = [];
+        const [lo, hi] = state.bounds;
+        for (let i = 0; i < n; i++) {
+            const f = (i + 0.5) / n;
+            const t = performance.now();
+            state.cursor.a = lo + (hi - lo) * f;
+            state.cursor.b = lo + (hi - lo) * f * 0.9;
+            renderPlot();
+            await refreshCursorReadout();
+            out.push(performance.now() - t);
+        }
+        return out;
+    }""", n)
+    out["ui_cursor_update"] = summarize([v / 1000 for v in cursor_ms])
+
+    page.click("#viewTrace")
+    page.wait_for_selector("#traceTable tbody tr")
+    # Filtered pages, as the 200-row criterion states: filter by one id.
+    page_ms = page.evaluate("""async (n) => {
+        const ids = [...new Set(state.signals.filter((s) => s.present).map((s) => s.id_hex))];
+        const [lo, hi] = state.bounds;
+        const out = [];
+        for (let i = 0; i < n; i++) {
+            $("fId").value = ids[i % ids.length];
+            $("fStart").value = String(lo + (hi - lo) * ((i * 37) % n) / n);
+            const t = performance.now();
+            const ok = await loadTrace(null);
+            if (!ok || !state.trace.rows.length) throw new Error("trace page failed");
+            out.push(performance.now() - t);
+        }
+        return out;
+    }""", n)
+    out["ui_trace_page_200_filtered"] = summarize([v / 1000 for v in page_ms])
 
 
 def main() -> int:
@@ -507,6 +549,8 @@ def main() -> int:
     parser.add_argument("--skip-cap-minus-one", action="store_true")
     parser.add_argument("--skip-boundary", action="store_true")
     parser.add_argument("--skip-latency", action="store_true")
+    parser.add_argument("--browser-reuse-import", action="store_true",
+                        help="open the browser on the API-imported analysis (no UI upload)")
     parser.add_argument("--skip-fidelity", action="store_true")
     parser.add_argument("--external", action="store_true",
                         help="the ASC is an external acquisition: no manifest, no boundary")
@@ -659,8 +703,9 @@ def main() -> int:
             browser_out: dict = {}
             try:
                 report["browser"] = browser_phase(url, asc, dbc, args.browser, args.interactions,
-                                                  browser_out)
+                                                  browser_out, not args.browser_reuse_import)
             except Exception as exc:
+                browser_out.pop("_requests", None)
                 report["browser"] = {**browser_out, "error": repr(exc)[:300]}
             report["service_memory_during_browser"] = service_sampler.stop()
             print("browser:", json.dumps(report["browser"]), flush=True)
@@ -668,6 +713,12 @@ def main() -> int:
         if sampler is not None:
             report["service_memory"] = sampler.stop()
         svc.stop()
+        log = home / "logs" / "cantracediag.log"
+        if log.is_file():
+            lines = log.read_text(encoding="utf-8", errors="replace").splitlines()
+            report["service_log_errors"] = [
+                ln[:300] for ln in lines if "ERROR" in ln or "Traceback" in ln or "Error" in ln
+            ][-30:]
         report["fixture"]["sha256_after"] = sha256(asc)
         report["fixture"]["source_unchanged"] = (
             report["fixture"]["sha256_after"] == report["fixture"]["sha256_before"])
