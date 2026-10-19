@@ -7,7 +7,7 @@ the real executable from a loopback HTTP server via ``CTD_RELEASE_BASE``. Each
 scenario runs ``CanTraceDiag.cmd --version`` through cmd.exe, so a successful
 launch is the executable printing its own version.
 
-    python packaging/windows/test_launcher.py dist/windows/CanTraceDiag-1.3.0-windows-x64.exe
+    python packaging/windows/test_launcher.py dist/windows/CanTraceDiag-<version>-windows-x64.exe
 
 Optional ``--unc-root \\\\wsl.localhost\\Ubuntu\\...`` also runs the matching
 scenario from a checkout on that UNC share.

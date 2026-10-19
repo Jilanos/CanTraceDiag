@@ -15,7 +15,7 @@ non-ASCII characters, and checks over loopback HTTP:
 The harness itself uses Python (it generates the BLF/MF4 fixtures with the test
 helpers); the executable under test never sees it. Writes a JSON report.
 
-    python packaging/windows/smoke.py dist/windows/CanTraceDiag-1.3.0-windows-x64.exe
+    python packaging/windows/smoke.py dist/windows/CanTraceDiag-<version>-windows-x64.exe
 """
 
 from __future__ import annotations
