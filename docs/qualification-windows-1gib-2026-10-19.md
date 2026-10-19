@@ -73,12 +73,36 @@ downloads, verified download and run, offline cache, corrupted cache, network
 failure, packed refs, explicit `-Release`, checkout on a `\\wsl.localhost`
 share).
 
+## Published v1.4.0 release artifact
+
+The full qualification was repeated on the executable published with release
+v1.4.0, as downloaded and verified by `CanTraceDiag.cmd` from a fresh clone of
+the tag: `CanTraceDiag-1.4.0-windows-x64.exe`, 90,108,062 bytes, SHA-256
+`9344b2fcdfa99870412513e8415df944ccc2ea916bab88495342ffe83cbc0df3`, built by
+GitHub Actions from tag commit `6646d96` (CPython 3.13.16, PyInstaller 6.16.0,
+unsigned). Same machine, browser and fixture as above.
+
+| Criterion (req_034 AC4) | Limit | Measured | Verdict |
+| --- | --- | --- | --- |
+| 1 GiB import usable, API upload | <= 900 s | 402.2 s | met |
+| 1 GiB import usable, browser UI file picker | <= 900 s | 407.2 s | met |
+| Peak service process-tree working set | <= 6,442,450,944 B | 2,267,430,912 B | met |
+| Peak dedicated-browser working set | <= 2,147,483,648 B | 1,039,253,504 B | met |
+| Warm p95, 200-row filtered trace page | <= 2 s | API 1.456 s; UI 0.478 s | met |
+| Warm p95, two signals <= 4,000 points | <= 3 s | API 0.468 s | met |
+| Warm p95, two-signal A/B cursors | <= 1 s | API 0.377 s; UI 0.287 s | met |
+| Indexing cancellation acknowledged | <= 5 s | 0.26 s | met |
+
+Boundary (cap + 1 refused with and without Content-Length, cap - 1 and exact
+accepted with 18,728,198 frames), cancellation during transfer and indexing
+(previous analysis kept, no staging left), frame-by-frame fidelity (18,728,198
+compared, 0 mismatches) and source integrity all passed again. Packaged smoke
+of this file: 16/16. Cold first plot: 25.0 s (API), 39.2 s (UI).
+
 ## Reservations (not part of the verdicts above)
 
-- The qualified file is a local build. The release workflow rebuilds the
-  executable from the tag with the same pinned constraints; that published
-  artifact has a different SHA-256 and is smoke- and launcher-tested in CI, but
-  this full-size run has not been repeated on it.
+- The first tables come from a local build (`e48918e3...`); the published
+  v1.4.0 artifact was qualified separately (section above).
 - Cold first plot (not budgeted by AC4): the first full-range request for two
   signals took 23.9 s through the API and 42.9 s through the UI, because a
   signal is decoded on first use. Warm figures above apply afterwards.

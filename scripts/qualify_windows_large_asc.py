@@ -440,7 +440,7 @@ def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int,
             page.wait_for_function("() => state.loaded && state.signals.length > 0",
                                    timeout=120_000)
         else:
-            _ui_import(page, asc, dbc, out, console)
+            _ui_import(page, asc, dbc, out, console, finished)
         _ui_interactions(page, n, out)
         out["memory"] = sampler.stop()
         browser.close()
@@ -448,7 +448,8 @@ def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int,
     return out
 
 
-def _ui_import(page, asc: Path, dbc: Path, out: dict, console: list[str]) -> None:
+def _ui_import(page, asc: Path, dbc: Path, out: dict, console: list[str],
+               finished: list) -> None:
     page.set_input_files("#traceFile", str(asc))
     page.set_input_files("#dbcFiles", str(dbc))
     t0 = time.monotonic()
@@ -458,6 +459,21 @@ def _ui_import(page, asc: Path, dbc: Path, out: dict, console: list[str]) -> Non
                               timeout=30 * 60 * 1000) as resp:
         page.click("#loadBtn")
     out["ui_import_status"] = resp.value.status
+    # The page opened on the previously restored analysis, so "indexed" and a
+    # non-empty trace are already true: wait for the first trace page that
+    # onLoaded() requests *after* this import (its last step, once the
+    # persisted selection has been restored).
+    deadline = time.monotonic() + 600
+
+    def trace_after_import() -> bool:
+        marks = [i for i, f in enumerate(finished) if f[0].startswith("import-files")]
+        return bool(marks) and any(f[0].startswith("trace?") for f in finished[marks[-1] + 1:])
+
+    while not trace_after_import():
+        if time.monotonic() > deadline:
+            raise TimeoutError("UI never requested the first trace page after the import")
+        page.wait_for_timeout(200)
+    page.wait_for_timeout(500)  # let loadTrace render the rows it fetched
     try:
         page.wait_for_function(
             # onLoaded() ends with the first trace page: only then has it also
