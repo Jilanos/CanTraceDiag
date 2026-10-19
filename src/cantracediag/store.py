@@ -14,11 +14,12 @@ import json
 import math
 import os
 import threading
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Iterable, Iterator
 from dataclasses import dataclass
 
 import duckdb
 import pandas as pd
+import pyarrow as pa
 
 from cantracediag.integral import integrate
 from cantracediag.models import DecodedSignalSample, NonDataEvent, RawCanFrame
@@ -82,6 +83,8 @@ class TimeBounds:
 # working-set budget on a 16 GiB workstation (req_034 AC4). Overridable for
 # bigger or smaller machines.
 _DEFAULT_MEMORY_LIMIT = "2GB"
+# Decoded samples are written back in batches of this many rows.
+_SAMPLE_BATCH = 50_000
 
 
 def _file_backed_config(db_path: str) -> dict[str, str]:
@@ -188,27 +191,45 @@ class TraceStore:
         seqs: list[int] | None = None,
     ) -> int:
         frames = list(frames)
+        if not frames:
+            return 0
         if seqs is None:
             seqs = [seq_start + i for i in range(len(frames))]
-        rows = [
+        # Columnar batch straight into Arrow: building one dict per frame and a
+        # pandas frame from them dominated large imports (req_034 AC4).
+        hex_cache: dict[tuple[int, bool], str] = {}
+
+        def id_hex(f: RawCanFrame) -> str:
+            key = (f.arbitration_id, f.is_extended_id)
+            text = hex_cache.get(key)
+            if text is None:
+                text = hex_cache[key] = _id_hex(*key)
+            return text
+
+        table = pa.table(
             {
-                "seq": seqs[i],
-                "timestamp_s": f.timestamp_s,
-                "channel": f.channel,
-                "arbitration_id": f.arbitration_id,
-                "id_hex": _id_hex(f.arbitration_id, f.is_extended_id),
-                "is_extended_id": f.is_extended_id,
-                "dlc": f.dlc,
-                "data_hex": f.data.hex(" ").upper() or None,
-                "direction": f.direction,
-                "is_remote": f.is_remote,
-                "message_name": f.message_name,
-                "decode_status": f.decode_status,
-                "dbc_source": f.dbc_source,
+                "seq": pa.array(seqs, pa.int64()),
+                "timestamp_s": pa.array([f.timestamp_s for f in frames], pa.float64()),
+                "channel": pa.array([f.channel for f in frames], pa.string()),
+                "arbitration_id": pa.array([f.arbitration_id for f in frames], pa.int64()),
+                "id_hex": pa.array([id_hex(f) for f in frames], pa.string()),
+                "is_extended_id": pa.array([f.is_extended_id for f in frames], pa.bool_()),
+                "dlc": pa.array([f.dlc for f in frames], pa.int32()),
+                "data_hex": pa.array(
+                    [f.data.hex(" ").upper() or None for f in frames], pa.string()
+                ),
+                "direction": pa.array([f.direction for f in frames], pa.string()),
+                "is_remote": pa.array([f.is_remote for f in frames], pa.bool_()),
+                "message_name": pa.array([f.message_name for f in frames], pa.string()),
+                "decode_status": pa.array([f.decode_status for f in frames], pa.string()),
+                "dbc_source": pa.array([f.dbc_source for f in frames], pa.string()),
             }
-            for i, f in enumerate(frames)
-        ]
-        return self._append("frames", rows)
+        )
+        with self._lock:
+            self.con.register("_incoming_frames", table)
+            self.con.execute("INSERT INTO frames SELECT * FROM _incoming_frames")
+            self.con.unregister("_incoming_frames")
+        return len(frames)
 
     def ingest_events(
         self,
@@ -232,20 +253,32 @@ class TraceStore:
         return self._append("events", rows)
 
     def ingest_samples(self, samples: Iterable[DecodedSignalSample]) -> int:
-        rows = [
+        samples = list(samples)
+        if not samples:
+            return 0
+        values = [s.value for s in samples]
+        table = pa.table(
             {
-                "timestamp_s": s.timestamp_s,
-                "channel": s.channel,
-                "arbitration_id": s.arbitration_id,
-                "message_name": s.message_name,
-                "signal_name": s.signal_name,
-                "value_num": s.value if isinstance(s.value, (int, float)) else None,
-                "value_text": s.value if isinstance(s.value, str) else None,
-                "unit": s.unit,
+                "timestamp_s": pa.array([s.timestamp_s for s in samples], pa.float64()),
+                "channel": pa.array([s.channel for s in samples], pa.string()),
+                "arbitration_id": pa.array([s.arbitration_id for s in samples], pa.int64()),
+                "message_name": pa.array([s.message_name for s in samples], pa.string()),
+                "signal_name": pa.array([s.signal_name for s in samples], pa.string()),
+                "value_num": pa.array(
+                    [float(v) if isinstance(v, (int, float)) else None for v in values],
+                    pa.float64(),
+                ),
+                "value_text": pa.array(
+                    [v if isinstance(v, str) else None for v in values], pa.string()
+                ),
+                "unit": pa.array([s.unit for s in samples], pa.string()),
             }
-            for s in samples
-        ]
-        return self._append("samples", rows)
+        )
+        with self._lock:
+            self.con.register("_incoming_samples", table)
+            self.con.execute("INSERT INTO samples SELECT * FROM _incoming_samples")
+            self.con.unregister("_incoming_samples")
+        return len(samples)
 
     def replace_signal_samples(
         self,
@@ -274,7 +307,16 @@ class TraceStore:
                 """,
                 [message_name, signal_name, start_s, start_s, end_s, end_s],
             )
-        return self.ingest_samples(samples)
+        # ``samples`` may be a generator over a whole trace: ingest it in
+        # bounded batches instead of materializing it (req_034 AC2).
+        total = 0
+        batch: list[DecodedSignalSample] = []
+        for sample in samples:
+            batch.append(sample)
+            if len(batch) >= _SAMPLE_BATCH:
+                total += self.ingest_samples(batch)
+                batch = []
+        return total + self.ingest_samples(batch)
 
     def mark_series_cached(
         self,
@@ -693,6 +735,40 @@ class TraceStore:
             params,
         )
         return [_frame_from_record(row) for row in _records(df)]
+
+    def iter_frames_for_signal(
+        self,
+        arbitration_id: int,
+        start_s: float | None = None,
+        end_s: float | None = None,
+        batch_size: int = 50_000,
+    ) -> Iterator[list[RawCanFrame]]:
+        """Like :meth:`frames_for_signal`, one bounded batch at a time.
+
+        Runs on a sibling cursor so the store lock is not held while the caller
+        decodes a batch (same pattern as :meth:`iter_raw_frames`).
+        """
+        clauses = ["arbitration_id = ?"]
+        params: list[object] = [arbitration_id]
+        self._time_clauses(start_s, end_s, clauses, params)
+        sql = f"""
+            SELECT timestamp_s, channel, arbitration_id, is_extended_id, dlc,
+                   data_hex, direction, is_remote, message_name, decode_status, dbc_source
+            FROM frames WHERE {" AND ".join(clauses)}
+            ORDER BY timestamp_s
+        """
+        with self._lock:
+            cursor = self.con.cursor()
+        try:
+            reader = cursor.execute(sql, params).to_arrow_reader(max(1, batch_size))
+            for batch in reader:
+                cols = batch.to_pydict()
+                yield [
+                    _frame_from_record({k: cols[k][i] for k in cols})
+                    for i in range(batch.num_rows)
+                ]
+        finally:
+            cursor.close()
 
     def frame_at(self, timestamp_s: float, arbitration_id: int) -> RawCanFrame | None:
         row = self._one(

@@ -37,6 +37,8 @@ class Decoder:
         # (AC10). Maps arbitration_id -> database name.
         self._resolution = resolution or {}
         self._ambiguous_ids = ambiguous_ids or set()
+        self._described: dict[int, tuple[str, Message | None, str | None]] = {}
+        self._units: dict[str, dict[str, str | None]] = {}
 
     def decode_frame(
         self, frame: RawCanFrame
@@ -55,26 +57,40 @@ class Decoder:
         return updated, self._to_samples(updated, message, decoded)
 
     def describe_frame(self, frame: RawCanFrame) -> tuple[RawCanFrame, Message | None]:
-        """Resolve message metadata without materializing every signal sample."""
+        """Resolve message metadata without materializing every signal sample.
+
+        The outcome depends only on the arbitration id (the index and the
+        operator resolution are fixed for this decoder), so it is memoized per
+        id; this runs once per frame of a full import.
+        """
+        resolved = self._described.get(frame.arbitration_id)
+        if resolved is None:
+            resolved = self._describe_id(frame.arbitration_id)
+            self._described[frame.arbitration_id] = resolved
+        status, message, db_name = resolved
+        updated = RawCanFrame(
+            frame.timestamp_s, frame.channel, frame.arbitration_id, frame.is_extended_id,
+            frame.dlc, frame.data, frame.direction, frame.is_remote,
+            message.name if message is not None else frame.message_name,
+            status,
+            db_name if message is not None else frame.dbc_source,
+        )
+        return updated, message
+
+    def _describe_id(self, arbitration_id: int) -> tuple[str, Message | None, str | None]:
         if not self._has_db:
-            return replace(frame, decode_status=DECODE_NO_DB), None
-
-        entries = self._index.get(frame.arbitration_id)
+            return DECODE_NO_DB, None, None
+        entries = self._index.get(arbitration_id)
         if not entries:
-            return replace(frame, decode_status=DECODE_UNKNOWN_ID), None
-
+            return DECODE_UNKNOWN_ID, None, None
         # When several DBCs claim the same id, honour the operator's resolution
         # if one was made; otherwise take the first. Remaining ambiguity is
         # surfaced separately via DbcCatalog.find_ambiguous_ids.
-        picked = self._pick(frame.arbitration_id, entries)
+        picked = self._pick(arbitration_id, entries)
         if picked is None:
-            return replace(frame, decode_status=DECODE_AMBIGUOUS_ID), None
+            return DECODE_AMBIGUOUS_ID, None, None
         db_name, message = picked
-        updated = replace(
-            frame, message_name=message.name, decode_status=DECODE_OK,
-            dbc_source=db_name,
-        )
-        return updated, message
+        return DECODE_OK, message, db_name
 
     def decode_signal(
         self, frame: RawCanFrame, message_name: str, signal_name: str
@@ -96,7 +112,9 @@ class Decoder:
             return None
         if signal_name not in decoded:
             return None
-        units = {sig.name: sig.unit for sig in message.signals}
+        units = self._units.get(message.name)
+        if units is None:
+            units = self._units[message.name] = {sig.name: sig.unit for sig in message.signals}
         value = decoded[signal_name]
         numeric = _numeric(value)
         return DecodedSignalSample(

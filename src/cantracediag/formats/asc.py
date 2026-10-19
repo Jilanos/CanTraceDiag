@@ -22,6 +22,18 @@ _TIMESTAMP = re.compile(r"^\s*([+-]?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)\s+(.*)$")
 # Classic CAN tops out at 8 data bytes; a larger DLC on a non-FD line is invalid.
 _CLASSIC_MAX_DLC = 8
 
+# Fast path for the overwhelmingly common line of a hex-base trace: a classic
+# data frame with a numeric channel, an id with an optional lower-case ``x``,
+# Rx/Tx, ``d``, a single-digit DLC and nothing but two-digit payload bytes. Such
+# a line parses to exactly the frame the general path builds (the differential
+# test in tests/test_asc.py pins this); any other shape -- or a payload whose
+# byte count differs from the DLC -- falls through to the general path, which
+# owns every diagnostic.
+_FAST_FRAME = re.compile(
+    r"^[ \t]*([0-9]+\.[0-9]+)[ \t]+([0-9]+)[ \t]+([0-9A-Fa-f]{1,8})(x?)[ \t]+(Rx|Tx)"
+    r"[ \t]+d[ \t]+([0-8])((?:[ \t]+[0-9A-Fa-f]{2})*)[ \t\r]*\n?$"
+)
+
 
 @dataclass(slots=True)
 class AscParseResult:
@@ -43,11 +55,23 @@ def _parse_int(token: str, base: int) -> int | None:
 class _Scanner:
     """Line-oriented ASC scanner that tracks the current numeric base."""
 
-    def __init__(self) -> None:
+    def __init__(self, fast: bool = True) -> None:
         self.base = "hex"
         self.parsed_lines = 0
+        self.fast = fast
 
     def feed(self, raw_line: str) -> tuple[RawCanFrame | None, NonDataEvent | None]:
+        if self.fast and self.base == "hex":
+            m = _FAST_FRAME.match(raw_line)
+            if m is not None:
+                data = bytes.fromhex(m.group(7))
+                dlc = int(m.group(6))
+                if len(data) == dlc:
+                    self.parsed_lines += 1
+                    return RawCanFrame(
+                        float(m.group(1)), m.group(2), int(m.group(3), 16), m.group(4) == "x",
+                        dlc, data, m.group(5), False,
+                    ), None
         stripped = raw_line.strip()
         if not stripped:
             return None, None

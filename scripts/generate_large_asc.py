@@ -70,7 +70,7 @@ def write_dbc(path: Path) -> None:
                 f'[{offset}|{hi}] "{unit}" Vector__XXX'
             )
         lines.append("")
-    path.write_text("\n".join(lines) + "\n", encoding="ascii")
+    path.write_text("\n".join(lines) + "\n", encoding="ascii", newline="\n")
 
 
 def generate(path: Path, size: int, seed: int = 20261019) -> dict:

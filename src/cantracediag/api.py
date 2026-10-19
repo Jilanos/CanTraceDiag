@@ -130,6 +130,11 @@ class Session:
         self.cancel_event: threading.Event | None = None
         self.workspace: Workspace | None = None
         self._lock = threading.Lock()
+        self._series_locks: dict[tuple[str, str], threading.Lock] = {}
+
+    def series_lock(self, message: str, signal: str) -> threading.Lock:
+        with self._lock:
+            return self._series_locks.setdefault((message, signal), threading.Lock())
 
     @contextmanager
     def use_store(self):
@@ -521,16 +526,32 @@ def create_app(
     ) -> None:
         if store.has_series_cache(message, signal, start, end):
             return
-        info = _signal_info(message, signal)
-        decoder = _decoder()
-        samples: list[DecodedSignalSample] = []
-        frames = store.frames_for_signal(info.arbitration_id, start, end)
-        for frame in frames:
-            sample = decoder.decode_signal(frame, message, signal)
-            if sample is not None:
-                samples.append(sample)
-        store.replace_signal_samples(message, signal, samples, start, end)
-        store.mark_series_cached(message, signal, start, end, len(frames), len(samples))
+        # One decode per signal at a time: concurrent requests for the same
+        # signal (the UI fires several) wait and then hit the cache instead of
+        # decoding and inserting the same samples twice.
+        with session.series_lock(message, signal):
+            if store.has_series_cache(message, signal, start, end):
+                return
+            info = _signal_info(message, signal)
+            decoder = _decoder()
+            counts = {"frames": 0, "samples": 0}
+
+            def _samples():
+                # Frames stream in bounded batches and samples are written back
+                # in batches, so a full-range plot of a 1 GiB trace never holds
+                # the signal's whole history in memory (req_034 AC2).
+                for batch in store.iter_frames_for_signal(info.arbitration_id, start, end):
+                    counts["frames"] += len(batch)
+                    for frame in batch:
+                        sample = decoder.decode_signal(frame, message, signal)
+                        if sample is not None:
+                            counts["samples"] += 1
+                            yield sample
+
+            store.replace_signal_samples(message, signal, _samples(), start, end)
+            store.mark_series_cached(
+                message, signal, start, end, counts["frames"], counts["samples"]
+            )
 
     @app.post("/api/import")
     def api_import(req: ImportRequest) -> dict:

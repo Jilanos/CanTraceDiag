@@ -120,3 +120,57 @@ def test_trc_invalid_records_become_inspectable_events() -> None:
         "TrcAnomaly", "TrcRemoteRequest", "TrcUnsupported", "TrcWarning"
     }
     assert all(len(frame.data) == frame.dlc for frame in result.frames)
+
+
+def _scan_all(lines: list[str], fast: bool) -> list:
+    from cantracediag.formats.asc import _Scanner
+
+    scanner = _Scanner(fast=fast)
+    out = [scanner.feed(line) for line in lines]
+    return [out, scanner.base, scanner.parsed_lines]
+
+
+def test_fast_path_matches_general_parser_exactly(tmp_path: Path) -> None:
+    """The data-frame fast path must build exactly what the general path builds."""
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "gen", Path(__file__).parents[1] / "scripts" / "generate_large_asc.py")
+    gen = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(gen)
+    generated = tmp_path / "g.asc"
+    gen.generate(generated, 400_000)
+    lines = generated.read_text().splitlines(keepends=True)
+    for name in ("sample.asc", "sample_dec.asc", "malformed.asc", "same_timestamp.asc",
+                 "repeated_events.asc"):
+        lines += (FIXTURE.parent / name).read_text().splitlines(keepends=True)
+    lines += [
+        "base hex  timestamps absolute\n",
+        "   1.000000 1  100             Rx   d 8 00 10 64 00 00 00 00 00\n",
+        "1.0 1 100 Rx d 8 00 10 64 00 00 00 00\n",           # payload shorter than DLC
+        "1.0 1 100 Rx d 2 00 10 64\n",                       # payload longer than DLC
+        "1.0 1 100 Rx d 0 00\n",                             # DLC 0 ignores trailing tokens
+        "1.0 1 100 Rx d 0\n",
+        "1.0 1 1FFFFFFFx Tx d 1 FF\r\n",
+        "1.0 1 1fffffffX Tx d 1 ff\n",                       # upper-case X: general path
+        "1.0 1 100 Rx d 8 0 1 2 3 4 5 6 7\n",               # single-digit bytes
+        "1.0 1 100 Rx d 2 00 10  Length = 1 BitCount = 2\n",
+        "1.0 1 100 Rx r 2\n",
+        "1.0 1 100 Rx d 9 00 00 00 00 00 00 00 00 00\n",
+        "1.0\t2\t7FF\tRx\td\t1\t0A\n",
+        "1.0 1 100 Rx d 1 0A \n",
+        "-1.5 1 100 Rx d 1 0A\n",
+        "1e-3 1 100 Rx d 1 0A\n",
+        "1.0 CANFD 1 Rx 100 d 1 0A\n",
+        "1.0 1 Status:chip status error active\n",
+        "1.0 1 ErrorFrame\n",
+        "1.0 1 123456789 Rx d 1 0A\n",                      # 9 hex digits
+        "1.0 1 100 Rx d 1 ٠١\n",                              # non-ASCII digits
+        "base dec\n",
+        "1.0 1 256 Rx d 2 16 39\n",
+        "1.0 1 100 Rx d 1 10\n",
+        "base hex\n",
+        "1.0 1 100 Rx d 1 10\n",
+    ]
+    fast, general = _scan_all(lines, True), _scan_all(lines, False)
+    assert fast == general
