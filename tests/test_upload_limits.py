@@ -10,6 +10,7 @@ qualification script.
 from __future__ import annotations
 
 import asyncio
+import threading
 import uuid
 from pathlib import Path
 
@@ -260,6 +261,25 @@ def test_stale_staging_is_pruned_on_startup(tmp_path: Path) -> None:
     assert _staging_children(ws) == []
 
 
+def _run(coro):
+    """Run ``coro`` on a private loop (Playwright tests leave one running here)."""
+    out: list = []
+
+    def runner() -> None:
+        try:
+            out.append(("ok", asyncio.run(coro)))
+        except BaseException as exc:  # noqa: BLE001 - re-raised in the caller
+            out.append(("err", exc))
+
+    worker = threading.Thread(target=runner)
+    worker.start()
+    worker.join()
+    kind, value = out[0]
+    if kind == "err":
+        raise value
+    return value
+
+
 def _request_from_chunks(body: bytes, ctype: str, chunk: int = 256) -> Request:
     pieces = [body[i:i + chunk] for i in range(0, len(body), chunk)]
 
@@ -284,7 +304,7 @@ def test_cancel_during_transfer_stops_streaming(tmp_path: Path) -> None:
         return calls["n"] > 2
 
     with pytest.raises(UploadCancelled):
-        asyncio.run(stage_multipart(
+        _run(stage_multipart(
             _request_from_chunks(body, ctype), tmp_path, UploadLimits(),
             trace_suffixes=TRACE_SUFFIXES, cancel_check=cancel_after_two_chunks,
         ))
@@ -297,7 +317,7 @@ def test_truncated_body_is_rejected(tmp_path: Path) -> None:
     request = _request_from_chunks(body[: len(body) // 2], ctype)
     request.scope["headers"].append((b"content-length", str(len(body)).encode()))
     with pytest.raises(UploadRejected) as exc:
-        asyncio.run(stage_multipart(
+        _run(stage_multipart(
             request, tmp_path, UploadLimits(), trace_suffixes=TRACE_SUFFIXES,
         ))
     assert exc.value.status == 400
