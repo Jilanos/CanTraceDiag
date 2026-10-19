@@ -4,7 +4,8 @@ The workspace lets an operator relaunch the tool and immediately find the last
 analysis and previously used DBC files, instead of re-uploading everything into
 a throwaway ``tempfile`` directory each session.
 
-Layout under the user data root (``$CANTRACEDIAG_DATA_DIR`` or
+Layout under the user data root (``$CANTRACEDIAG_DATA_DIR``, else
+``%LOCALAPPDATA%\\CanTraceDiag\\data`` on Windows, else
 ``$XDG_DATA_HOME/cantracediag`` or ``~/.local/share/cantracediag``)::
 
     dbc/
@@ -42,7 +43,13 @@ DEFAULT_DBC_CAP = 20
 
 
 def default_data_root() -> Path:
-    """Resolve the user data root, honouring XDG conventions."""
+    """Resolve the per-user data root.
+
+    Native Windows uses ``%LOCALAPPDATA%\\CanTraceDiag\\data`` (per user, outside
+    any clone, not roamed); elsewhere XDG conventions apply.
+    """
+    if os.name == "nt" and os.environ.get("LOCALAPPDATA"):
+        return Path(os.environ["LOCALAPPDATA"]) / "CanTraceDiag" / "data"
     xdg = os.environ.get("XDG_DATA_HOME")
     base = Path(xdg) if xdg else Path.home() / ".local" / "share"
     return base / "cantracediag"

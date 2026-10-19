@@ -683,6 +683,7 @@ def create_app(
             with session.use_store() as store:
                 return {
                     "loaded": True,
+                    "version": __version__,
                     "capabilities": capabilities,
                     "trace_path": session.trace_path,
                     "dbc_paths": session.dbc_paths,
@@ -692,7 +693,7 @@ def create_app(
                     "event_types": store.event_types(),
                 }
         except HTTPException:
-            return {"loaded": False, "capabilities": capabilities}
+            return {"loaded": False, "version": __version__, "capabilities": capabilities}
 
     @app.get("/api/dbc-library")
     def api_dbc_library() -> dict:
@@ -1198,6 +1199,20 @@ def create_app(
                     "Import cancellation requested.")
         return {"cancelled": True}
 
+    @app.post("/api/shutdown")
+    def api_shutdown() -> dict:
+        """Stop the standalone local service (req_034 AC7).
+
+        Only available when the embedding process registered a stop hook (the
+        Windows executable); a plain ``cantracediag serve`` has none. Mutating,
+        so the session token is required like any other POST.
+        """
+        stop = getattr(app.state, "ctd_shutdown", None)
+        if stop is None:
+            raise HTTPException(404, "Shutdown is not available for this server.")
+        stop()
+        return {"stopping": True}
+
     @app.get("/")
     def index() -> HTMLResponse:
         # Embed the session token in the shell so same-origin scripts can send it
@@ -1268,15 +1283,19 @@ def _restore_last_analysis(session: Session) -> None:
     }
 
 
-def normalize_local_path(raw: str) -> str:
-    """Map a pasted Windows/UNC path to the POSIX path seen inside WSL.
+def normalize_local_path(raw: str, platform: str | None = None) -> str:
+    """Strip quotes from a pasted path and, under Linux/WSL only, map Windows paths.
 
-    The UI is typically opened from a Windows browser, so operators paste paths
-    like ``\\\\wsl.localhost\\Ubuntu\\home\\paul\\trace.asc`` or ``C:\\data\\x.asc``.
-    The backend runs under Linux and needs the corresponding POSIX path.
+    When the backend runs inside WSL and the UI is opened from a Windows browser,
+    operators paste paths like ``\\\\wsl.localhost\\Ubuntu\\home\\paul\\trace.asc``
+    or ``C:\\data\\x.asc``; those are mapped to the POSIX path seen inside WSL.
+    A native Windows backend (the standalone executable) keeps drive and UNC
+    paths exactly as given -- including a ``\\\\wsl.localhost`` share, which
+    Windows reads directly -- and never rewrites them into Linux paths
+    (req_034 AC7). ``platform`` overrides ``os.name`` for tests.
     """
     s = raw.strip().strip('"').strip("'")
-    if not s:
+    if not s or (platform or os.name) == "nt":
         return s
 
     # UNC paths: \\wsl.localhost\<distro>\... or \\wsl$\<distro>\...

@@ -69,6 +69,7 @@ no partial trace is published.
 from __future__ import annotations
 
 import heapq
+import logging
 import math
 import shutil
 import struct
@@ -259,6 +260,9 @@ def _open(source: Path, workdir: str, cancel_check: Callable[[], bool] | None):
     try:
         from asammdf import MDF
     except ImportError as exc:  # pragma: no cover - exercised only without the dep
+        # The operator-facing hint stays generic; the log keeps the real cause
+        # (e.g. a native module a packaged build failed to bundle).
+        logging.getLogger(__name__).error("asammdf import failed: %r", exc)
         raise Mf4ImportError(_INSTALL_HINT) from exc
 
     def _progress(*_args) -> None:

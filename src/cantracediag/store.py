@@ -12,6 +12,7 @@ import base64
 import binascii
 import json
 import math
+import os
 import threading
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
@@ -76,9 +77,23 @@ class TimeBounds:
     end_s: float | None
 
 
+# DuckDB defaults its buffer pool to 80% of physical RAM. A file-backed store
+# spills to disk instead, so cap the pool to keep the local service inside its
+# working-set budget on a 16 GiB workstation (req_034 AC4). Overridable for
+# bigger or smaller machines.
+_DEFAULT_MEMORY_LIMIT = "2GB"
+
+
+def _file_backed_config(db_path: str) -> dict[str, str]:
+    if db_path == ":memory:":
+        return {}
+    limit = os.environ.get("CANTRACEDIAG_DUCKDB_MEMORY_LIMIT", "").strip()
+    return {"memory_limit": limit or _DEFAULT_MEMORY_LIMIT}
+
+
 class TraceStore:
     def __init__(self, db_path: str = ":memory:"):
-        self.con = duckdb.connect(db_path)
+        self.con = duckdb.connect(db_path, config=_file_backed_config(db_path))
         # A single DuckDB connection is not safe for concurrent use: FastAPI
         # runs these sync endpoints in a threadpool and the UI fires several
         # /api/series and /api/cursor calls in parallel, so without this lock

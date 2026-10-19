@@ -21,3 +21,13 @@ def test_posix_path_unchanged() -> None:
 
 def test_quotes_are_stripped() -> None:
     assert normalize_local_path('"/home/paul/trace.asc"') == "/home/paul/trace.asc"
+
+
+def test_native_windows_keeps_drive_and_unc_paths() -> None:
+    # req_034 AC7: the standalone Windows backend reads these paths directly.
+    for raw in (
+        r"C:\Données d'essai\trace 1.asc",
+        r"\\wsl.localhost\Ubuntu\home\paul\clone\trace.asc",
+        r"\\server\share\acquisitions\trace.asc",
+    ):
+        assert normalize_local_path(f'"{raw}"', platform="nt") == raw
