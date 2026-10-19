@@ -7,7 +7,7 @@ import pytest
 from starlette.testclient import TestClient
 
 import cantracediag.api as api_module
-from cantracediag import __version__
+from cantracediag import __version__, fastdecode
 from cantracediag.decode import Decoder
 from cantracediag.pipeline import import_trace
 
@@ -141,6 +141,15 @@ def test_series_is_decoded_on_demand_and_reuses_cache(
         return original(self, frame, message_name, signal_name)
 
     monkeypatch.setattr(Decoder, "decode_signal", counted_decode)
+    # Plain signals take the vectorized path (fastdecode); count it as well.
+    original_fast = fastdecode.decode
+
+    def counted_fast(plan, data_hex, is_remote):
+        nonlocal calls
+        calls += 1
+        return original_fast(plan, data_hex, is_remote)
+
+    monkeypatch.setattr(fastdecode, "decode", counted_fast)
     assert _import(client).status_code == 200
 
     params = {"message": "EngineData", "signal": "EngineSpeed"}

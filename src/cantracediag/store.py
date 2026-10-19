@@ -288,6 +288,25 @@ class TraceStore:
         start_s: float | None = None,
         end_s: float | None = None,
     ) -> int:
+        self.clear_signal_samples(message_name, signal_name, start_s, end_s)
+        # ``samples`` may be a generator over a whole trace: ingest it in
+        # bounded batches instead of materializing it (req_034 AC2).
+        total = 0
+        batch: list[DecodedSignalSample] = []
+        for sample in samples:
+            batch.append(sample)
+            if len(batch) >= _SAMPLE_BATCH:
+                total += self.ingest_samples(batch)
+                batch = []
+        return total + self.ingest_samples(batch)
+
+    def clear_signal_samples(
+        self,
+        message_name: str,
+        signal_name: str,
+        start_s: float | None = None,
+        end_s: float | None = None,
+    ) -> None:
         clauses = ["message_name = ?", "signal_name = ?"]
         params: list[object] = [message_name, signal_name]
         if start_s is not None:
@@ -307,16 +326,39 @@ class TraceStore:
                 """,
                 [message_name, signal_name, start_s, start_s, end_s, end_s],
             )
-        # ``samples`` may be a generator over a whole trace: ingest it in
-        # bounded batches instead of materializing it (req_034 AC2).
-        total = 0
-        batch: list[DecodedSignalSample] = []
-        for sample in samples:
-            batch.append(sample)
-            if len(batch) >= _SAMPLE_BATCH:
-                total += self.ingest_samples(batch)
-                batch = []
-        return total + self.ingest_samples(batch)
+
+    def ingest_sample_columns(self, table: pa.Table) -> int:
+        """Append samples already shaped as the ``samples`` table's columns."""
+        if table.num_rows == 0:
+            return 0
+        with self._lock:
+            self.con.register("_incoming_samples", table)
+            self.con.execute("INSERT INTO samples SELECT * FROM _incoming_samples")
+            self.con.unregister("_incoming_samples")
+        return table.num_rows
+
+    def iter_frame_columns(
+        self,
+        arbitration_id: int,
+        start_s: float | None = None,
+        end_s: float | None = None,
+        batch_size: int = 200_000,
+    ) -> Iterator[pa.RecordBatch]:
+        """Raw columns of one id's frames, in :meth:`frames_for_signal` order, batch by batch."""
+        clauses = ["arbitration_id = ?"]
+        params: list[object] = [arbitration_id]
+        self._time_clauses(start_s, end_s, clauses, params)
+        sql = f"""
+            SELECT timestamp_s, channel, data_hex, is_remote
+            FROM frames WHERE {" AND ".join(clauses)}
+            ORDER BY timestamp_s
+        """
+        with self._lock:
+            cursor = self.con.cursor()
+        try:
+            yield from cursor.execute(sql, params).to_arrow_reader(max(1, batch_size))
+        finally:
+            cursor.close()
 
     def mark_series_cached(
         self,

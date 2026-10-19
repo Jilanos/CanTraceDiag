@@ -23,6 +23,7 @@ from contextlib import contextmanager
 from pathlib import Path
 
 import cantools
+import pyarrow as pa
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
@@ -30,11 +31,11 @@ from pydantic import BaseModel
 from starlette.concurrency import run_in_threadpool
 from starlette.requests import ClientDisconnect
 
-from cantracediag import __version__, export
+from cantracediag import __version__, export, fastdecode
 from cantracediag.dbc import DbcCatalog
 from cantracediag.decode import Decoder
 from cantracediag.formats.mf4 import Mf4ImportError
-from cantracediag.models import DecodedSignalSample
+from cantracediag.models import DECODE_OK, DecodedSignalSample
 from cantracediag.pipeline import ImportCancelled, import_trace
 from cantracediag.security import SecurityConfig
 from cantracediag.store import TraceStore, _id_hex
@@ -534,6 +535,18 @@ def create_app(
                 return
             info = _signal_info(message, signal)
             decoder = _decoder()
+            status, owner = decoder.resolve(info.arbitration_id)
+            fast = (
+                fastdecode.plan(owner, signal)
+                if status == DECODE_OK and owner is not None and owner.name == message
+                else None
+            )
+            if fast is not None:
+                frames_n, samples_n = _decode_series_vectorized(
+                    store, info, owner, message, signal, fast, start, end
+                )
+                store.mark_series_cached(message, signal, start, end, frames_n, samples_n)
+                return
             counts = {"frames": 0, "samples": 0}
 
             def _samples():
@@ -552,6 +565,30 @@ def create_app(
             store.mark_series_cached(
                 message, signal, start, end, counts["frames"], counts["samples"]
             )
+
+    def _decode_series_vectorized(store, info, owner, message, signal, plan, start, end):
+        """Column-wise equivalent of the per-frame loop below (see fastdecode)."""
+        unit = next((sg.unit for sg in owner.signals if sg.name == signal), None)
+        store.clear_signal_samples(message, signal, start, end)
+        frames_n = samples_n = 0
+        for batch in store.iter_frame_columns(info.arbitration_id, start, end):
+            cols = batch.to_pydict()
+            keep, values = fastdecode.decode(plan, cols["data_hex"], cols["is_remote"])
+            frames_n += batch.num_rows
+            mask = pa.array(keep)
+            n = int(keep.sum())
+            samples_n += n
+            store.ingest_sample_columns(pa.table({
+                "timestamp_s": batch.column("timestamp_s").filter(mask),
+                "channel": batch.column("channel").filter(mask),
+                "arbitration_id": pa.array([info.arbitration_id] * n, pa.int64()),
+                "message_name": pa.array([owner.name] * n, pa.string()),
+                "signal_name": pa.array([signal] * n, pa.string()),
+                "value_num": pa.array(values[keep], pa.float64()),
+                "value_text": pa.nulls(n, pa.string()),
+                "unit": pa.array([unit] * n, pa.string()),
+            }))
+        return frames_n, samples_n
 
     @app.post("/api/import")
     def api_import(req: ImportRequest) -> dict:

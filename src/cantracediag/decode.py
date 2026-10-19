@@ -77,6 +77,11 @@ class Decoder:
         )
         return updated, message
 
+    def resolve(self, arbitration_id: int) -> tuple[str, Message | None]:
+        """Decode status and owning message for every frame with this id."""
+        status, message, _ = self._describe_id(arbitration_id)
+        return status, message
+
     def _describe_id(self, arbitration_id: int) -> tuple[str, Message | None, str | None]:
         if not self._has_db:
             return DECODE_NO_DB, None, None
