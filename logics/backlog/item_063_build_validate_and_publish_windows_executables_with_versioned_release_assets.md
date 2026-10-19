@@ -1,14 +1,14 @@
 ## item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets - Build validate and publish Windows executables with versioned release assets
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 60%
 > Complexity: High
 > Theme: Desktop CI and release delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 11:45:49
+> Indicators reviewed: 2026-10-19 11:48:16
 
 # AI Context
 The release workflow publishes a static web container and creates a release only after production deployment; it publishes no Windows artifact. Add a Windows build/test lane with recorded dependency and tool versions, application version/source provenance, required bundled assets/native libraries and distribution notices. Publish a clearly named x64 .exe and SHA-256/provenance manifest on the matching versioned release.

@@ -1,14 +1,14 @@
 ## item_061_package_the_local_workstation_as_a_native_standalone_windows_executable - Package the local workstation as a native standalone Windows executable
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 60%
 > Complexity: High
 > Theme: Native Windows runtime
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 11:45:49
+> Indicators reviewed: 2026-10-19 11:48:16
 
 # AI Context
 The existing launcher requires WSL/Python and path normalization assumes Linux semantics. Create a portable Windows 11 x64 .exe bundling the supported local server and runtime; evaluate a conventional freezer such as PyInstaller during implementation, verify dependency hooks and include packaged static assets and all supported format readers. Any self-extraction is internal; no user-managed environment or build step.

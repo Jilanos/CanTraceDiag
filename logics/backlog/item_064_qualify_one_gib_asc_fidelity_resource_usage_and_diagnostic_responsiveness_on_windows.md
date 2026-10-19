@@ -1,14 +1,14 @@
 ## item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows - Qualify one GiB ASC fidelity resource usage and diagnostic responsiveness on Windows
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: In progress
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 0%
+> Progress: 60%
 > Complexity: High
 > Theme: Large-file qualification
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 11:45:49
+> Indicators reviewed: 2026-10-19 11:48:16
 
 # AI Context
 Existing hot-path budgets use roughly 100,000 rows and do not prove a complete 1 GiB acquisition is usable. Generate repeatable valid ASC inputs at 1 GiB with known frame counts, multi-channel traffic, extended IDs, equal timestamps, mixed DLCs and realistic roughly 45-ID traffic. Include a nontrivial generated DBC with at least 20 messages and eight signals/message; record match coverage and avoid qualifying with an empty DBC or comments-only padding.
