@@ -110,6 +110,7 @@ def import_trace(
         frac = min(1.0, pos / total_bytes) if total_bytes else 0.0
         on_progress(frac)
 
+    items = None
     try:
         suffix = Path(trace_path).suffix.lower()
         if suffix == ".trc":
@@ -163,6 +164,13 @@ def import_trace(
         if owns_store:
             store.close()
         raise
+    finally:
+        # Close the reader now: an abandoned generator keeps the trace file
+        # open until garbage collection, and Windows then refuses to delete
+        # the staged upload after a cancelled or failed import.
+        close = getattr(items, "close", None)
+        if close is not None:
+            close()
 
     result = ImportResult(
         trace_path=str(trace_path),

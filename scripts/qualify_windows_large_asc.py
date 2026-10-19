@@ -416,11 +416,16 @@ def browser_phase(url: str, asc: Path, dbc: Path, channel: str, n: int) -> dict:
         page.set_input_files("#traceFile", str(asc))
         page.set_input_files("#dbcFiles", str(dbc))
         t0 = time.monotonic()
-        page.click("#loadBtn")
+        # A restored analysis already looks "indexed": wait for this import's
+        # own response, then for the UI to finish rendering it.
+        with page.expect_response(lambda r: "/api/import-files" in r.url,
+                                  timeout=30 * 60 * 1000) as resp:
+            page.click("#loadBtn")
+        out["ui_import_status"] = resp.value.status
         page.wait_for_function(
             "() => state.loaded && state.signals.length > 0 &&"
             " document.getElementById('statusLed').classList.contains('indexed')",
-            timeout=30 * 60 * 1000, polling=500)
+            timeout=10 * 60 * 1000, polling=500)
         out["ui_import_to_ready_s"] = round(time.monotonic() - t0, 1)
 
         t0 = time.monotonic()
@@ -474,6 +479,8 @@ def main() -> int:
     parser.add_argument("--interactions", type=int, default=20)
     parser.add_argument("--browser", default=None, help="Playwright channel, e.g. msedge")
     parser.add_argument("--skip-cap-minus-one", action="store_true")
+    parser.add_argument("--skip-boundary", action="store_true")
+    parser.add_argument("--skip-latency", action="store_true")
     parser.add_argument("--skip-fidelity", action="store_true")
     parser.add_argument("--external", action="store_true",
                         help="the ASC is an external acquisition: no manifest, no boundary")
@@ -502,7 +509,7 @@ def main() -> int:
     dbc_arg = dbc if dbc.is_file() else None
     size = asc.stat().st_size
     try:
-        if not args.external:
+        if not args.external and not args.skip_boundary:
             cap = 1_073_741_824
             assert size == cap, f"boundary phases expect an exact 1 GiB fixture, got {size}"
             t0 = time.monotonic()
@@ -558,8 +565,9 @@ def main() -> int:
             p.stat().st_size for p in analysis.rglob("*") if p.is_file())
         print("import:", report["import"], flush=True)
 
-        report["latency"] = latency_phase(svc, args.interactions, rng)
-        print("latency:", json.dumps(report["latency"]), flush=True)
+        if not args.skip_latency:
+            report["latency"] = latency_phase(svc, args.interactions, rng)
+            print("latency:", json.dumps(report["latency"]), flush=True)
 
         if not args.external:
             # Cancel during transfer.
