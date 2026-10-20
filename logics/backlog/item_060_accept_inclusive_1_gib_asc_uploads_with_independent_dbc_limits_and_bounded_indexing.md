@@ -1,14 +1,14 @@
 ## item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing - Accept inclusive 1 GiB ASC uploads with independent DBC limits and bounded indexing
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 60%
+> Progress: 100%
 > Complexity: High
 > Theme: Large-trace import
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 19:48:19
+> Indicators reviewed: 2026-10-20 09:20:27
 
 # AI Context
 The aggregate 512 MiB cap blocks large acquisitions; a simple 1 GiB cap still rejects boundary-sized traces with DBCs. Separate trace, aggregate DBC and transport-envelope limits. Define local-app defaults at 1 GiB/64 MiB/8 MiB and explicit override precedence; preserve established deployments or provide documented configuration migration. Count actual streamed bytes regardless of Content-Length; validate selected library DBC policy explicitly.
@@ -52,3 +52,9 @@ The aggregate 512 MiB cap blocks large acquisitions; a simple 1 GiB cap still re
 # Priority
 - Priority: High
 - Rationale: prerequisite for every large-file validation and the desktop promise.
+
+# Tasks
+- `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis`
+
+# Notes
+- Task `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis` was finished via `logics-manager flow finish task` on 2026-10-20.

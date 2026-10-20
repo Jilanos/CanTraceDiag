@@ -1,14 +1,14 @@
 ## item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets - Build validate and publish Windows executables with versioned release assets
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 60%
+> Progress: 100%
 > Complexity: High
 > Theme: Desktop CI and release delivery
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 19:48:19
+> Indicators reviewed: 2026-10-20 09:20:27
 
 # AI Context
 The release workflow publishes a static web container and creates a release only after production deployment; it publishes no Windows artifact. Add a Windows build/test lane with recorded dependency and tool versions, application version/source provenance, required bundled assets/native libraries and distribution notices. Publish a clearly named x64 .exe and SHA-256/provenance manifest on the matching versioned release.
@@ -52,3 +52,9 @@ The release workflow publishes a static web container and creates a release only
 # Priority
 - Priority: High
 - Rationale: the bootstrap cannot be delivered until corresponding verified assets exist on a release.
+
+# Tasks
+- `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis`
+
+# Notes
+- Task `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis` was finished via `logics-manager flow finish task` on 2026-10-20.

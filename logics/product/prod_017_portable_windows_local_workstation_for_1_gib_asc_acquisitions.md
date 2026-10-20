@@ -1,11 +1,12 @@
 ## prod_017_portable_windows_local_workstation_for_1_gib_asc_acquisitions - Portable Windows local workstation for 1 GiB ASC acquisitions
 > Date: 2026-10-19
-> Status: Proposed
+> Status: Settled
 > Related request: `req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib`
-> Related backlog: `item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing`, `item_061_package_the_local_workstation_as_a_native_standalone_windows_executable`, `item_062_download_the_matching_windows_release_from_a_repository_launcher`, `item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets`, `item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows`
+> Related backlog: `item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing`
 > Related task: `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis`
 > Related architecture: (none yet)
 > Reminder: Update status, linked refs, scope, decisions, success signals, and open questions when you edit this doc.
+> Indicators reviewed: 2026-10-20 09:20:27
 
 # Overview
 Make large ASC diagnostics accessible through a self-contained Windows local service and the familiar browser interface, obtained in a double-click flow from a clone.
@@ -62,5 +63,5 @@ flowchart LR
 - The external acquisition is supplementary manual evidence if available; generated full-size qualification is mandatory and independent.
 
 # References
-- Product back-reference: `req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib`
+- Product back-reference: `item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing`
 - Task back-reference: `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis`

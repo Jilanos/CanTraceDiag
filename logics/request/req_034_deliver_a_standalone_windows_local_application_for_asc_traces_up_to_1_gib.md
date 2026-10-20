@@ -1,13 +1,13 @@
 ## req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib - Deliver a standalone Windows local application for ASC traces up to 1 GiB
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: Ready
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
 > Complexity: High
 > Theme: Standalone Windows local analysis and large ASC acquisitions
 > Reminder: Update status/understanding/confidence and linked backlog/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 11:45:48
+> Indicators reviewed: 2026-10-20 09:20:27
 
 # AI Context
 Scope the local Windows service and its distribution, using the existing Python engine. The hosted browser engine cannot fulfill this capacity promise. Size-boundary, native-runtime and measured responsiveness evidence are all required; a raised environment limit alone is insufficient.

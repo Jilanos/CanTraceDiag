@@ -1,14 +1,14 @@
 ## item_062_download_the_matching_windows_release_from_a_repository_launcher - Download the matching Windows release from a repository launcher
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 60%
+> Progress: 100%
 > Complexity: High
 > Theme: Clone bootstrap and version matching
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 19:48:19
+> Indicators reviewed: 2026-10-20 09:20:28
 
 # AI Context
 A clone does not contain a usable native executable and arbitrary latest downloads can disagree with the checked-out source. Add an obvious root-level .cmd/PowerShell bootstrap that resolves its location without a configured repository path or developer toolchain. Use OS-provided facilities, handle spaces/non-ASCII and accessible UNC paths, and never require a global execution-policy change.
@@ -51,3 +51,9 @@ A clone does not contain a usable native executable and arbitrary latest downloa
 # Priority
 - Priority: High
 - Rationale: completes the requested clone-to-double-click path after an artifact naming/provenance contract exists.
+
+# Tasks
+- `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis`
+
+# Notes
+- Task `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis` was finished via `logics-manager flow finish task` on 2026-10-20.

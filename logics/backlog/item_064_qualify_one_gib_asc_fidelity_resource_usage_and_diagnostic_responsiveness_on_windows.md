@@ -1,14 +1,14 @@
 ## item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows - Qualify one GiB ASC fidelity resource usage and diagnostic responsiveness on Windows
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 90%
 > Confidence: 85%
-> Progress: 60%
+> Progress: 100%
 > Complexity: High
 > Theme: Large-file qualification
 > Reminder: Update status/understanding/confidence/progress and linked request/task references when you edit this doc.
-> Indicators reviewed: 2026-10-19 19:48:19
+> Indicators reviewed: 2026-10-20 09:20:28
 
 # AI Context
 Existing hot-path budgets use roughly 100,000 rows and do not prove a complete 1 GiB acquisition is usable. Generate repeatable valid ASC inputs at 1 GiB with known frame counts, multi-channel traffic, extended IDs, equal timestamps, mixed DLCs and realistic roughly 45-ID traffic. Include a nontrivial generated DBC with at least 20 messages and eight signals/message; record match coverage and avoid qualifying with an empty DBC or comments-only padding.
@@ -58,3 +58,9 @@ Existing hot-path budgets use roughly 100,000 rows and do not prove a complete 1
 # Priority
 - Priority: High
 - Rationale: explicit delivery gate for the central capacity claim; start fixture/baseline work early, qualify the final frozen artifact after other slices.
+
+# Tasks
+- `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis`
+
+# Notes
+- Task `task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis` was finished via `logics-manager flow finish task` on 2026-10-20.

@@ -1,14 +1,14 @@
 ## task_049_deliver_standalone_windows_launch_and_one_gib_asc_analysis - Deliver standalone Windows launch and one GiB ASC analysis
 > From version: 1.0.0
 > Schema version: 1.0
-> Status: In progress
+> Status: Done
 > Understanding: 95%
 > Confidence: 95%
-> Progress: 95%
+> Progress: 100%
 > Complexity: High
 > Theme: Standalone Windows delivery and large ASC qualification
 > Reminder: Update status/understanding/confidence/progress and linked request/backlog references when you edit this doc.
-> Indicators reviewed: 2026-10-19 11:48:16
+> Indicators reviewed: 2026-10-20 09:20:27
 > Owner: Claude
 
 # AI Context
@@ -24,10 +24,10 @@ Deliver the five linked High-priority slices in dependency order, beginning fixt
 - [x] 4. Wave 4: Implement root bootstrap and deterministic version/source/hash/cache contract; add Windows exact-artifact CI and release asset publication without coupling desktop readiness to hosted-web deployment.
 - [x] 5. Wave 5: Run full frozen-artifact 1 GiB Windows qualification and external acquisition comparison if available, meet fidelity/resource/interaction budgets, fix failures and capture anonymized per-AC evidence.
 - [x] 6. Wave 6: Update user/architecture docs, run focused Windows/size/packaging suites plus required Python/PWA regression checks, validate Logics lineage and closeout. Scaffolding alone is not delivery; all implementation criteria remain pending.
-- [ ] 7. For functional delivery follow repository release policy: local validation, implementation commit, next SemVer preparation commit, push and passing CI on that exact preparation SHA, annotated version tag and tag-workflow verification; record Windows assets and web outcome separately. During current scoping do not implement, publish or close tasks; leave documentation commit-ready under operator control.
+- [x] 7. For functional delivery follow repository release policy: local validation, implementation commit, next SemVer preparation commit, push and passing CI on that exact preparation SHA, annotated version tag and tag-workflow verification; record Windows assets and web outcome separately. During current scoping do not implement, publish or close tasks; leave documentation commit-ready under operator control.
 - [x] ADR 009 checkpoint: update affected Logics docs during each meaningful wave and leave the repo commit-ready.
 - [x] Keep commit creation under operator control; do not force one commit per micro-step.
-- [ ] GATE: do not close until lint, audit, and scaffold validation pass.
+- [x] GATE: do not close until lint, audit, and scaffold validation pass.
 
 # Backlog
 - `item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing`
@@ -44,8 +44,8 @@ Deliver the five linked High-priority slices in dependency order, beginning fixt
 - [x] The clone launcher resolves and verifies the matching published executable and reuses its cache offline; missing releases fail clearly.
 - [x] Windows resource/latency budgets pass on the documented reference configuration with meaningful generated DBC decoding.
 - [x] Existing local formats, analysis and exports pass packaged smoke tests; Python and static-PWA regressions pass.
-- [ ] User/architecture documentation, runtime notices and SHA/CI/tag/Windows-release evidence are recorded; product brief is settled through the CLI at closeout.
-- [ ] Logics validation and scoped audit pass; unrelated existing global findings are reported separately.
+- [x] User/architecture documentation, runtime notices and SHA/CI/tag/Windows-release evidence are recorded; product brief is settled through the CLI at closeout.
+- [x] Logics validation and scoped audit pass; unrelated existing global findings are reported separately.
 
 # AC Traceability
 - request-AC1 -> `item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing`, `item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows`. Proof: implemented in 54f53f3 (`security.UploadLimits`, `upload.stage_multipart`: inclusive 1,073,741,824 B trace cap, 64 MiB aggregate DBC, 8 MiB envelope, LAN keeps 512 MiB unless overridden, `CANTRACEDIAG_MAX_*_MB` overrides documented in README); `tests/test_upload_limits.py::test_trace_cap_is_inclusive[cap-1|cap|cap+1]`, `test_trace_cap_independent_of_dbc_budget`, `test_default_limits_are_inclusive_1_gib_plus_independent_budgets`, `test_lan_keeps_legacy_aggregate_cap_unless_overridden`; v1.4.0 published exe: exact 1 GiB accepted through the Chrome file picker (407.2 s), 1 GiB + 1 B refused with 413 and an explicit message (docs/qualification-windows-1gib-2026-10-19.md).
@@ -65,6 +65,9 @@ Deliver the five linked High-priority slices in dependency order, beginning fixt
 - Windows validation on 2026-10-19 (Windows 11 x64, native CPython 3.13 build env): `packaging/windows/build.ps1` built `CanTraceDiag-1.3.0-windows-x64.exe` (SHA-256 `e48918e3...7bbe3`, commit `0c094f2`); `packaging/windows/smoke.py` 16/16; `packaging/windows/test_launcher.py` 13/13 including a `\\wsl.localhost` checkout.
 - Full-size qualification of that frozen executable with `scripts/qualify_windows_large_asc.py`: every AC4 budget met; boundary, fidelity, cancellation and external-acquisition results recorded in `docs/qualification-windows-1gib-2026-10-19.md`.
 - Not yet run: `.github/workflows/windows.yml` and the tag release on GitHub (requires push and a SemVer tag under operator control); the published-asset launcher path therefore has no remote evidence yet.
+- command: `.venv/bin/ruff check . && .venv/bin/pytest && npx -y node@22 --experimental-strip-types --test spikes/pwa-local-engine/tests/*.test.ts && packaging/windows/smoke.py + test_launcher.py on CanTraceDiag-1.4.0-windows-x64.exe && scripts/qualify_windows_large_asc.py (1 GiB)` | result: passed | date: 2026-10-20
+- Finish workflow executed on 2026-10-20.
+- Linked backlog/request close verification passed.
 
 # Report
 - Wave 2 (`54f53f3`, `ec8c584`, `75f0f60`): streaming multipart staging (`src/cantracediag/upload.py`) with an inclusive 1 GiB trace cap, 64 MiB aggregate DBC and 8 MiB envelope budgets, declared and received length enforcement, ENOSPC -> 507, cancellation during transfer, per-user staging pruned on startup; LAN keeps the 512 MiB aggregate cap unless overridden; reader closed on cancel so Windows can remove staging.
@@ -72,7 +75,11 @@ Deliver the five linked High-priority slices in dependency order, beginning fixt
 - Wave 4 (`0dbf7b6`): root `CanTraceDiag.cmd` + `packaging/windows/launcher.ps1` (version/tag/commit/x64/SHA-256 verification before execution, verified per-user offline cache, no latest fallback); reusable Windows CI workflow and tag publication independent of the web deploy.
 - Wave 5 (`e8b6369`, `0c094f2`, qualification commits): ASC fast path, per-id decode memoization, Arrow batches (about 4x faster indexing), bounded streamed lazy series decoding and vectorized first-plot decoding pinned to cantools; full-size and external qualification.
 - Wave 6 (`8f46539`, `c489308`): README Windows Standalone section, upload variables, ADR 0008, architecture note, qualification evidence.
-- Remaining before closeout: repository release policy (next SemVer preparation commit, push, passing CI on that SHA, annotated tag, tag-workflow verification with Windows assets published and resolved by the launcher). Not done in this run: pushing and tagging are operator-controlled.
+- Release v1.4.0 (operator-authorized): preparation commit `2b7cd0e` pushed; its CI run 39280288699 failed only the new Windows launcher check (Get-FileHash unavailable under an inherited PowerShell 7 PSModulePath). Fix `6646d96` pushed; CI run 39283800645 green (pwa, test 3.11, test 3.12, windows-exe / build with smoke 16/16 and launcher 13/13). Annotated tag `v1.4.0` placed on `6646d96` (still version 1.4.0) rather than on the preparation commit: deviation from the "CI on the exact preparation SHA" wording, accepted by the operator on 2026-10-20. Release workflow 39286947315 green on all 7 jobs; web deploy healthy (https://cantracediag.paulmondou.fr/ 200); Windows assets published on https://github.com/Jilanos/CanTraceDiag/releases/tag/v1.4.0 and resolved, verified and run by `CanTraceDiag.cmd` from a fresh clone, then offline from cache. Published exe re-qualified at full size (see `docs/qualification-windows-1gib-2026-10-19.md`). `logics-manager release validate 1.4.0` passes every gate.
+- Remaining platform limits: Windows 11 x64 only; executable unsigned (SmartScreen may warn); one reference machine measured; 1 GiB guarantee is ASC-only; cold first plot of a signal 25-39 s on 1 GiB; global Logics audit keeps 17 pre-existing stale-pending blockers outside this chain.
+- Finished on 2026-10-20.
+- Linked backlog item(s): `item_060_accept_inclusive_1_gib_asc_uploads_with_independent_dbc_limits_and_bounded_indexing`, `item_061_package_the_local_workstation_as_a_native_standalone_windows_executable`, `item_062_download_the_matching_windows_release_from_a_repository_launcher`, `item_063_build_validate_and_publish_windows_executables_with_versioned_release_assets`, `item_064_qualify_one_gib_asc_fidelity_resource_usage_and_diagnostic_responsiveness_on_windows`
+- Related request(s): `req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib`
 
 # Links
 - Request: `req_034_deliver_a_standalone_windows_local_application_for_asc_traces_up_to_1_gib`
