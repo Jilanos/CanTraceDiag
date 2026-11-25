@@ -1,5 +1,53 @@
 # CanTraceDiag
 
+[![CI](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml/badge.svg)](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml)
+
+**A local workstation to inspect CAN bus traces (ASC, TRC, BLF, MF4) with DBC decoding, synchronized plots and A/B cursors.**
+
+Live demo: <https://cantracediag.paulmondou.fr> (static PWA, the trace stays in your browser).
+
+![CanTraceDiag workspace](docs/assets/cantracediag-workspace.png)
+
+## Problem solved, and for whom
+
+Embedded and automotive engineers often need to read a CAN acquisition away from the vehicle, without keeping a proprietary tool open and without a remote server. CanTraceDiag imports a trace and its DBC files, decodes the signals and lets you explore them locally, without loading the whole trace into the browser.
+
+## Key features
+
+- Import of ASC, PCAN-View text TRC v1.1, Vector BLF (classic CAN) and raw-CAN MDF4 traces (BLF and MF4 in server mode), plus DBC files. Malformed records become explicit import anomalies instead of corrupt frames.
+- Multi-DBC decoding with ambiguous arbitration ID detection.
+- Stacked signal plots with zoom, pan, grid and A/B cursors, a measurement table (min, max, mean, std, RMS) and an opt-in cursor integral.
+- Filterable, paginated trace view with a frame inspector (raw payload, decoded message, physical signals).
+- Diagnostic report of the import, streamed CSV/Parquet export, raw trace to ASC conversion (server mode).
+- Local DBC library and session restore.
+- Standalone Windows executable (ASC up to 1 GiB), without Python or WSL.
+
+The complete feature list is in [Core Features](#core-features) below.
+
+## Quick start
+
+Prerequisite: Python 3.11+.
+
+```bash
+git clone https://github.com/Jilanos/CanTraceDiag.git
+cd CanTraceDiag
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install -U pip
+python -m pip install -e ".[api,dev]"
+cantracediag info tests/fixtures/sample.asc --dbc tests/fixtures/sample.dbc
+pytest
+cantracediag serve --open
+```
+
+## Tech stack
+
+Python 3.11+, FastAPI, DuckDB, asammdf (MF4); framework-free JavaScript frontend; static PWA built with Node 22 (production); pytest, ruff and GitHub Actions for validation.
+
+## Status
+
+Version 1.4.0, in active use. Known limits are listed in [Current Status](#current-status). No license file is published yet.
+
 ## Production architecture
 
 The deployed product is the static PWA generated from
@@ -9,13 +57,8 @@ is retained as a local/API reference implementation and compatibility suite;
 it is not the artifact served by the production Docker image. See
 `docs/architecture-pwa-canonique.md` for the boundary and validation contract.
 
-**CanTraceDiag turns an ASC, supported text `.trc`, Vector `.blf`, or raw-CAN MDF4 `.mf4` trace and its DBC files into a local diagnostic workstation: import, decode, synchronized plots, A/B cursors, a filterable trace view, session restore, and raw ASC conversion.**
-
-The goal is direct: inspect real CAN acquisitions away from the vehicle, without a remote server, without keeping a proprietary tool open, and without loading the whole trace into the browser.
-
-![CanTraceDiag workspace](docs/assets/cantracediag-workspace.png)
-
 ## Core Features
+
 
 - **ASC/TRC/BLF + DBC import** from the browser or server-side paths. The supported PCAN-View text TRC v1.1 layout and ASC both retain malformed records as explicit import anomalies instead of corrupt frames. Vector BLF imports the classic-CAN object subset the same way, turning CAN FD/XL objects, remote requests, error frames, and integrity failures into inspectable diagnostics; a corrupt container fails the import rather than publishing a partial trace.
 - **Raw CAN MF4 import** (server mode) of ASAM MDF 4.x bus logging (`CAN_DataFrame` groups), including recordings a logger left *unfinalized* (`UnFinMF`, zero cycle counters, stale last-DT length). Recovery happens only in a temporary copy -- the source file is never modified -- and an independent byte reconciliation refuses truncated or mis-recovered data instead of importing it partially. Groups are merged chronologically (ties: group order, then record order); timestamps keep the measurement-relative origin; sparse bus numbers, extended IDs and known Rx/Tx are kept. Remote/error/CAN FD records, malformed frames and non-CAN groups (LIN...) become diagnostics; a recovery warning is shown with the import.
@@ -37,23 +80,6 @@ The goal is direct: inspect real CAN acquisitions away from the vehicle, without
 - **Standalone Windows executable** fetched, verified and started by a double-clickable `CanTraceDiag.cmd`, for ASC traces up to 1 GiB, without Python or WSL.
 - **One-click Windows + WSL launcher** with a desktop shortcut (developers).
 
-## Quick Start
-
-Prerequisite: Python 3.11+.
-
-```bash
-git clone https://github.com/Jilanos/CanTraceDiag.git
-cd CanTraceDiag
-python -m venv .venv
-source .venv/bin/activate
-python -m pip install -U pip
-python -m pip install -e ".[api,dev]"
-cantracediag --help
-pytest
-cantracediag serve --open
-```
-
-[![CI](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml/badge.svg)](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml)
 
 ## Preview
 
