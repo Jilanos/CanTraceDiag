@@ -1,7 +1,5 @@
 # CanTraceDiag
 
-[![CI](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml/badge.svg)](https://github.com/Jilanos/CanTraceDiag/actions/workflows/ci.yml)
-
 **A local workstation to inspect CAN bus traces (ASC, TRC, BLF, MF4) with DBC decoding, synchronized plots and A/B cursors.**
 
 Live demo: <https://cantracediag.paulmondou.fr> (static PWA, the trace stays in your browser).
